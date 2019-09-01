@@ -34,6 +34,8 @@ namespace SandWorm
         public int rightColumns = 0;
         public int topRows = 0;
         public int bottomRows = 0;
+        public static Rhino.UnitSystem units = Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem;
+        public static double unitsMultiplier;
 
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
@@ -100,6 +102,36 @@ namespace SandWorm
             DA.GetData<int>(5, ref topRows);
             DA.GetData<int>(6, ref bottomRows);
 
+            switch (units.ToString())
+            {
+                case "Kilometers":
+                    unitsMultiplier = 0.001;
+                    break;
+
+                case "Meters":
+                    unitsMultiplier = 1;
+                    break;
+
+                case "Decimeters":
+                    unitsMultiplier = 10;
+                    break;
+
+                case "Centimeters":
+                    unitsMultiplier = 100;
+                    break;
+
+                case "Millimeters":
+                    unitsMultiplier = 1000;
+                    break;
+
+                case "Inches":
+                    unitsMultiplier = 39.3701;
+                    break;
+
+                case "Feet":
+                    unitsMultiplier = 3.28084;
+                    break;
+            }
 
             Stopwatch timer = Stopwatch.StartNew(); //debugging
 
