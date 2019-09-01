@@ -1,8 +1,7 @@
 ﻿using System;
+using System.Drawing;
 using System.Collections.Generic;
 using System.Diagnostics; //debugging
-using System.Linq;
-
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 using Microsoft.Kinect;
@@ -12,26 +11,30 @@ using Microsoft.Kinect;
 // folder in Grasshopper.
 // You can use the _GrasshopperDeveloperSettings Rhino command for that.
 
+//Test comment
 namespace SandWorm
 {
     public class SandWorm : GH_Component
     {
         private KinectSensor kinectSensor = null;
-        private List<Point3d> pointCloud = null;
-        private Mesh triangulatedMesh = null;
+        private List<Point3f> pointCloud = null;
+        private Mesh quadMesh = null;
         private List<Mesh> outputMesh = null;
-        private List<Curve> contours = null;
-
         private List<String> output = null;//debugging
-        private List<System.Drawing.Color> pointCloudColor = null;
-        public int resolution = 1;
-        public double depth = 8.00;
-        public Point3d origin;
-        public Rectangle3d trimRectangle;
-        public double smooth = 0.1;
-        public int iterations = 1;
-        public Point3d[] renderBuffer = Enumerable.Range(1, 217088).Select(i => new Point3d()).ToArray(); //initialize the array with 217088 points, each for every pixel of Kinect's depth camera
-        
+
+        public List<Color> vertexColors;
+        public Mesh m = new Mesh();
+
+        public double minEl;
+        public double maxEl;
+        public Interval hueRange = new Interval(0, 0.333333333333);
+        public double waterLevel;
+        public double sensorElevation = 1.06; //to do - fix hard wiring
+        public int leftColumns = 0;
+        public int rightColumns = 0;
+        public int topRows = 0;
+        public int bottomRows = 0;
+
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
         /// constructor without any arguments.
@@ -51,12 +54,21 @@ namespace SandWorm
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddPointParameter("Origin of Pointcloud", "O", "Origin of pointcoud", GH_ParamAccess.item);
-            pManager.AddIntegerParameter("Resolution of Pointcloud", "R", "Resolution of pointcoud", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Depth of Pointcloud", "D", "Depth of pointcoud", GH_ParamAccess.item);
-            pManager.AddRectangleParameter("Trim Rectangle", "Tr", "Trim Rectangle", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Smoothing Factor", "Sf", "Smoothing Factor", GH_ParamAccess.item);
-            pManager.AddIntegerParameter("Smoothing Iterations", "Si", "Smoothing Iterations", GH_ParamAccess.item);
+            pManager.AddNumberParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, 0.00f);
+            pManager.AddNumberParameter("Minimum Elevation", "minEl", "Minimum Elevation", GH_ParamAccess.item, -0.02f);
+            pManager.AddNumberParameter("Maximum Elevation", "maxEl", "Maximum Elevation", GH_ParamAccess.item, 0.05f);
+            pManager.AddIntegerParameter("LeftColumns", "LC", "Number of columns to trim from the left", GH_ParamAccess.item, 0);
+            pManager.AddIntegerParameter("RightColumns", "RC", "Number of columns to trim from the right", GH_ParamAccess.item, 0);
+            pManager.AddIntegerParameter("TopRows", "TR", "Number of rows to trim from the top", GH_ParamAccess.item, 0);
+            pManager.AddIntegerParameter("BottomRows", "BR", "Number of rows to trim from the bottom", GH_ParamAccess.item, 0);
+
+            pManager[0].Optional = true;
+            pManager[1].Optional = true;
+            pManager[2].Optional = true;
+            pManager[3].Optional = true;
+            pManager[4].Optional = true;
+            pManager[5].Optional = true;
+            pManager[6].Optional = true;
         }
 
         /// <summary>
@@ -64,10 +76,7 @@ namespace SandWorm
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddPointParameter("Pointcloud", "PC", "Pointcloud", GH_ParamAccess.list);
-            pManager.AddColourParameter("Color of Pointcloud", "C", "Color of Pointcloud", GH_ParamAccess.list);
             pManager.AddMeshParameter("Mesh", "M", "Resulting Mesh", GH_ParamAccess.list);
-            pManager.AddCurveParameter("Contours", "Co", "Contours", GH_ParamAccess.list);
             pManager.AddTextParameter("Output", "O", "Output", GH_ParamAccess.list); //debugging
         }
 
@@ -83,162 +92,68 @@ namespace SandWorm
         /// to store data in output parameters.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            DA.GetData<Point3d>(0, ref origin);
-            DA.GetData<int>(1, ref resolution);
-            DA.GetData<double>(2, ref depth);
-            DA.GetData<Rectangle3d>(3, ref trimRectangle);
-            DA.GetData<double>(4, ref smooth);
-            DA.GetData<int>(5, ref iterations);
+            DA.GetData<double>(0, ref waterLevel);
+            DA.GetData<double>(1, ref minEl);
+            DA.GetData<double>(2, ref maxEl);
+            DA.GetData<int>(3, ref leftColumns);
+            DA.GetData<int>(4, ref rightColumns);
+            DA.GetData<int>(5, ref topRows);
+            DA.GetData<int>(6, ref bottomRows);
 
-
-            int res;
-            double dep;
-            Point3d org = origin;
-            Point3d min = (trimRectangle.Corner(0) + org);
-            Point3d max = (trimRectangle.Corner(2) + org);
-            //Kinect's Y axis is flipped. Reversing values here for ease of further comparison
-            double minY = max.Y * -1;
-            double maxY = min.Y * -1;
 
             Stopwatch timer = Stopwatch.StartNew(); //debugging
-
-            if (resolution < 1)
-            {
-                res = 1;
-            }
-            else
-            {
-                res = resolution;
-            }
-
-            if (depth < 0)
-            {
-                dep = 8.00;
-            }
-            else
-            {
-                dep = depth;
-            }
 
             if (this.kinectSensor == null)
             {
                 KinectController.AddRef();
                 this.kinectSensor = KinectController.sensor;
-                KinectController.kinectGHC = this;
+                //KinectController.kinectGHC = this;
             }
 
 
             if (this.kinectSensor != null)
             {
-                if (KinectController.cameraSpacePoints != null && KinectController.colorSpacePoints != null)
+                if (KinectController.cameraSpacePoints != null)
                 {
-                    pointCloud = new List<Point3d>();
-                    pointCloudColor = new List<System.Drawing.Color>();
-                    Point3d renderPoint = new Point3d();
+                    pointCloud = new List<Point3f>();
+                    Point3f tempPoint = new Point3f();
                     outputMesh = new List<Mesh>();
-                    triangulatedMesh = new Mesh();
-
                     output = new List<String>(); //debugging
+                    vertexColors = new List<Color>();
 
+                    for (int rows = topRows; rows < KinectController.depthHeight - bottomRows; rows++)
 
-                    int pixelCount = KinectController.cameraSpacePoints.Length;
-                    for (int i = 0; i < pixelCount; i += res)
                     {
-                        CameraSpacePoint p = KinectController.cameraSpacePoints[i];
-
-                        if (p.Z > dep || p.Z < 1.0) //remove flying pixels
+                        for (int columns = rightColumns; columns < KinectController.depthWidth - leftColumns; columns++)
                         {
-                            continue;
+
+                            int i = rows * KinectController.depthWidth + columns;
+                            CameraSpacePoint p = KinectController.cameraSpacePoints[i];
+
+                            tempPoint.X = (float)Math.Round(p.X * -1, 3);
+                            tempPoint.Y = (float)Math.Round(p.Y, 3);
+                            tempPoint.Z = (float)Math.Round(p.Z * -1 + sensorElevation, 3);
+
+                            vertexColors.Add(Core.ColorizeVertex(tempPoint.Z, maxEl, minEl, waterLevel, hueRange));
+                            pointCloud.Add(tempPoint);
                         }
-
-                        else //if (p.Z <= dep)
-                        {
-                            if (min.X > p.X || p.X > max.X || minY > p.Y || p.Y > maxY) //Taking only points enclosed by the trimming rectangle 
-                            {
-                                continue;
-                            }
-
-                            else
-                            {
-                                ColorSpacePoint colPt = KinectController.colorSpacePoints[i];
-
-                                int colorX = (int)Math.Floor(colPt.X + 0.5);
-                                int colorY = (int)Math.Floor(colPt.Y + 0.5);
-
-
-                                if ((colorX >= 0) && (colorX < KinectController.colorWidth) && (colorY >= 0) && (colorY < KinectController.colorHeight))
-                                {
-                                    int colorIndex = ((colorY * KinectController.colorWidth) + colorX) * KinectController.bytesPerPixel;
-                                    Byte b = 0; Byte g = 0; Byte r = 0;
-
-                                    b = KinectController.colorFrameData[colorIndex++];
-                                    g = KinectController.colorFrameData[colorIndex++];
-                                    r = KinectController.colorFrameData[colorIndex++];
-
-                                    System.Drawing.Color color = System.Drawing.Color.FromArgb(r, g, b);
-
-
-                                    //Only add new points if delta between ticks is greater than 10mm to remove jitter
-                                    if (0.010 < Math.Abs(renderBuffer[i].Z - p.Z))
-                                    {
-                                        renderBuffer[i].X = p.X;
-                                        renderBuffer[i].Y = p.Y;
-                                        renderBuffer[i].Z = p.Z;
-                                    }
-
-                                    //transformation matrix to draw on screen
-                                    renderPoint.X = renderBuffer[i].X + org.X;
-                                    renderPoint.Y = renderBuffer[i].Y * -1 - org.Y;
-                                    renderPoint.Z = renderBuffer[i].Z * -1 - org.Z;
-
-                                    pointCloud.Add(renderPoint);
-                                    pointCloudColor.Add(color);
-
-                                }
-                            }
-                        }
-                    }
+                    };
                     //debugging
                     timer.Stop();
                     output.Add("Point Cloud generation: " + timer.ElapsedMilliseconds.ToString() + " ms");
 
-                }
+                    timer.Restart(); //debugging
 
-                timer.Restart(); //debugging
-                if (pointCloud != null)
-                {
-                    triangulatedMesh = Mesh.CreateFromTessellation(pointCloud, null, Plane.WorldXY, false);
+
+                    quadMesh = Core.CreateQuadMesh(m, pointCloud, vertexColors, KinectController.depthWidth - leftColumns - rightColumns, KinectController.depthHeight - topRows - bottomRows);
+                    outputMesh.Add(quadMesh);
 
                     timer.Stop(); //debugging
                     output.Add("Meshing: " + timer.ElapsedMilliseconds.ToString() + " ms");
-
-                    timer.Restart(); //debugging
-                    for (int i = 0; i < iterations; i++)
-                    {
-                        triangulatedMesh.Smooth(smooth, false, false, true, false, SmoothingCoordinateSystem.World);
-                    }
-
-                    timer.Stop(); //debugging
-                    output.Add("Mesh Smoothing: " + iterations + " iterations. " + timer.ElapsedMilliseconds.ToString() + " ms"); //debugging
-
-                    timer.Restart(); //debugging
-
-                    Point3d lowerBound = new Point3d(0.0, 0.0, -1.4);
-                    Point3d upperBound = new Point3d(0.0, 0.0, -1.0);
-                    contours = new List<Curve>(Mesh.CreateContourCurves(triangulatedMesh, lowerBound, upperBound, 0.005));
-
-                    timer.Stop(); //debugging
-                    output.Add("Contours: " + timer.ElapsedMilliseconds.ToString() + " ms"); //debugging
-
-                    outputMesh.Add(triangulatedMesh);
                 }
 
-
-                DA.SetDataList(0, pointCloud);
-                DA.SetDataList(1, pointCloudColor);
-                DA.SetDataList(2, outputMesh);
-                DA.SetDataList(3, contours);
-                DA.SetDataList(4, output); //debugging
+                DA.SetDataList(0, outputMesh);
+                DA.SetDataList(1, output); //debugging
             }
             base.OnPingDocument().ScheduleSolution(20, new GH_Document.GH_ScheduleDelegate(ScheduleDelegate));
         }
