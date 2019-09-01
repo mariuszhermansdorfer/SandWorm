@@ -18,12 +18,11 @@ namespace SandWorm
     {
         private KinectSensor kinectSensor = null;
         private List<Point3f> pointCloud = null;
-        private Mesh quadMesh = null;
         private List<Mesh> outputMesh = null;
         private List<String> output = null;//debugging
 
         public List<Color> vertexColors;
-        public Mesh m = new Mesh();
+        public Mesh quadMesh = new Mesh();
 
         public double minEl;
         public double maxEl;
@@ -177,7 +176,7 @@ namespace SandWorm
                     timer.Restart(); //debugging
 
 
-                    quadMesh = Core.CreateQuadMesh(m, pointCloud, vertexColors, KinectController.depthWidth - leftColumns - rightColumns, KinectController.depthHeight - topRows - bottomRows);
+                    quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, KinectController.depthWidth - leftColumns - rightColumns, KinectController.depthHeight - topRows - bottomRows);
                     outputMesh.Add(quadMesh);
 
                     timer.Stop(); //debugging
