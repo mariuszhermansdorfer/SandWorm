@@ -161,9 +161,9 @@ namespace SandWorm
                             int i = rows * KinectController.depthWidth + columns;
                             CameraSpacePoint p = KinectController.cameraSpacePoints[i];
 
-                            tempPoint.X = (float)Math.Round(p.X * -1, 3);
-                            tempPoint.Y = (float)Math.Round(p.Y, 3);
-                            tempPoint.Z = (float)Math.Round(p.Z * -1 + sensorElevation, 3);
+                            tempPoint.X = (float)Math.Round(p.X * unitsMultiplier * -1, 3);
+                            tempPoint.Y = (float)Math.Round(p.Y * unitsMultiplier, 3);
+                            tempPoint.Z = (float)Math.Round((p.Z * - 1 * unitsMultiplier) + sensorElevation, 3);
 
                             vertexColors.Add(Core.ColorizeVertex(tempPoint.Z, maxEl, minEl, waterLevel, hueRange));
                             pointCloud.Add(tempPoint);
