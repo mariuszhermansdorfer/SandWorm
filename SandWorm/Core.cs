@@ -19,8 +19,8 @@ namespace SandWorm
                 SandWorm.output.Add("Face remeshing");
                 mesh = new Mesh();
                 mesh.Vertices.Capacity = vertices.Count();      // Don't resize array
-                mesh.Vertices.UseDoublePrecisionVertices = true;       // Save memory
-                mesh.Vertices.AddVertices(vertices);       // Add all points to vertex list
+                mesh.Vertices.UseDoublePrecisionVertices = true;
+                mesh.Vertices.AddVertices(vertices);       
 
                 for (int y = 1; y < yd - 1; y++)       // Iterate over y dimension
                 {
@@ -36,36 +36,31 @@ namespace SandWorm
             else
             {
                 mesh.Vertices.Clear();
-                mesh.Vertices.UseDoublePrecisionVertices = true;
-                mesh.Vertices.AddVertices(vertices);       // Add all points to vertex list
+                mesh.Vertices.UseDoublePrecisionVertices = true; 
+                mesh.Vertices.AddVertices(vertices);       
             }
 
             mesh.VertexColors.SetColors(colors.ToArray());
             return mesh;
         }
 
-        public static Color ColorizeVertex(double z, double maxEl, double minEl, double waterLevel, Interval hueRange)
+        public static Color[] ComputeLookupTable(int waterLevel, Color[] lookupTable)
         {
-
-            if (z > waterLevel)
+            //precompute all vertex colors
+            int j = 0;
+            for (int i = waterLevel; i < lookupTable.Length; i++) //below water level
             {
-                double c = MapValue(minEl, maxEl, 0, 1, z);
-                double hue = hueRange.ParameterAt(c);
-                ColorHSL hsl = new ColorHSL(hue, 1.0, 0.5);
-                return hsl.ToArgbColor();
+                lookupTable[i] = new ColorHSL(0.6, 0.6, 0.60 - (j * 0.02)).ToArgbColor();
+                j++;
             }
-            else
+
+            j = 0;
+            for (int i = waterLevel; i > 0; i--) //above water level
             {
-                double hue = 0.6;
-                ColorHSL hsl = new ColorHSL(hue, 1.0, 0.5);
-                return hsl.ToArgbColor();
+                lookupTable[i] = new ColorHSL(0.01 + (j * 0.01), 1.0, 0.5).ToArgbColor();
+                j++;
             }
-        }
-
-
-        public static double MapValue(double a0, double a1, double b0, double b1, double a)
-        {
-            return b0 + (b1 - b0) * ((a - a0) / (a1 - a0));
+            return lookupTable;
         }
     }
 }
