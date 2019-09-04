@@ -19,7 +19,7 @@ namespace SandWorm
         private KinectSensor kinectSensor = null;
         private List<Point3f> pointCloud = null;
         private List<Mesh> outputMesh = null;
-        private List<String> output = null;//debugging
+        public static List<String> output = null;//debugging
 
         public List<Color> vertexColors;
         public Mesh quadMesh = new Mesh();
@@ -28,7 +28,7 @@ namespace SandWorm
         public double maxEl;
         public Interval hueRange = new Interval(0, 0.333333333333);
         public double waterLevel;
-        public double sensorElevation = 1.06; //to do - fix hard wiring
+        public double sensorElevation = 1060; //to do - fix hard wiring
         public int leftColumns = 0;
         public int rightColumns = 0;
         public int topRows = 0;
@@ -108,31 +108,31 @@ namespace SandWorm
             switch (units.ToString())
             {
                 case "Kilometers":
-                    unitsMultiplier = 0.001;
+                    unitsMultiplier = 0.0001;
                     break;
 
                 case "Meters":
-                    unitsMultiplier = 1;
+                    unitsMultiplier = 0.001;
                     break;
 
                 case "Decimeters":
-                    unitsMultiplier = 10;
+                    unitsMultiplier = 0.01;
                     break;
 
                 case "Centimeters":
-                    unitsMultiplier = 100;
+                    unitsMultiplier = 0.1;
                     break;
 
                 case "Millimeters":
-                    unitsMultiplier = 1000;
+                    unitsMultiplier = 1;
                     break;
 
                 case "Inches":
-                    unitsMultiplier = 39.3701;
+                    unitsMultiplier = 0.0393701;
                     break;
 
                 case "Feet":
-                    unitsMultiplier = 3.28084;
+                    unitsMultiplier = 0.0328084;
                     break;
             }
 
@@ -148,7 +148,7 @@ namespace SandWorm
 
             if (this.kinectSensor != null)
             {
-                if (KinectController.cameraSpacePoints != null)
+                if (KinectController.depthFrameData != null)
                 {
                     pointCloud = new List<Point3f>();
                     Point3f tempPoint = new Point3f();
@@ -163,12 +163,19 @@ namespace SandWorm
                         {
 
                             int i = rows * KinectController.depthWidth + columns;
-                            CameraSpacePoint p = KinectController.cameraSpacePoints[i];
 
-                            tempPoint.X = (float)Math.Round(p.X * unitsMultiplier * -1, 3);
-                            tempPoint.Y = (float)Math.Round(p.Y * unitsMultiplier, 3);
-                            tempPoint.Z = (float)Math.Round((p.Z * - 1 * unitsMultiplier) + sensorElevation, 3);
+                            tempPoint.X = (float)(columns * -unitsMultiplier * 3); //to do - fix arbitrary grid size of 3mm
+                            tempPoint.Y = (float)(rows * -unitsMultiplier * 3); //to do - fix arbitrary grid size of 3mm
 
+                            if (KinectController.depthFrameData[i] == 0) //check for invalid pixels
+                            {
+                                tempPoint.Z = (float)((KinectController.depthFrameData[i-1] - sensorElevation) * -unitsMultiplier);
+                            }
+                            else
+                            {
+                                tempPoint.Z = (float)((KinectController.depthFrameData[i] - sensorElevation) * -unitsMultiplier);
+                            }
+                            
                             vertexColors.Add(Core.ColorizeVertex(tempPoint.Z, maxEl, minEl, waterLevel, hueRange));
                             pointCloud.Add(tempPoint);
                         }

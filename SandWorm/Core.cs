@@ -3,6 +3,7 @@ using System.Linq;
 using Rhino.Geometry;
 using Rhino.Display;
 using System.Drawing;
+using System.Threading.Tasks;
 
 namespace SandWorm
 {
@@ -16,6 +17,7 @@ namespace SandWorm
 
             if (mesh.Faces.Count() != (xStride - 2) * (yStride - 2))
             {
+                SandWorm.output.Add("Face remeshing");
                 mesh = new Mesh();
                 mesh.Vertices.Capacity = vertices.Count();      // Don't resize array
                 mesh.Vertices.UseDoublePrecisionVertices = true;       // Save memory

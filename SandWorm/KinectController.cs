@@ -7,15 +7,12 @@ namespace SandWorm
     static class KinectController
     {
         public static KinectSensor sensor = null;
-        public static CoordinateMapper coordinateMapper;
-        public static CameraSpacePoint[] cameraSpacePoints;
         public static int depthHeight = 0;
         public static int depthWidth = 0;
         public static MultiSourceFrameReader multiFrameReader = null;
         public static FrameDescription depthFrameDescription = null;
         public static int refc = 0;
         public static ushort[] depthFrameData = null;
-        //public static SandWorm kinectGHC = null;
 
         public static void AddRef()
         {
@@ -44,7 +41,7 @@ namespace SandWorm
         {
             sensor = KinectSensor.GetDefault();
 
-            coordinateMapper = sensor.CoordinateMapper;
+
             multiFrameReader = sensor.OpenMultiSourceFrameReader(FrameSourceTypes.Depth);
             multiFrameReader.MultiSourceFrameArrived += new EventHandler<MultiSourceFrameArrivedEventArgs>(KinectController.Reader_FrameArrived);
 
@@ -72,29 +69,14 @@ namespace SandWorm
                                     depthHeight = depthFrameDescription.Height;
                                     depthFrameData = new ushort[depthWidth * depthHeight];
                                     depthFrame.CopyFrameDataToArray(depthFrameData);
-
-                                    for (int i = 1; i < depthFrameData.Length; i++)
-                                    {
-                                        if (depthFrameData[i] == 0)
-                                        {
-                                            depthFrameData[i] = depthFrameData[i - 1]; //to do - fix first point not being evaluated
-                                        }
-                                    };
-                                    cameraSpacePoints = new CameraSpacePoint[depthWidth * depthHeight];
-                                    coordinateMapper.MapDepthFrameToCameraSpace(depthFrameData, cameraSpacePoints);
-
                                 }
                             }
                         }
-
                     }
                     catch (Exception) { return; }
                 }
             }
         }
-
-        //kinectGHC.CallExpireSolution();
-
 
         public static KinectSensor Sensor
         {
