@@ -3,7 +3,6 @@ using System.Linq;
 using Rhino.Geometry;
 using Rhino.Display;
 using System.Drawing;
-using System.Threading.Tasks;
 
 namespace SandWorm
 {
