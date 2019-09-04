@@ -33,6 +33,7 @@ namespace SandWorm
         public int rightColumns = 0;
         public int topRows = 0;
         public int bottomRows = 0;
+        public int tickRate = 20; // In ms
         public static Rhino.UnitSystem units = Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem;
         public static double unitsMultiplier;
 
@@ -62,6 +63,7 @@ namespace SandWorm
             pManager.AddIntegerParameter("RightColumns", "RC", "Number of columns to trim from the right", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("TopRows", "TR", "Number of rows to trim from the top", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("BottomRows", "BR", "Number of rows to trim from the bottom", GH_ParamAccess.item, 0);
+            pManager.AddIntegerParameter("TickRate", "TR", "The time interval, in milliseconds, to update geometry from the Kinect. Set as 0 to disable automatic updates.", GH_ParamAccess.item, tickRate);
 
             pManager[0].Optional = true;
             pManager[1].Optional = true;
@@ -70,6 +72,7 @@ namespace SandWorm
             pManager[4].Optional = true;
             pManager[5].Optional = true;
             pManager[6].Optional = true;
+            pManager[7].Optional = true;
         }
 
         /// <summary>
@@ -100,6 +103,7 @@ namespace SandWorm
             DA.GetData<int>(4, ref rightColumns);
             DA.GetData<int>(5, ref topRows);
             DA.GetData<int>(6, ref bottomRows);
+            DA.GetData<int>(7, ref tickRate);
 
             switch (units.ToString())
             {
@@ -186,7 +190,11 @@ namespace SandWorm
                 DA.SetDataList(0, outputMesh);
                 DA.SetDataList(1, output); //debugging
             }
-            base.OnPingDocument().ScheduleSolution(20, new GH_Document.GH_ScheduleDelegate(ScheduleDelegate));
+
+            if (tickRate > 0) // Allow users to force manual recalculation
+            {
+                base.OnPingDocument().ScheduleSolution(tickRate, new GH_Document.GH_ScheduleDelegate(ScheduleDelegate));
+            }
         }
 
         /// <summary>
