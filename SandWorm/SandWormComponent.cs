@@ -5,6 +5,7 @@ using System.Diagnostics; //debugging
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 using Microsoft.Kinect;
+using System.Windows.Forms;
 // comment 
 // In order to load the result of this wizard, you will also need to
 // add the output bin/ folder of this project to the list of loaded
@@ -25,6 +26,8 @@ namespace SandWorm
 
         public static int depthPoint;
         public static Color[] lookupTable = new Color[1500]; //to do - fix arbitrary value assuming 1500 mm as max distance from the kinect sensor
+        enum MeshColorStyle { noColor, byElevation };
+        private MeshColorStyle selectedColorStyle = MeshColorStyle.byElevation; // Must be private to be less accessible than enum type
         public List<Color> vertexColors;
         public Mesh quadMesh = new Mesh();
 
@@ -87,6 +90,35 @@ namespace SandWorm
             pManager.AddTextParameter("Output", "O", "Output", GH_ParamAccess.list); //debugging
         }
 
+        protected override void AppendAdditionalComponentMenuItems(ToolStripDropDown menu)
+        {
+            base.AppendAdditionalComponentMenuItems(menu);
+            Menu_AppendItem(menu, "Color Mesh by Elevation", SetMeshColorStyle, true, selectedColorStyle == MeshColorStyle.byElevation);
+            menu.Items[menu.Items.Count - 1].Tag = MeshColorStyle.byElevation;
+            Menu_AppendItem(menu, "Do Not Color Mesh", SetMeshColorStyle, true, selectedColorStyle == MeshColorStyle.noColor);
+            menu.Items[menu.Items.Count - 1].Tag = MeshColorStyle.noColor;
+        }
+
+        private void SetMeshColorStyle(object sender, EventArgs e)
+        {
+            ToolStripMenuItem selectedItem = (ToolStripMenuItem)sender;
+            ToolStrip parentMenu = selectedItem.Owner as ToolStrip;
+            if ((MeshColorStyle)selectedItem.Tag != selectedColorStyle) // Update style if it was changed
+            {
+                selectedColorStyle = (MeshColorStyle)selectedItem.Tag;
+                ExpireSolution(true);
+                quadMesh.VertexColors.Clear(); // Must flush mesh colors to properly updated display
+            }
+            for (int i = 0; i < parentMenu.Items.Count; i++) // Easier than foreach as types differ
+            {
+                if (parentMenu.Items[i] is ToolStripMenuItem && parentMenu.Items[i].Tag != null)
+                {
+                    ToolStripMenuItem menuItem = parentMenu.Items[i] as ToolStripMenuItem;
+                    menuItem.Checked = true; // Toggle state of menu items
+                }
+            }
+        }
+
         private void ScheduleDelegate(GH_Document doc)
         {
             ExpireSolution(false);
@@ -142,8 +174,10 @@ namespace SandWorm
 
             Stopwatch timer = Stopwatch.StartNew(); //debugging
 
-            Core.ComputeLookupTable(waterLevel, lookupTable); //precompute all vertex colors
-
+            if (selectedColorStyle == MeshColorStyle.byElevation)
+            {
+                Core.ComputeLookupTable(waterLevel, lookupTable); //precompute all vertex colors
+            }
 
             if (this.kinectSensor == null)
             {
@@ -208,7 +242,10 @@ namespace SandWorm
 
 
                             tempPoint.Z = (float)((depthPoint - sensorElevation) * -unitsMultiplier);
-                            vertexColors.Add(lookupTable[depthPoint]);
+                            if (selectedColorStyle == MeshColorStyle.byElevation)
+                            { 
+                                vertexColors.Add(lookupTable[depthPoint]);
+                            }
 
                             pointCloud.Add(tempPoint);
                         }

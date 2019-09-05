@@ -41,7 +41,10 @@ namespace SandWorm
                 mesh.Vertices.AddVertices(vertices);       
             }
 
-            mesh.VertexColors.SetColors(colors.ToArray());
+            if (colors.Count > 0) // Colors only provided if the mesh style permits
+            {
+                mesh.VertexColors.SetColors(colors.ToArray()); 
+            }
             return mesh;
         }
 
