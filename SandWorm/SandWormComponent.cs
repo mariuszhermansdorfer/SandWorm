@@ -20,6 +20,8 @@ namespace SandWorm
         private List<Point3f> pointCloud = null;
         private List<Mesh> outputMesh = null;
         public static List<String> output = null;//debugging
+        private Queue<ushort[]> renderBuffer = new Queue<ushort[]>();
+
 
         public static int depthPoint;
         public static Color[] lookupTable = new Color[1500]; //to do - fix arbitrary value assuming 1500 mm as max distance from the kinect sensor
@@ -33,8 +35,10 @@ namespace SandWorm
         public int topRows = 0;
         public int bottomRows = 0;
         public int tickRate = 20; // In ms
+        public int averageFrames = 1;
         public static Rhino.UnitSystem units = Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem;
         public static double unitsMultiplier;
+
 
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
@@ -61,6 +65,7 @@ namespace SandWorm
             pManager.AddIntegerParameter("TopRows", "TR", "Number of rows to trim from the top", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("BottomRows", "BR", "Number of rows to trim from the bottom", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("TickRate", "TR", "The time interval, in milliseconds, to update geometry from the Kinect. Set as 0 to disable automatic updates.", GH_ParamAccess.item, tickRate);
+            pManager.AddIntegerParameter("AverageFrames", "AF", "Amount of depth frames to average across. This number has to be greater than zero.", GH_ParamAccess.item, averageFrames);
 
             pManager[0].Optional = true;
             pManager[1].Optional = true;
@@ -68,6 +73,7 @@ namespace SandWorm
             pManager[3].Optional = true;
             pManager[4].Optional = true;
             pManager[5].Optional = true;
+            pManager[6].Optional = true;
         }
 
         /// <summary>
@@ -97,6 +103,8 @@ namespace SandWorm
             DA.GetData<int>(3, ref topRows);
             DA.GetData<int>(4, ref bottomRows);
             DA.GetData<int>(5, ref tickRate);
+            DA.GetData<int>(6, ref averageFrames);
+
 
             switch (units.ToString())
             {
@@ -151,6 +159,8 @@ namespace SandWorm
                     output = new List<String>(); //debugging
                     vertexColors = new List<Color>();
 
+                    renderBuffer.Enqueue(KinectController.depthFrameData); 
+
                     for (int rows = topRows; rows < KinectController.depthHeight - bottomRows; rows++)
 
                     {
@@ -162,14 +172,25 @@ namespace SandWorm
                             tempPoint.X = (float)(columns * -unitsMultiplier * 3); //to do - fix arbitrary grid size of 3mm
                             tempPoint.Y = (float)(rows * -unitsMultiplier * 3); //to do - fix arbitrary grid size of 3mm
 
-                            if (KinectController.depthFrameData[i] == 0 || KinectController.depthFrameData[i] > lookupTable.Length) //check for invalid pixels
+                            if (averageFrames > 1)
                             {
-                                depthPoint = (int)sensorElevation;
+                                int depthPointRunningSum = 0;
+                                foreach (var frame in renderBuffer)
+                                {
+                                    depthPointRunningSum += frame[i];
+                                }
+                                depthPoint = depthPointRunningSum / renderBuffer.Count;
                             }
                             else
                             {
-                                depthPoint = (int)KinectController.depthFrameData[i];
+                                depthPoint = KinectController.depthFrameData[i];
                             }
+
+                            if (depthPoint == 0 || depthPoint >= lookupTable.Length) //check for invalid pixels
+                            {
+                                depthPoint = (int)sensorElevation;
+                            }
+
 
                             tempPoint.Z = (float)((depthPoint - sensorElevation) * -unitsMultiplier);
                             vertexColors.Add(lookupTable[depthPoint]);
@@ -177,9 +198,17 @@ namespace SandWorm
                             pointCloud.Add(tempPoint);
                         }
                     };
+
+                    //keep only the desired amount of frames in the buffer
+                    while (renderBuffer.Count >= averageFrames && averageFrames > 0)
+                    {
+                        renderBuffer.Dequeue();
+                    }
+
                     //debugging
                     timer.Stop();
                     output.Add("Point Cloud generation: " + timer.ElapsedMilliseconds.ToString() + " ms");
+
 
                     timer.Restart(); //debugging
 

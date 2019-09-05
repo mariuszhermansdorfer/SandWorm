@@ -3,10 +3,11 @@ using System.Linq;
 using Rhino.Geometry;
 using Rhino.Display;
 using System.Drawing;
+using System;
 
 namespace SandWorm
 {
-    public class Core
+    public static class Core
     {
         public static Mesh CreateQuadMesh(Mesh mesh, List<Point3f> vertices, List<Color> colors, int xStride, int yStride)
         {
