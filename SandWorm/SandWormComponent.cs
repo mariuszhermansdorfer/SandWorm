@@ -36,6 +36,7 @@ namespace SandWorm
         public int bottomRows = 0;
         public int tickRate = 20; // In ms
         public int averageFrames = 1;
+        public int blurRadius = 1;
         public static Rhino.UnitSystem units = Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem;
         public static double unitsMultiplier;
 
@@ -66,6 +67,7 @@ namespace SandWorm
             pManager.AddIntegerParameter("BottomRows", "BR", "Number of rows to trim from the bottom", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("TickRate", "TR", "The time interval, in milliseconds, to update geometry from the Kinect. Set as 0 to disable automatic updates.", GH_ParamAccess.item, tickRate);
             pManager.AddIntegerParameter("AverageFrames", "AF", "Amount of depth frames to average across. This number has to be greater than zero.", GH_ParamAccess.item, averageFrames);
+            pManager.AddIntegerParameter("BlurRadius", "BR", "Radius for the gaussian blur.", GH_ParamAccess.item, blurRadius);
 
             pManager[0].Optional = true;
             pManager[1].Optional = true;
@@ -104,6 +106,7 @@ namespace SandWorm
             DA.GetData<int>(4, ref bottomRows);
             DA.GetData<int>(5, ref tickRate);
             DA.GetData<int>(6, ref averageFrames);
+            DA.GetData<int>(7, ref blurRadius);
 
 
             switch (units.ToString())
@@ -159,7 +162,19 @@ namespace SandWorm
                     output = new List<String>(); //debugging
                     vertexColors = new List<Color>();
 
-                    renderBuffer.Enqueue(KinectController.depthFrameData); 
+
+                    if (blurRadius > 1)
+                    {
+                        var gaussianBlur = new GaussianBlur(KinectController.depthFrameData);
+                        var blurredFrame = gaussianBlur.Process(blurRadius, KinectController.depthWidth, KinectController.depthHeight);
+
+                        renderBuffer.Enqueue(blurredFrame);
+                    }
+                    else
+                    {
+                        renderBuffer.Enqueue(KinectController.depthFrameData);
+                    }
+
 
                     for (int rows = topRows; rows < KinectController.depthHeight - bottomRows; rows++)
 
