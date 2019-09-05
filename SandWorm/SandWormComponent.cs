@@ -27,7 +27,7 @@ namespace SandWorm
         public Mesh quadMesh = new Mesh();
 
         public int waterLevel;
-        public double sensorElevation = 1060; //to do - fix hard wiring
+        public double sensorElevation = 0;
         public int leftColumns = 0;
         public int rightColumns = 0;
         public int topRows = 0;
@@ -55,6 +55,7 @@ namespace SandWorm
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pManager.AddNumberParameter("SensorHeight", "SH", "The height (in document units) of the sensor above your model", GH_ParamAccess.item, sensorElevation);
             pManager.AddIntegerParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, 1000);
             pManager.AddIntegerParameter("LeftColumns", "LC", "Number of columns to trim from the left", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("RightColumns", "RC", "Number of columns to trim from the right", GH_ParamAccess.item, 0);
@@ -68,6 +69,7 @@ namespace SandWorm
             pManager[3].Optional = true;
             pManager[4].Optional = true;
             pManager[5].Optional = true;
+            pManager[6].Optional = true;
         }
 
         /// <summary>
@@ -91,12 +93,13 @@ namespace SandWorm
         /// to store data in output parameters.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            DA.GetData<int>(0, ref waterLevel);
-            DA.GetData<int>(1, ref leftColumns);
-            DA.GetData<int>(2, ref rightColumns);
-            DA.GetData<int>(3, ref topRows);
-            DA.GetData<int>(4, ref bottomRows);
-            DA.GetData<int>(5, ref tickRate);
+            DA.GetData<double>(0, ref sensorElevation);
+            DA.GetData<int>(1, ref waterLevel);
+            DA.GetData<int>(2, ref leftColumns);
+            DA.GetData<int>(3, ref rightColumns);
+            DA.GetData<int>(4, ref topRows);
+            DA.GetData<int>(5, ref bottomRows);
+            DA.GetData<int>(6, ref tickRate);
 
             switch (units.ToString())
             {
@@ -128,6 +131,7 @@ namespace SandWorm
                     unitsMultiplier = 0.0328084;
                     break;
             }
+            sensorElevation = sensorElevation / unitsMultiplier; // Standardise to mm to match sensor units
 
             Stopwatch timer = Stopwatch.StartNew(); //debugging
 
@@ -150,6 +154,7 @@ namespace SandWorm
                     outputMesh = new List<Mesh>();
                     output = new List<String>(); //debugging
                     vertexColors = new List<Color>();
+                    Core.PixelSize depthPixelSize = Core.getDepthPixelSpacing(sensorElevation);
 
                     for (int rows = topRows; rows < KinectController.depthHeight - bottomRows; rows++)
 
@@ -159,8 +164,8 @@ namespace SandWorm
 
                             int i = rows * KinectController.depthWidth + columns;
 
-                            tempPoint.X = (float)(columns * -unitsMultiplier * 3); //to do - fix arbitrary grid size of 3mm
-                            tempPoint.Y = (float)(rows * -unitsMultiplier * 3); //to do - fix arbitrary grid size of 3mm
+                            tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x); //to do - fix arbitrary grid size of 3mm
+                            tempPoint.Y = (float)(rows * -unitsMultiplier * depthPixelSize.y); //to do - fix arbitrary grid size of 3mm
 
                             if (KinectController.depthFrameData[i] == 0 || KinectController.depthFrameData[i] > lookupTable.Length) //check for invalid pixels
                             {
