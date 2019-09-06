@@ -77,11 +77,12 @@ namespace SandWorm
             double kinect2ResolutionForX = 512;
             double kinect2ResolutionForY = 404;
 
-            return new PixelSize
+            PixelSize pixelsForHeight = new PixelSize
             {
                 x = getDepthPixelSizeInDimension(kinect2FOVForX, kinect2ResolutionForX, sensorHeight),
                 y = getDepthPixelSizeInDimension(kinect2FOVForY, kinect2ResolutionForY, sensorHeight)
             };
+            return pixelsForHeight;
         }
 
         private static double getDepthPixelSizeInDimension(double fovAngle, double resolution, double height)

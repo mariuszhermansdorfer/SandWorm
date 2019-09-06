@@ -27,7 +27,7 @@ namespace SandWorm
         public Mesh quadMesh = new Mesh();
 
         public int waterLevel;
-        public double sensorElevation = 0;
+        public double sensorElevation = 1000; // Arbitrary default value (must be >0)
         public int leftColumns = 0;
         public int rightColumns = 0;
         public int topRows = 0;
