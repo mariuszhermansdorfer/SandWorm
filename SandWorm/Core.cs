@@ -7,7 +7,7 @@ using System;
 
 namespace SandWorm
 {
-    public class Core
+    public static class Core
     {
         public static Mesh CreateQuadMesh(Mesh mesh, List<Point3f> vertices, List<Color> colors, int xStride, int yStride)
         {
@@ -41,7 +41,10 @@ namespace SandWorm
                 mesh.Vertices.AddVertices(vertices);       
             }
 
-            mesh.VertexColors.SetColors(colors.ToArray());
+            if (colors.Count > 0) // Colors only provided if the mesh style permits
+            {
+                mesh.VertexColors.SetColors(colors.ToArray()); 
+            }
             return mesh;
         }
 
