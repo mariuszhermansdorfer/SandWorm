@@ -224,8 +224,8 @@ namespace SandWorm
 
                             int i = rows * KinectController.depthWidth + columns;
 
-                            tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x); //to do - fix arbitrary grid size of 3mm
-                            tempPoint.Y = (float)(rows * -unitsMultiplier * depthPixelSize.y); //to do - fix arbitrary grid size of 3mm
+                            tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x); 
+                            tempPoint.Y = (float)(rows * -unitsMultiplier * depthPixelSize.y);
 
                             if (averageFrames > 1)
                             {
