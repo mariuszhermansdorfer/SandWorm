@@ -66,5 +66,33 @@ namespace SandWorm
             }
             return lookupTable;
         }
+
+        public struct PixelSize // Unfortunately no nice tuples in this version of C# :(
+        {
+            public double x;
+            public double y;
+        }
+
+        public static PixelSize getDepthPixelSpacing(double sensorHeight)
+        {
+            double kinect2FOVForX = 70.6; 
+            double kinect2FOVForY = 60.0;
+            double kinect2ResolutionForX = 512;
+            double kinect2ResolutionForY = 404;
+
+            PixelSize pixelsForHeight = new PixelSize
+            {
+                x = getDepthPixelSizeInDimension(kinect2FOVForX, kinect2ResolutionForX, sensorHeight),
+                y = getDepthPixelSizeInDimension(kinect2FOVForY, kinect2ResolutionForY, sensorHeight)
+            };
+            return pixelsForHeight;
+        }
+
+        private static double getDepthPixelSizeInDimension(double fovAngle, double resolution, double height)
+        {
+            double fovInRadians = (Math.PI / 180) * fovAngle;
+            double dimensionSpan = 2 * height * Math.Tan(fovInRadians / 2);
+            return dimensionSpan / resolution;
+        }
     }
 }
