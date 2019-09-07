@@ -18,7 +18,7 @@ namespace SandWorm
     public class SandWorm : GH_Component
     {
         private KinectSensor kinectSensor = null;
-        private List<Point3f> pointCloud = null;
+        private Point3f[] pointCloud;
         private List<Mesh> outputMesh = null;
         public static List<String> output = null;//debugging
         private Queue<ushort[]> renderBuffer = new Queue<ushort[]>();
@@ -28,7 +28,7 @@ namespace SandWorm
         public static Color[] lookupTable = new Color[1500]; //to do - fix arbitrary value assuming 1500 mm as max distance from the kinect sensor
         enum MeshColorStyle { noColor, byElevation };
         private MeshColorStyle selectedColorStyle = MeshColorStyle.byElevation; // Must be private to be less accessible than enum type
-        public List<Color> vertexColors;
+        public Color[] vertexColors;
         public Mesh quadMesh = new Mesh();
 
         public int waterLevel;
@@ -195,12 +195,12 @@ namespace SandWorm
             {
                 if (KinectController.depthFrameData != null)
                 {
-                    pointCloud = new List<Point3f>();
+                    pointCloud = new Point3f[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
                     Point3f tempPoint = new Point3f();
                     outputMesh = new List<Mesh>();
                     output = new List<String>(); //debugging
-                    vertexColors = new List<Color>();
                     Core.PixelSize depthPixelSize = Core.getDepthPixelSpacing(sensorElevation);
+                    vertexColors = new Color[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
 
 
                     if (blurRadius > 1)
@@ -223,6 +223,7 @@ namespace SandWorm
                         {
 
                             int i = rows * KinectController.depthWidth + columns;
+                            int arrayIndex = i - ((topRows * KinectController.depthWidth) + rightColumns) - ((rows - topRows) * (leftColumns + rightColumns)); //get index in the trimmed array
 
                             tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x); 
                             tempPoint.Y = (float)(rows * -unitsMultiplier * depthPixelSize.y);
@@ -249,11 +250,13 @@ namespace SandWorm
 
                             tempPoint.Z = (float)((depthPoint - sensorElevation) * -unitsMultiplier);
                             if (selectedColorStyle == MeshColorStyle.byElevation)
-                            { 
-                                vertexColors.Add(lookupTable[depthPoint]);
+                            {
+                                //vertexColors.Add(lookupTable[depthPoint]);
+                                vertexColors[arrayIndex] = (lookupTable[depthPoint]);
                             }
 
-                            pointCloud.Add(tempPoint);
+                            //pointCloud.Add(tempPoint);
+                            pointCloud[arrayIndex] = tempPoint;
                         }
                     };
 
