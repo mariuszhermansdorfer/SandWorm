@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Rhino.Geometry;
+﻿using Rhino.Geometry;
 using Rhino.Display;
 using System.Drawing;
 using System;
@@ -9,17 +7,17 @@ namespace SandWorm
 {
     public static class Core
     {
-        public static Mesh CreateQuadMesh(Mesh mesh, List<Point3f> vertices, List<Color> colors, int xStride, int yStride)
+        public static Mesh CreateQuadMesh(Mesh mesh, Point3f[] vertices, Color[] colors, int xStride, int yStride)
         {
             int xd = xStride;       // The x-dimension of the data
             int yd = yStride;       // They y-dimension of the data
 
 
-            if (mesh.Faces.Count() != (xStride - 2) * (yStride - 2))
+            if (mesh.Faces.Count != (xStride - 2) * (yStride - 2))
             {
                 SandWorm.output.Add("Face remeshing");
                 mesh = new Mesh();
-                mesh.Vertices.Capacity = vertices.Count();      // Don't resize array
+                mesh.Vertices.Capacity = vertices.Length;      // Don't resize array
                 mesh.Vertices.UseDoublePrecisionVertices = true;
                 mesh.Vertices.AddVertices(vertices);       
 
@@ -41,9 +39,9 @@ namespace SandWorm
                 mesh.Vertices.AddVertices(vertices);       
             }
 
-            if (colors.Count > 0) // Colors only provided if the mesh style permits
+            if (colors.Length > 0) // Colors only provided if the mesh style permits
             {
-                mesh.VertexColors.SetColors(colors.ToArray()); 
+                mesh.VertexColors.SetColors(colors); 
             }
             return mesh;
         }
