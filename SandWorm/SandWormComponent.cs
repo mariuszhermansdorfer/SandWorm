@@ -251,11 +251,9 @@ namespace SandWorm
                             tempPoint.Z = (float)((depthPoint - sensorElevation) * -unitsMultiplier);
                             if (selectedColorStyle == MeshColorStyle.byElevation)
                             {
-                                //vertexColors.Add(lookupTable[depthPoint]);
                                 vertexColors[arrayIndex] = (lookupTable[depthPoint]);
                             }
 
-                            //pointCloud.Add(tempPoint);
                             pointCloud[arrayIndex] = tempPoint;
                         }
                     };
