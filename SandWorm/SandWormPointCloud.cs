@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Collections.Generic;
 using System.Diagnostics; //debugging
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 using Microsoft.Kinect;
 using System.Windows.Forms;
@@ -15,23 +16,15 @@ using System.Windows.Forms;
 //Test comment
 namespace SandWorm
 {
-    public class SandWorm : GH_Component
+    public class SandWormPointCloud : GH_Component
     {
         private KinectSensor kinectSensor = null;
-        private Point3f[] pointCloud;
-        private List<Mesh> outputMesh = null;
-        public static List<String> output = null;//debugging
+        private GH_Point[] pointCloud;
+
+        public static List<String> output = null; //debugging
         private Queue<ushort[]> renderBuffer = new Queue<ushort[]>();
-
-
         public static int depthPoint;
-        public static Color[] lookupTable = new Color[1500]; //to do - fix arbitrary value assuming 1500 mm as max distance from the kinect sensor
-        enum MeshColorStyle { noColor, byElevation };
-        private MeshColorStyle selectedColorStyle = MeshColorStyle.byElevation; // Must be private to be less accessible than enum type
-        public Color[] vertexColors;
-        public Mesh quadMesh = new Mesh();
 
-        public int waterLevel;
         public double sensorElevation = 1000; // Arbitrary default value (must be >0)
         public int leftColumns = 0;
         public int rightColumns = 0;
@@ -51,7 +44,7 @@ namespace SandWorm
         /// Subcategory the panel. If you use non-existing tab or panel names, 
         /// new tabs/panels will automatically be created.
         /// </summary>
-        public SandWorm()
+        public SandWormPointCloud()
           : base("SandWorm", "SandWorm",
               "Kinect v2 Augmented Reality Sandbox",
               "Sandworm", "Sandbox")
@@ -64,7 +57,6 @@ namespace SandWorm
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddNumberParameter("SensorHeight", "SH", "The height (in document units) of the sensor above your model", GH_ParamAccess.item, sensorElevation);
-            pManager.AddIntegerParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, 1000);
             pManager.AddIntegerParameter("LeftColumns", "LC", "Number of columns to trim from the left", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("RightColumns", "RC", "Number of columns to trim from the right", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("TopRows", "TR", "Number of rows to trim from the top", GH_ParamAccess.item, 0);
@@ -81,8 +73,7 @@ namespace SandWorm
             pManager[5].Optional = true;
             pManager[6].Optional = true;
             pManager[7].Optional = true;
-            pManager[8].Optional = true;
-            
+
         }
 
         /// <summary>
@@ -90,38 +81,11 @@ namespace SandWorm
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddMeshParameter("Mesh", "M", "Resulting Mesh", GH_ParamAccess.list);
+            pManager.AddPointParameter ("PointCloud", "PC", "Resulting PointCloud", GH_ParamAccess.list);
             pManager.AddTextParameter("Output", "O", "Output", GH_ParamAccess.list); //debugging
         }
 
-        protected override void AppendAdditionalComponentMenuItems(ToolStripDropDown menu)
-        {
-            base.AppendAdditionalComponentMenuItems(menu);
-            Menu_AppendItem(menu, "Color Mesh by Elevation", SetMeshColorStyle, true, selectedColorStyle == MeshColorStyle.byElevation);
-            menu.Items[menu.Items.Count - 1].Tag = MeshColorStyle.byElevation;
-            Menu_AppendItem(menu, "Do Not Color Mesh", SetMeshColorStyle, true, selectedColorStyle == MeshColorStyle.noColor);
-            menu.Items[menu.Items.Count - 1].Tag = MeshColorStyle.noColor;
-        }
 
-        private void SetMeshColorStyle(object sender, EventArgs e)
-        {
-            ToolStripMenuItem selectedItem = (ToolStripMenuItem)sender;
-            ToolStrip parentMenu = selectedItem.Owner as ToolStrip;
-            if ((MeshColorStyle)selectedItem.Tag != selectedColorStyle) // Update style if it was changed
-            {
-                selectedColorStyle = (MeshColorStyle)selectedItem.Tag;
-                ExpireSolution(true);
-                quadMesh.VertexColors.Clear(); // Must flush mesh colors to properly updated display
-            }
-            for (int i = 0; i < parentMenu.Items.Count; i++) // Easier than foreach as types differ
-            {
-                if (parentMenu.Items[i] is ToolStripMenuItem && parentMenu.Items[i].Tag != null)
-                {
-                    ToolStripMenuItem menuItem = parentMenu.Items[i] as ToolStripMenuItem;
-                    menuItem.Checked = true; // Toggle state of menu items
-                }
-            }
-        }
 
         private void ScheduleDelegate(GH_Document doc)
         {
@@ -136,14 +100,13 @@ namespace SandWorm
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             DA.GetData<double>(0, ref sensorElevation);
-            DA.GetData<int>(1, ref waterLevel);
-            DA.GetData<int>(2, ref leftColumns);
-            DA.GetData<int>(3, ref rightColumns);
-            DA.GetData<int>(4, ref topRows);
-            DA.GetData<int>(5, ref bottomRows);
-            DA.GetData<int>(6, ref tickRate);
-            DA.GetData<int>(7, ref averageFrames);
-            DA.GetData<int>(8, ref blurRadius);
+            DA.GetData<int>(1, ref leftColumns);
+            DA.GetData<int>(2, ref rightColumns);
+            DA.GetData<int>(3, ref topRows);
+            DA.GetData<int>(4, ref bottomRows);
+            DA.GetData<int>(5, ref tickRate);
+            DA.GetData<int>(6, ref averageFrames);
+            DA.GetData<int>(7, ref blurRadius);
 
             switch (units.ToString())
             {
@@ -179,10 +142,6 @@ namespace SandWorm
 
             Stopwatch timer = Stopwatch.StartNew(); //debugging
 
-            if (selectedColorStyle == MeshColorStyle.byElevation)
-            {
-                Core.ComputeLookupTable(waterLevel, lookupTable); //precompute all vertex colors
-            }
 
             if (this.kinectSensor == null)
             {
@@ -195,12 +154,10 @@ namespace SandWorm
             {
                 if (KinectController.depthFrameData != null)
                 {
-                    pointCloud = new Point3f[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
+                    pointCloud = new GH_Point[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
                     Point3f tempPoint = new Point3f();
-                    outputMesh = new List<Mesh>();
                     output = new List<String>(); //debugging
                     Core.PixelSize depthPixelSize = Core.getDepthPixelSpacing(sensorElevation);
-                    vertexColors = new Color[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
 
 
                     if (blurRadius > 1)
@@ -216,6 +173,7 @@ namespace SandWorm
                     }
 
 
+                    int arrayIndex = 0;
                     for (int rows = topRows; rows < KinectController.depthHeight - bottomRows; rows++)
 
                     {
@@ -223,9 +181,8 @@ namespace SandWorm
                         {
 
                             int i = rows * KinectController.depthWidth + columns;
-                            int arrayIndex = i - ((topRows * KinectController.depthWidth) + rightColumns) - ((rows - topRows) * (leftColumns + rightColumns)); //get index in the trimmed array
 
-                            tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x); 
+                            tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x);
                             tempPoint.Y = (float)(rows * -unitsMultiplier * depthPixelSize.y);
 
                             if (averageFrames > 1)
@@ -242,21 +199,12 @@ namespace SandWorm
                                 depthPoint = KinectController.depthFrameData[i];
                             }
 
-                            if (depthPoint == 0 || depthPoint >= lookupTable.Length) //check for invalid pixels
-                            {
-                                depthPoint = (int)sensorElevation;
-                            }
-
-
                             tempPoint.Z = (float)((depthPoint - sensorElevation) * -unitsMultiplier);
-                            if (selectedColorStyle == MeshColorStyle.byElevation)
-                            {
-                                vertexColors[arrayIndex] = (lookupTable[depthPoint]);
-                            }
-
-                            pointCloud[arrayIndex] = tempPoint;
+                            pointCloud[arrayIndex] = new GH_Point(tempPoint);
+                            arrayIndex++;
                         }
                     };
+                    
 
                     //keep only the desired amount of frames in the buffer
                     while (renderBuffer.Count >= averageFrames && averageFrames > 0)
@@ -268,18 +216,9 @@ namespace SandWorm
                     timer.Stop();
                     output.Add("Point Cloud generation: " + timer.ElapsedMilliseconds.ToString() + " ms");
 
-
-                    timer.Restart(); //debugging
-
-
-                    quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, KinectController.depthWidth - leftColumns - rightColumns, KinectController.depthHeight - topRows - bottomRows);
-                    outputMesh.Add(quadMesh);
-
-                    timer.Stop(); //debugging
-                    output.Add("Meshing: " + timer.ElapsedMilliseconds.ToString() + " ms");
                 }
 
-                DA.SetDataList(0, outputMesh);
+                DA.SetDataList(0, pointCloud);
                 DA.SetDataList(1, output); //debugging
             }
 
@@ -310,7 +249,7 @@ namespace SandWorm
         /// </summary>
         public override Guid ComponentGuid
         {
-            get { return new Guid("f923f24d-86a0-4b7a-9373-23c6b7d2e162"); }
+            get { return new Guid("b609c74e-0a15-4e78-8a23-3709b223f809"); }
         }
     }
 }
