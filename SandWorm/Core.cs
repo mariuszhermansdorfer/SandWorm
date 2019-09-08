@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Rhino.Geometry;
+﻿using Rhino.Geometry;
 using Rhino.Display;
 using System.Drawing;
 using System;
@@ -9,17 +7,17 @@ namespace SandWorm
 {
     public static class Core
     {
-        public static Mesh CreateQuadMesh(Mesh mesh, List<Point3f> vertices, List<Color> colors, int xStride, int yStride)
+        public static Mesh CreateQuadMesh(Mesh mesh, Point3f[] vertices, Color[] colors, int xStride, int yStride)
         {
             int xd = xStride;       // The x-dimension of the data
             int yd = yStride;       // They y-dimension of the data
 
 
-            if (mesh.Faces.Count() != (xStride - 2) * (yStride - 2))
+            if (mesh.Faces.Count != (xStride - 2) * (yStride - 2))
             {
                 SandWorm.output.Add("Face remeshing");
                 mesh = new Mesh();
-                mesh.Vertices.Capacity = vertices.Count();      // Don't resize array
+                mesh.Vertices.Capacity = vertices.Length;      // Don't resize array
                 mesh.Vertices.UseDoublePrecisionVertices = true;
                 mesh.Vertices.AddVertices(vertices);       
 
@@ -41,7 +39,10 @@ namespace SandWorm
                 mesh.Vertices.AddVertices(vertices);       
             }
 
-            mesh.VertexColors.SetColors(colors.ToArray());
+            if (colors.Length > 0) // Colors only provided if the mesh style permits
+            {
+                mesh.VertexColors.SetColors(colors); 
+            }
             return mesh;
         }
 
@@ -62,6 +63,34 @@ namespace SandWorm
                 j++;
             }
             return lookupTable;
+        }
+
+        public struct PixelSize // Unfortunately no nice tuples in this version of C# :(
+        {
+            public double x;
+            public double y;
+        }
+
+        public static PixelSize getDepthPixelSpacing(double sensorHeight)
+        {
+            double kinect2FOVForX = 70.6; 
+            double kinect2FOVForY = 60.0;
+            double kinect2ResolutionForX = 512;
+            double kinect2ResolutionForY = 404;
+
+            PixelSize pixelsForHeight = new PixelSize
+            {
+                x = getDepthPixelSizeInDimension(kinect2FOVForX, kinect2ResolutionForX, sensorHeight),
+                y = getDepthPixelSizeInDimension(kinect2FOVForY, kinect2ResolutionForY, sensorHeight)
+            };
+            return pixelsForHeight;
+        }
+
+        private static double getDepthPixelSizeInDimension(double fovAngle, double resolution, double height)
+        {
+            double fovInRadians = (Math.PI / 180) * fovAngle;
+            double dimensionSpan = 2 * height * Math.Tan(fovInRadians / 2);
+            return dimensionSpan / resolution;
         }
     }
 }

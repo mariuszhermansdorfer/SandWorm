@@ -5,6 +5,7 @@ using System.Diagnostics; //debugging
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 using Microsoft.Kinect;
+using System.Windows.Forms;
 // comment 
 // In order to load the result of this wizard, you will also need to
 // add the output bin/ folder of this project to the list of loaded
@@ -17,7 +18,7 @@ namespace SandWorm
     public class SandWorm : GH_Component
     {
         private KinectSensor kinectSensor = null;
-        private List<Point3f> pointCloud = null;
+        private Point3f[] pointCloud;
         private List<Mesh> outputMesh = null;
         public static List<String> output = null;//debugging
         private Queue<ushort[]> renderBuffer = new Queue<ushort[]>();
@@ -25,11 +26,13 @@ namespace SandWorm
 
         public static int depthPoint;
         public static Color[] lookupTable = new Color[1500]; //to do - fix arbitrary value assuming 1500 mm as max distance from the kinect sensor
-        public List<Color> vertexColors;
+        enum MeshColorStyle { noColor, byElevation };
+        private MeshColorStyle selectedColorStyle = MeshColorStyle.byElevation; // Must be private to be less accessible than enum type
+        public Color[] vertexColors;
         public Mesh quadMesh = new Mesh();
 
         public int waterLevel;
-        public double sensorElevation = 1060; //to do - fix hard wiring
+        public double sensorElevation = 1000; // Arbitrary default value (must be >0)
         public int leftColumns = 0;
         public int rightColumns = 0;
         public int topRows = 0;
@@ -60,6 +63,7 @@ namespace SandWorm
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pManager.AddNumberParameter("SensorHeight", "SH", "The height (in document units) of the sensor above your model", GH_ParamAccess.item, sensorElevation);
             pManager.AddIntegerParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, 1000);
             pManager.AddIntegerParameter("LeftColumns", "LC", "Number of columns to trim from the left", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("RightColumns", "RC", "Number of columns to trim from the right", GH_ParamAccess.item, 0);
@@ -76,6 +80,9 @@ namespace SandWorm
             pManager[4].Optional = true;
             pManager[5].Optional = true;
             pManager[6].Optional = true;
+            pManager[7].Optional = true;
+            pManager[8].Optional = true;
+            
         }
 
         /// <summary>
@@ -85,6 +92,35 @@ namespace SandWorm
         {
             pManager.AddMeshParameter("Mesh", "M", "Resulting Mesh", GH_ParamAccess.list);
             pManager.AddTextParameter("Output", "O", "Output", GH_ParamAccess.list); //debugging
+        }
+
+        protected override void AppendAdditionalComponentMenuItems(ToolStripDropDown menu)
+        {
+            base.AppendAdditionalComponentMenuItems(menu);
+            Menu_AppendItem(menu, "Color Mesh by Elevation", SetMeshColorStyle, true, selectedColorStyle == MeshColorStyle.byElevation);
+            menu.Items[menu.Items.Count - 1].Tag = MeshColorStyle.byElevation;
+            Menu_AppendItem(menu, "Do Not Color Mesh", SetMeshColorStyle, true, selectedColorStyle == MeshColorStyle.noColor);
+            menu.Items[menu.Items.Count - 1].Tag = MeshColorStyle.noColor;
+        }
+
+        private void SetMeshColorStyle(object sender, EventArgs e)
+        {
+            ToolStripMenuItem selectedItem = (ToolStripMenuItem)sender;
+            ToolStrip parentMenu = selectedItem.Owner as ToolStrip;
+            if ((MeshColorStyle)selectedItem.Tag != selectedColorStyle) // Update style if it was changed
+            {
+                selectedColorStyle = (MeshColorStyle)selectedItem.Tag;
+                ExpireSolution(true);
+                quadMesh.VertexColors.Clear(); // Must flush mesh colors to properly updated display
+            }
+            for (int i = 0; i < parentMenu.Items.Count; i++) // Easier than foreach as types differ
+            {
+                if (parentMenu.Items[i] is ToolStripMenuItem && parentMenu.Items[i].Tag != null)
+                {
+                    ToolStripMenuItem menuItem = parentMenu.Items[i] as ToolStripMenuItem;
+                    menuItem.Checked = true; // Toggle state of menu items
+                }
+            }
         }
 
         private void ScheduleDelegate(GH_Document doc)
@@ -99,15 +135,15 @@ namespace SandWorm
         /// to store data in output parameters.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            DA.GetData<int>(0, ref waterLevel);
-            DA.GetData<int>(1, ref leftColumns);
-            DA.GetData<int>(2, ref rightColumns);
-            DA.GetData<int>(3, ref topRows);
-            DA.GetData<int>(4, ref bottomRows);
-            DA.GetData<int>(5, ref tickRate);
-            DA.GetData<int>(6, ref averageFrames);
-            DA.GetData<int>(7, ref blurRadius);
-
+            DA.GetData<double>(0, ref sensorElevation);
+            DA.GetData<int>(1, ref waterLevel);
+            DA.GetData<int>(2, ref leftColumns);
+            DA.GetData<int>(3, ref rightColumns);
+            DA.GetData<int>(4, ref topRows);
+            DA.GetData<int>(5, ref bottomRows);
+            DA.GetData<int>(6, ref tickRate);
+            DA.GetData<int>(7, ref averageFrames);
+            DA.GetData<int>(8, ref blurRadius);
 
             switch (units.ToString())
             {
@@ -139,11 +175,14 @@ namespace SandWorm
                     unitsMultiplier = 0.0328084;
                     break;
             }
+            sensorElevation = sensorElevation / unitsMultiplier; // Standardise to mm to match sensor units
 
             Stopwatch timer = Stopwatch.StartNew(); //debugging
 
-            Core.ComputeLookupTable(waterLevel, lookupTable); //precompute all vertex colors
-
+            if (selectedColorStyle == MeshColorStyle.byElevation)
+            {
+                Core.ComputeLookupTable(waterLevel, lookupTable); //precompute all vertex colors
+            }
 
             if (this.kinectSensor == null)
             {
@@ -156,11 +195,12 @@ namespace SandWorm
             {
                 if (KinectController.depthFrameData != null)
                 {
-                    pointCloud = new List<Point3f>();
+                    pointCloud = new Point3f[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
                     Point3f tempPoint = new Point3f();
                     outputMesh = new List<Mesh>();
                     output = new List<String>(); //debugging
-                    vertexColors = new List<Color>();
+                    Core.PixelSize depthPixelSize = Core.getDepthPixelSpacing(sensorElevation);
+                    vertexColors = new Color[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
 
 
                     if (blurRadius > 1)
@@ -183,9 +223,10 @@ namespace SandWorm
                         {
 
                             int i = rows * KinectController.depthWidth + columns;
+                            int arrayIndex = i - ((topRows * KinectController.depthWidth) + rightColumns) - ((rows - topRows) * (leftColumns + rightColumns)); //get index in the trimmed array
 
-                            tempPoint.X = (float)(columns * -unitsMultiplier * 3); //to do - fix arbitrary grid size of 3mm
-                            tempPoint.Y = (float)(rows * -unitsMultiplier * 3); //to do - fix arbitrary grid size of 3mm
+                            tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x); 
+                            tempPoint.Y = (float)(rows * -unitsMultiplier * depthPixelSize.y);
 
                             if (averageFrames > 1)
                             {
@@ -208,9 +249,12 @@ namespace SandWorm
 
 
                             tempPoint.Z = (float)((depthPoint - sensorElevation) * -unitsMultiplier);
-                            vertexColors.Add(lookupTable[depthPoint]);
+                            if (selectedColorStyle == MeshColorStyle.byElevation)
+                            {
+                                vertexColors[arrayIndex] = (lookupTable[depthPoint]);
+                            }
 
-                            pointCloud.Add(tempPoint);
+                            pointCloud[arrayIndex] = tempPoint;
                         }
                     };
 
