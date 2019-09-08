@@ -215,7 +215,7 @@ namespace SandWorm
                         renderBuffer.Enqueue(KinectController.depthFrameData);
                     }
 
-
+                    int arrayIndex = 0;
                     for (int rows = topRows; rows < KinectController.depthHeight - bottomRows; rows++)
 
                     {
@@ -223,7 +223,7 @@ namespace SandWorm
                         {
 
                             int i = rows * KinectController.depthWidth + columns;
-                            int arrayIndex = i - ((topRows * KinectController.depthWidth) + rightColumns) - ((rows - topRows) * (leftColumns + rightColumns)); //get index in the trimmed array
+                            //int arrayIndex = i - ((topRows * KinectController.depthWidth) + rightColumns) - ((rows - topRows) * (leftColumns + rightColumns)); //get index in the trimmed array
 
                             tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x); 
                             tempPoint.Y = (float)(rows * -unitsMultiplier * depthPixelSize.y);
@@ -255,6 +255,8 @@ namespace SandWorm
                             }
 
                             pointCloud[arrayIndex] = tempPoint;
+
+                            arrayIndex++;
                         }
                     };
 

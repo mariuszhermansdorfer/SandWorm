@@ -81,6 +81,7 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ColorLookupTables.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="GaussianBlur.cs" />
     <Compile Include="KinectController.cs" />
