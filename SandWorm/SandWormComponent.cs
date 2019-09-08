@@ -21,7 +21,7 @@ namespace SandWorm
         private Point3f[] pointCloud;
         private List<Mesh> outputMesh = null;
         public static List<String> output = null;//debugging
-        private Queue<ushort[]> renderBuffer = new Queue<ushort[]>();
+        private readonly Queue<ushort[]> renderBuffer = new Queue<ushort[]>();
 
 
         public static int depthPoint;
@@ -31,7 +31,8 @@ namespace SandWorm
         public Color[] vertexColors;
         public Mesh quadMesh = new Mesh();
 
-        public int waterLevel;
+        public int waterLevel = 1000;
+        public int colorRampSpan = 300; // Arbitrary defalut value (must be >0)
         public double sensorElevation = 1000; // Arbitrary default value (must be >0)
         public int leftColumns = 0;
         public int rightColumns = 0;
@@ -42,6 +43,8 @@ namespace SandWorm
         public int blurRadius = 1;
         public static Rhino.UnitSystem units = Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem;
         public static double unitsMultiplier;
+        public Color startColor = Color.FromArgb(255, 128, 128, 128);
+        public Color endColor = Color.FromArgb(255, 255, 255, 255);
 
 
         /// <summary>
@@ -64,7 +67,7 @@ namespace SandWorm
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddNumberParameter("SensorHeight", "SH", "The height (in document units) of the sensor above your model", GH_ParamAccess.item, sensorElevation);
-            pManager.AddIntegerParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, 1000);
+            pManager.AddIntegerParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, waterLevel);
             pManager.AddIntegerParameter("LeftColumns", "LC", "Number of columns to trim from the left", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("RightColumns", "RC", "Number of columns to trim from the right", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("TopRows", "TR", "Number of rows to trim from the top", GH_ParamAccess.item, 0);
@@ -72,6 +75,9 @@ namespace SandWorm
             pManager.AddIntegerParameter("TickRate", "TR", "The time interval, in milliseconds, to update geometry from the Kinect. Set as 0 to disable automatic updates.", GH_ParamAccess.item, tickRate);
             pManager.AddIntegerParameter("AverageFrames", "AF", "Amount of depth frames to average across. This number has to be greater than zero.", GH_ParamAccess.item, averageFrames);
             pManager.AddIntegerParameter("BlurRadius", "BR", "Radius for the gaussian blur.", GH_ParamAccess.item, blurRadius);
+            pManager.AddIntegerParameter("ColorRampSpan", "CS", "Color Ramp span", GH_ParamAccess.item, colorRampSpan);
+            pManager.AddColourParameter("StartColor", "SC", "Start Color", GH_ParamAccess.item, startColor);
+            pManager.AddColourParameter("EndColor", "EC", "End Color", GH_ParamAccess.item, endColor);
 
             pManager[0].Optional = true;
             pManager[1].Optional = true;
@@ -82,7 +88,10 @@ namespace SandWorm
             pManager[6].Optional = true;
             pManager[7].Optional = true;
             pManager[8].Optional = true;
-            
+            pManager[9].Optional = true;
+            pManager[10].Optional = true;
+            pManager[11].Optional = true;
+
         }
 
         /// <summary>
@@ -144,6 +153,9 @@ namespace SandWorm
             DA.GetData<int>(6, ref tickRate);
             DA.GetData<int>(7, ref averageFrames);
             DA.GetData<int>(8, ref blurRadius);
+            DA.GetData<int>(9, ref colorRampSpan);
+            DA.GetData<Color>(10, ref startColor);
+            DA.GetData<Color>(11, ref endColor);
 
             switch (units.ToString())
             {
@@ -181,7 +193,7 @@ namespace SandWorm
 
             if (selectedColorStyle == MeshColorStyle.byElevation)
             {
-                Core.ComputeLookupTable(waterLevel, lookupTable); //precompute all vertex colors
+                Core.ComputeLookupTable(waterLevel, startColor, endColor, colorRampSpan, lookupTable); //precompute all vertex colors
             }
 
             if (this.kinectSensor == null)

@@ -46,8 +46,9 @@ namespace SandWorm
             return mesh;
         }
 
-        public static Color[] ComputeLookupTable(int waterLevel, Color[] lookupTable)
+        public static Color[] ComputeLookupTable(int waterLevel, Color start, Color end, int span, Color[] lookupTable)
         {
+            /*
             //precompute all vertex colors
             int j = 0;
             for (int i = waterLevel; i < lookupTable.Length; i++) //below water level
@@ -62,6 +63,42 @@ namespace SandWorm
                 lookupTable[i] = new ColorHSL(0.01 + (j * 0.01), 1.0, 0.5).ToArgbColor();
                 j++;
             }
+            */
+            int rMin = start.R;
+            int rMax = end.R;
+            int gMin = start.G;
+            int gMax = end.G;
+            int bMin = start.B;
+            int bMax = end.B;
+            int aMin = start.A;
+            int aMax = end.A;
+            int size = lookupTable.Length;
+            int j = 0;
+            for (int i = waterLevel; i < size; i++)
+            {
+                lookupTable[i] = new ColorHSL(0.6, 0.6, 0.60 - (j * 0.02)).ToArgbColor();
+                j++;
+            }
+
+            j = 0;
+            for (int i = waterLevel; i > 0; i--) //above water level
+            {
+                var rAverage = rMin + (int)((rMax - rMin) * j / span);
+                var gAverage = gMin + (int)((gMax - gMin) * j / span);
+                var bAverage = bMin + (int)((bMax - bMin) * j / span);
+                var aAverage = aMin + (int)((aMax - aMin) * j / span);
+
+                lookupTable[i] = Color.FromArgb(aAverage, rAverage, gAverage, bAverage);
+                if (j == span)
+                {
+                    j = 0;
+                }
+                else
+                {
+                    j++;
+                }
+            }
+
             return lookupTable;
         }
 

@@ -1,36 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Drawing;
-using Rhino.Display;
+﻿using System.Drawing;
+
 
 namespace SandWorm
 {
-    public static class ColorLookupTables
+    class ColorLookupTables
     {
-        
+        private readonly Color[] _lookupTables = new Color[6];
 
-        public static Color[] ComputeLookupTable(int waterLevel, Color[] lookupTable)
+        public void PopulateTables()
         {
-            //precompute all vertex colors
-            int j = 0;
-            for (int i = waterLevel; i < lookupTable.Length; i++) //below water level
-            {
-                lookupTable[i] = new ColorHSL(0.6, 0.6, 0.60 - (j * 0.02)).ToArgbColor();
-                j++;
-            }
 
-            j = 0;
-            for (int i = waterLevel; i > 0; i--) //above water level
-            {
-                lookupTable[i] = new ColorHSL(0.01 + (j * 0.01), 1.0, 0.5).ToArgbColor();
-                j++;
-            }
-            return lookupTable;
+            _lookupTables[0] = Color.FromArgb(128, 128, 128);
+            _lookupTables[1] = Color.FromArgb(255, 128, 128);
+            _lookupTables[2] = Color.FromArgb(255, 255, 128);
+            _lookupTables[3] = Color.FromArgb(255, 128, 255);
+            _lookupTables[4] = Color.FromArgb(255, 0, 128);
+            _lookupTables[5] = Color.FromArgb(255, 0, 117);
+
         }
 
-        //Color.FromArgb(128, 128, 128);
+        public Color PickGradient(int index)
+        {
+            return _lookupTables[index];
+        }
     }
 }
