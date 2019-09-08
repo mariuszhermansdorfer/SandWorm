@@ -175,7 +175,7 @@ namespace SandWorm
                     unitsMultiplier = 0.0328084;
                     break;
             }
-            sensorElevation = sensorElevation / unitsMultiplier; // Standardise to mm to match sensor units
+            sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units
 
             Stopwatch timer = Stopwatch.StartNew(); //debugging
 
@@ -199,7 +199,7 @@ namespace SandWorm
                     Point3f tempPoint = new Point3f();
                     outputMesh = new List<Mesh>();
                     output = new List<String>(); //debugging
-                    Core.PixelSize depthPixelSize = Core.getDepthPixelSpacing(sensorElevation);
+                    Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
                     vertexColors = new Color[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
 
 
