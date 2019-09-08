@@ -71,7 +71,7 @@ namespace SandWorm
             public double y;
         }
 
-        public static PixelSize getDepthPixelSpacing(double sensorHeight)
+        public static PixelSize GetDepthPixelSpacing(double sensorHeight)
         {
             double kinect2FOVForX = 70.6; 
             double kinect2FOVForY = 60.0;
@@ -80,13 +80,13 @@ namespace SandWorm
 
             PixelSize pixelsForHeight = new PixelSize
             {
-                x = getDepthPixelSizeInDimension(kinect2FOVForX, kinect2ResolutionForX, sensorHeight),
-                y = getDepthPixelSizeInDimension(kinect2FOVForY, kinect2ResolutionForY, sensorHeight)
+                x = GetDepthPixelSizeInDimension(kinect2FOVForX, kinect2ResolutionForX, sensorHeight),
+                y = GetDepthPixelSizeInDimension(kinect2FOVForY, kinect2ResolutionForY, sensorHeight)
             };
             return pixelsForHeight;
         }
 
-        private static double getDepthPixelSizeInDimension(double fovAngle, double resolution, double height)
+        private static double GetDepthPixelSizeInDimension(double fovAngle, double resolution, double height)
         {
             double fovInRadians = (Math.PI / 180) * fovAngle;
             double dimensionSpan = 2 * height * Math.Tan(fovInRadians / 2);
