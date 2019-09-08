@@ -46,25 +46,6 @@ namespace SandWorm
             return mesh;
         }
 
-        public static Color[] ComputeLookupTable(int waterLevel, Color[] lookupTable)
-        {
-            //precompute all vertex colors
-            int j = 0;
-            for (int i = waterLevel; i < lookupTable.Length; i++) //below water level
-            {
-                lookupTable[i] = new ColorHSL(0.6, 0.6, 0.60 - (j * 0.02)).ToArgbColor();
-                j++;
-            }
-
-            j = 0;
-            for (int i = waterLevel; i > 0; i--) //above water level
-            {
-                lookupTable[i] = new ColorHSL(0.01 + (j * 0.01), 1.0, 0.5).ToArgbColor();
-                j++;
-            }
-            return lookupTable;
-        }
-
         public struct PixelSize // Unfortunately no nice tuples in this version of C# :(
         {
             public double x;

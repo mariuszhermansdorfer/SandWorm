@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using Rhino.Display;
+using Rhino.Geometry;
 using Grasshopper.Kernel;
 using System.Windows.Forms;
 
@@ -8,147 +9,131 @@ namespace SandWorm
 {
     public static class Analysis
     {        
-        abstract class MeshVisualisation // For all analysis options that can be enabled
+        public abstract class MeshVisualisation // For all analysis options that can be enabled
         {
-            public string menuName { get; } // Name used in the toggle menu
-            public bool menuExclusive { get; } // Whether this can be applied indepedently of other analysis
+            public string name { get; } // Name used in the toggle menu
+            public bool isExclusive { get; } // Whether this can be applied indepedently of other analysis
+            public bool isEnabled { get; set; } // Whether to apply the analysis
+            public Color[] lookupTable;
 
-            public MeshVisualisation(string name, bool exclusive)
+            public MeshVisualisation(string menuName, bool exclusive)
             {
-                menuName = name; 
-                menuExclusive = exclusive;
+                name = menuName; 
+                isExclusive = exclusive;
+                isEnabled = false;
             }
 
-            public ToolStripDropDown AddToMenu(ToolStripDropDown menu)
+            public void ComputeLookupTable(double sensorElevation)
             {
-                if (menuExclusive)
-                {
-                    // Create separator item
-                }
-                // Append menu item
-                return menu;
-            }
-        }
-
-        abstract class MeshAnalysis : MeshVisualisation // For analysis that affects the entire mesh and is mutually exclusive
-        {
-            public bool showContours;
-            public int contourInterval;
-            public bool showWaterLevel;
-            private Color[] lookupTable;
-
-            public MeshAnalysis(string name, bool exclusive, bool contours, bool water, int sensorHeight, int interval)
-                : base(name, exclusive) 
-            {
-                showContours = contours; // Not exclusive with the mesh gradient
-                showWaterLevel = water; // Not exclusive with the mesh gradient
-                lookupTable = new Color[GetLookupTableSize(sensorHeight)];
-                contourInterval = interval;
+                ComputeLookupTableForAnalysis(sensorElevation); 
             }
 
-            public abstract Color GetPixelColor();
-            public abstract int GetLookupTableSize(int sensorHeight);
-            public abstract void ComputeLookupTableForAnalysis(ref Color[] lookupTable, int startIndex);
-
-            public void ComputeLookupTable(int waterLevel, int contourInterval, int sensorHeight)
+            public void ComputeLinearRange(int startIndex, int endIndex)
             {
-                int j = 0;
-                if (showWaterLevel) // Color all pixels below water level; pass on remaining items
+                lookupTable = new Color[endIndex];
+                for (int i = startIndex; i > endIndex; i--)
                 {
-                    for (int i = waterLevel; i < lookupTable.Length; i++) 
-                    {
-                        lookupTable[i] = new ColorHSL(0.6, 0.6, 0.60 - (j * 0.02)).ToArgbColor();
-                        j++;
-                    }
-                }
-
-                ComputeLookupTableForAnalysis(ref lookupTable, j);
-
-                if (showContours) // Override earlier pixels as needed to draw contours
-                {
-                    for (int i = 0; i < lookupTable.Length; i++)
-                    {
-                        // Check if within specified contour interval
-                    }
-
+                    lookupTable[i] = new ColorHSL(0.01 + (i * 0.01), 1.0, 0.5).ToArgbColor();
                 }
             }
-        }
 
-        class NoAnalysis : MeshAnalysis
-        {
-            public NoAnalysis(bool contours, bool water, int sensorHeight, int contourInterval) 
-                : base("No Analysis", false, contours, water, sensorHeight, contourInterval) { }
-            public override Color GetPixelColor()
+            public void ComputeBlockRange(int startIndex, int endIndex, Color color)
             {
-                return Color.White;
-            }
-            public override int GetLookupTableSize(int sensorHeight)
-            {
-                return 0;
-            }
-            public override void ComputeLookupTableForAnalysis(ref Color[] lookupTable, int startIndex)
-            {
-                // Do nothing? Or just return a transparent color?
-            }
-        }
-
-        class ElevationAnalysis : MeshAnalysis
-        {
-            public ElevationAnalysis(bool contours, bool water, int sensorHeight, int contourInterval) 
-                : base("Elevation Analysis", false, contours, water, sensorHeight, contourInterval) { }
-            public override Color GetPixelColor()
-            {
-                return Color.White;
-            }
-            public override int GetLookupTableSize(int sensorHeight)
-            {
-                return sensorHeight;
-            }
-
-            public override void ComputeLookupTableForAnalysis(ref Color[] lookupTable, int startIndex)
-            {
-                j = 0;
-                for (int i = startIndex; i > 0; i--) 
+                lookupTable = new Color[endIndex];
+                for (int i = startIndex; i > endIndex; i--)
                 {
-                    lookupTable[i] = new ColorHSL(0.01 + (j * 0.01), 1.0, 0.5).ToArgbColor();
-                    j++;
+                    lookupTable[i] = color;
                 }
             }
+
+            public abstract Color GetPixelColor(int elevation); // TODO: accept other inputs
+            public abstract void ComputeLookupTableForAnalysis(double sensorElevation);
         }
 
-        class SlopeAnalysis : MeshAnalysis
+        public class None : MeshVisualisation
         {
-            public SlopeAnalysis(bool contours, bool water, int sensorHeight, int contourInterval) 
-                : base("Slope Analysis", false, contours, water, sensorHeight, contourInterval) { }
-            public override Color GetPixelColor()
-            {
-                return Color.White;
+            public None() : base("No Analysis", false) { }
+
+            public override Color GetPixelColor(int elevation) {
+                return Color.Transparent; // Never called as its lookup table has no items
             }
-            public override int GetLookupTableSize(int sensorHeight)
+
+            public override void ComputeLookupTableForAnalysis(double sensorElevation) { }
+        }
+
+        public class Water : MeshVisualisation
+        {
+            public Water() : base("Water Level", false) { }
+
+            public override Color GetPixelColor(int elevation)
             {
-                return 90; // Slope ranges
+                return lookupTable[elevation];
             }
-            public override void ComputeLookupTableForAnalysis(ref Color[] lookupTable, int startIndex)
+
+            public override void ComputeLookupTableForAnalysis(double waterLevel)
             {
-                // Provide a lookup table as per a reasonable range of slope values
+                ComputeBlockRange(0, (int)waterLevel, Color.Blue); 
             }
         }
-        class AspectAnalysis : MeshAnalysis
+
+        public class Contours : MeshVisualisation
         {
-            public AspectAnalysis(bool contours, bool water, int sensorHeight, int contourInterval)
-                : base("Aspect Analysis", false, contours, water, sensorHeight, contourInterval) { }
-            public override Color GetPixelColor()
+            public Contours() : base("Contour Lines", false) { }
+
+            public override Color GetPixelColor(int elevation)
             {
-                return Color.White;
+                return Color.White; // TODO
             }
-            public override int GetLookupTableSize(int sensorHeight)
+
+            public override void ComputeLookupTableForAnalysis(double sensorElevation)
             {
-                return 359; // Aspect ranges
+                // TODO - how to define a range of inputs? set the others to null?
             }
-            public override void ComputeLookupTableForAnalysis(ref Color[] lookupTable, int startIndex)
+        }
+
+
+        public class Elevation : MeshVisualisation
+        {
+            public Elevation() : base("Elevation Analysis", false) { }
+
+            public override Color GetPixelColor(int elevation)
             {
-                // Provide a lookup table as per a reasonable range of aspect values
+                return lookupTable[elevation];
+            }
+
+            public override void ComputeLookupTableForAnalysis(double sensorElevation)
+            {
+                ComputeLinearRange(0, (int)sensorElevation); 
+            }
+        }
+
+        class Slope : MeshVisualisation
+        {
+            public Slope() : base("Slope Analysis", false) { }
+
+            public override Color GetPixelColor(int elevation)
+            {
+                return Color.White; // TODO
+            }
+
+            public override void ComputeLookupTableForAnalysis(double sensorElevation)
+            {
+                ComputeLinearRange(0, 90);
+            }
+        }
+
+        class Aspect : MeshVisualisation
+        {
+            public Aspect() : base("Aspect Analysis", false) { }
+
+            public override Color GetPixelColor(int elevation)
+            {
+                return Color.White; // TODO
+            }
+
+            public override void ComputeLookupTableForAnalysis(double sensorElevation)
+            {
+                ComputeLinearRange(0, 359);
             }
         }        
     }
