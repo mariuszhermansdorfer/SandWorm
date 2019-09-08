@@ -32,6 +32,7 @@ namespace SandWorm
         public Mesh quadMesh = new Mesh();
 
         public int waterLevel;
+        public int contourInterval = 5; //in mm
         public double sensorElevation = 1000; // Arbitrary default value (must be >0)
         public int leftColumns = 0;
         public int rightColumns = 0;
@@ -65,6 +66,7 @@ namespace SandWorm
         {
             pManager.AddNumberParameter("SensorHeight", "SH", "The height (in document units) of the sensor above your model", GH_ParamAccess.item, sensorElevation);
             pManager.AddIntegerParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, 1000);
+            pManager.AddIntegerParameter("ContourInterval", "CI", "The distance between contour lines (in document units)", GH_ParamAccess.item, contourInterval);
             pManager.AddIntegerParameter("LeftColumns", "LC", "Number of columns to trim from the left", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("RightColumns", "RC", "Number of columns to trim from the right", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("TopRows", "TR", "Number of rows to trim from the top", GH_ParamAccess.item, 0);
@@ -82,7 +84,8 @@ namespace SandWorm
             pManager[6].Optional = true;
             pManager[7].Optional = true;
             pManager[8].Optional = true;
-            
+            pManager[9].Optional = true;
+
         }
 
         /// <summary>
@@ -137,13 +140,14 @@ namespace SandWorm
         {
             DA.GetData<double>(0, ref sensorElevation);
             DA.GetData<int>(1, ref waterLevel);
-            DA.GetData<int>(2, ref leftColumns);
-            DA.GetData<int>(3, ref rightColumns);
-            DA.GetData<int>(4, ref topRows);
-            DA.GetData<int>(5, ref bottomRows);
-            DA.GetData<int>(6, ref tickRate);
-            DA.GetData<int>(7, ref averageFrames);
-            DA.GetData<int>(8, ref blurRadius);
+            DA.GetData<int>(2, ref contourInterval);
+            DA.GetData<int>(3, ref leftColumns);
+            DA.GetData<int>(4, ref rightColumns);
+            DA.GetData<int>(5, ref topRows);
+            DA.GetData<int>(6, ref bottomRows);
+            DA.GetData<int>(7, ref tickRate);
+            DA.GetData<int>(8, ref averageFrames);
+            DA.GetData<int>(9, ref blurRadius);
 
             switch (units.ToString())
             {
@@ -181,7 +185,7 @@ namespace SandWorm
 
             if (selectedColorStyle == MeshColorStyle.byElevation)
             {
-                Core.ComputeLookupTable(waterLevel, lookupTable); //precompute all vertex colors
+                Core.ComputeLookupTable(waterLevel, contourInterval,  lookupTable); //precompute all vertex colors
             }
 
             if (this.kinectSensor == null)

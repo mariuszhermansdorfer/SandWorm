@@ -46,15 +46,15 @@ namespace SandWorm
             return mesh;
         }
 
-        public static Color[] ComputeLookupTable(int waterLevel, Color[] lookupTable)
+        public static Color[] ComputeLookupTable(int waterLevel, int contourInterval, Color[] lookupTable)
         {
             //precompute all vertex colors
             int j = 0;
             for (int i = waterLevel; i < lookupTable.Length; i++) //below water level
             {
-                if (i % 5 == 0)
+                if (i % contourInterval == 0)
                 {
-                    lookupTable[i] = new ColorHSL(0.0, 0.0, 0.0).ToArgbColor();
+                    lookupTable[i] = Color.FromArgb(128, 128, 128);
                 }
                 else
                 {
@@ -66,9 +66,9 @@ namespace SandWorm
             j = 0;
             for (int i = waterLevel; i > 0; i--) //above water level
             {
-                if (i % 5 == 0)
+                if (i % contourInterval == 0)
                 {
-                    lookupTable[i] = new ColorHSL(0.0, 0.0, 0.0).ToArgbColor();
+                    lookupTable[i] = Color.FromArgb(128, 128, 128);
                 }
                 else
                 {
