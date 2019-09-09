@@ -41,12 +41,6 @@ namespace SandWorm
 
         // Analysis state
         private int waterLevel = 1000;
-        private int contourInveral = 100;
-        // Create analysis managers to be made into menu items
-        // Note their order in array currenlty determines their priority; i.e. which color is 'top'
-        List<Analysis.MeshVisualisation> options = new List<Analysis.MeshVisualisation> {
-            new Analysis.None(), new Analysis.Elevation()
-        };
 
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
@@ -101,40 +95,20 @@ namespace SandWorm
         protected override void AppendAdditionalComponentMenuItems(ToolStripDropDown menu) 
         {            
             base.AppendAdditionalComponentMenuItems(menu);
-            options.Sort((x, y) => x.isExclusive.CompareTo(y.isExclusive)); // Group the non-exclusive options
-            foreach (Analysis.MeshVisualisation option in options) // Add analysis items to menu
+            foreach (Analysis.MeshVisualisation option in Analysis.AnalysisManager.options) // Add analysis items to menu
             {
-                Menu_AppendItem(menu, option.name, SetMeshVisualisation, true, option.isEnabled);
-                menu.Items[menu.Items.Count - 1].Tag = option;
-                if (option.isExclusive)
+                Menu_AppendItem(menu, option.Name, SetMeshVisualisation, true, option.IsEnabled);
+                // Create reference to the menu item in the analysis class
+                option.MenuItem = (ToolStripMenuItem)menu.Items[menu.Items.Count - 1];
+                if (!option.IsExclusive)
                     Menu_AppendSeparator(menu);
             }
         }
 
         private void SetMeshVisualisation(object sender, EventArgs e)
         {
-            ToolStripMenuItem selectedItem = (ToolStripMenuItem)sender;
-            ToolStrip parentMenu = selectedItem.Owner as ToolStrip;
-            Analysis.MeshVisualisation selectedOption = (Analysis.MeshVisualisation)selectedItem.Tag;
-
-            if (selectedOption.isExclusive)
-            {
-                selectedOption.isEnabled = !selectedOption.isEnabled; // Toggle state if not a group
-            }
-            else
-            {
-                foreach (Analysis.MeshVisualisation option in options)
-                {
-                    selectedOption.isEnabled = selectedOption == option; // Unset group state
-                    if (selectedOption.isEnabled)
-                    {
-                        if (option is Analysis.Water)
-                            selectedOption.ComputeLookupTable(waterLevel);
-                        else
-                            selectedOption.ComputeLookupTable(sensorElevation);
-                    }
-                }
-            }
+            Analysis.AnalysisManager.SetEnabledOptions((ToolStripMenuItem)sender);   
+            Analysis.AnalysisManager.ComputeLookupTables(sensorElevation, waterLevel);
             ExpireSolution(true);
             quadMesh.VertexColors.Clear(); // Must flush mesh colors to properly updated display
         }
@@ -191,7 +165,8 @@ namespace SandWorm
                     unitsMultiplier = 0.0328084;
                     break;
             }
-            sensorElevation = sensorElevation / unitsMultiplier; // Standardise to mm to match sensor units
+            sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units 
+            Analysis.AnalysisManager.ComputeLookupTables(sensorElevation, waterLevel); // Update when params change
 
             Stopwatch timer = Stopwatch.StartNew(); //debugging
 
@@ -261,12 +236,10 @@ namespace SandWorm
 
                             tempPoint.Z = (float)((depthPoint - sensorElevation) * -unitsMultiplier);
 
-                            foreach (Analysis.MeshVisualisation option in options)
-                            {
-                                if (option.lookupTable.Length > 0) // Don't calculate for the None type
-                                    vertexColors[arrayIndex] = option.GetPixelColor(depthPoint);
-                            }
-
+                            Color? pixelColor = Analysis.AnalysisManager.GetPixelColor(depthPoint);
+                            if (pixelColor.HasValue)
+                                vertexColors[arrayIndex] = pixelColor.Value;
+ 
                             pointCloud[arrayIndex] = tempPoint;
                         }
                     };
