@@ -23,15 +23,11 @@ namespace SandWorm
         public static List<String> output = null;//debugging
         private Queue<ushort[]> renderBuffer = new Queue<ushort[]>();
 
-
         public static int depthPoint;
         public static Color[] lookupTable = new Color[1500]; //to do - fix arbitrary value assuming 1500 mm as max distance from the kinect sensor
-        enum MeshColorStyle { noColor, byElevation };
-        private MeshColorStyle selectedColorStyle = MeshColorStyle.byElevation; // Must be private to be less accessible than enum type
         public Color[] vertexColors;
         public Mesh quadMesh = new Mesh();
 
-        public int waterLevel;
         public double sensorElevation = 1000; // Arbitrary default value (must be >0)
         public int leftColumns = 0;
         public int rightColumns = 0;
@@ -43,6 +39,8 @@ namespace SandWorm
         public static Rhino.UnitSystem units = Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem;
         public static double unitsMultiplier;
 
+        // Analysis state
+        private int waterLevel = 1000;
 
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
@@ -94,33 +92,25 @@ namespace SandWorm
             pManager.AddTextParameter("Output", "O", "Output", GH_ParamAccess.list); //debugging
         }
 
-        protected override void AppendAdditionalComponentMenuItems(ToolStripDropDown menu)
-        {
+        protected override void AppendAdditionalComponentMenuItems(ToolStripDropDown menu) 
+        {            
             base.AppendAdditionalComponentMenuItems(menu);
-            Menu_AppendItem(menu, "Color Mesh by Elevation", SetMeshColorStyle, true, selectedColorStyle == MeshColorStyle.byElevation);
-            menu.Items[menu.Items.Count - 1].Tag = MeshColorStyle.byElevation;
-            Menu_AppendItem(menu, "Do Not Color Mesh", SetMeshColorStyle, true, selectedColorStyle == MeshColorStyle.noColor);
-            menu.Items[menu.Items.Count - 1].Tag = MeshColorStyle.noColor;
+            foreach (Analysis.MeshVisualisation option in Analysis.AnalysisManager.options) // Add analysis items to menu
+            {
+                Menu_AppendItem(menu, option.Name, SetMeshVisualisation, true, option.IsEnabled);
+                // Create reference to the menu item in the analysis class
+                option.MenuItem = (ToolStripMenuItem)menu.Items[menu.Items.Count - 1];
+                if (!option.IsExclusive)
+                    Menu_AppendSeparator(menu);
+            }
         }
 
-        private void SetMeshColorStyle(object sender, EventArgs e)
+        private void SetMeshVisualisation(object sender, EventArgs e)
         {
-            ToolStripMenuItem selectedItem = (ToolStripMenuItem)sender;
-            ToolStrip parentMenu = selectedItem.Owner as ToolStrip;
-            if ((MeshColorStyle)selectedItem.Tag != selectedColorStyle) // Update style if it was changed
-            {
-                selectedColorStyle = (MeshColorStyle)selectedItem.Tag;
-                ExpireSolution(true);
-                quadMesh.VertexColors.Clear(); // Must flush mesh colors to properly updated display
-            }
-            for (int i = 0; i < parentMenu.Items.Count; i++) // Easier than foreach as types differ
-            {
-                if (parentMenu.Items[i] is ToolStripMenuItem && parentMenu.Items[i].Tag != null)
-                {
-                    ToolStripMenuItem menuItem = parentMenu.Items[i] as ToolStripMenuItem;
-                    menuItem.Checked = true; // Toggle state of menu items
-                }
-            }
+            Analysis.AnalysisManager.SetEnabledOptions((ToolStripMenuItem)sender);   
+            Analysis.AnalysisManager.ComputeLookupTables(sensorElevation, waterLevel);
+            ExpireSolution(true);
+            quadMesh.VertexColors.Clear(); // Must flush mesh colors to properly updated display
         }
 
         private void ScheduleDelegate(GH_Document doc)
@@ -175,14 +165,11 @@ namespace SandWorm
                     unitsMultiplier = 0.0328084;
                     break;
             }
-            sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units
+
+            sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units 
+            Analysis.AnalysisManager.ComputeLookupTables(sensorElevation, waterLevel); // Update when params change
 
             Stopwatch timer = Stopwatch.StartNew(); //debugging
-
-            if (selectedColorStyle == MeshColorStyle.byElevation)
-            {
-                Core.ComputeLookupTable(waterLevel, lookupTable); //precompute all vertex colors
-            }
 
             if (this.kinectSensor == null)
             {
@@ -249,11 +236,11 @@ namespace SandWorm
 
 
                             tempPoint.Z = (float)((depthPoint - sensorElevation) * -unitsMultiplier);
-                            if (selectedColorStyle == MeshColorStyle.byElevation)
-                            {
-                                vertexColors[arrayIndex] = (lookupTable[depthPoint]);
-                            }
 
+                            Color? pixelColor = Analysis.AnalysisManager.GetPixelColor(depthPoint);
+                            if (pixelColor.HasValue)
+                                vertexColors[arrayIndex] = pixelColor.Value;
+ 
                             pointCloud[arrayIndex] = tempPoint;
                         }
                     };
