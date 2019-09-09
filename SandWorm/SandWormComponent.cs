@@ -165,6 +165,7 @@ namespace SandWorm
                     unitsMultiplier = 0.0328084;
                     break;
             }
+
             sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units 
             Analysis.AnalysisManager.ComputeLookupTables(sensorElevation, waterLevel); // Update when params change
 
@@ -185,7 +186,7 @@ namespace SandWorm
                     Point3f tempPoint = new Point3f();
                     outputMesh = new List<Mesh>();
                     output = new List<String>(); //debugging
-                    Core.PixelSize depthPixelSize = Core.getDepthPixelSpacing(sensorElevation);
+                    Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
                     vertexColors = new Color[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
 
 
