@@ -6,6 +6,7 @@ using Grasshopper.Kernel;
 using Rhino.Geometry;
 using Microsoft.Kinect;
 using System.Windows.Forms;
+using System.Linq;
 // comment 
 // In order to load the result of this wizard, you will also need to
 // add the output bin/ folder of this project to the list of loaded
@@ -22,6 +23,9 @@ namespace SandWorm
         private List<Mesh> outputMesh = null;
         public static List<string> output = null;//debugging
         private Queue<int[]> renderBuffer = new Queue<int[]>();
+        //public int[] runningSum = new int[KinectController.depthWidth * KinectController.depthHeight];
+        public int[] runningSum = Enumerable.Range(1, 217088).Select(i => new int()).ToArray();
+
 
         public double depthPoint;
         public static Color[] lookupTable = new Color[1500]; //to do - fix arbitrary value assuming 1500 mm as max distance from the kinect sensor
@@ -70,8 +74,8 @@ namespace SandWorm
             pManager.AddIntegerParameter("BottomRows", "BR", "Number of rows to trim from the bottom", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("TickRate", "TR", "The time interval, in milliseconds, to update geometry from the Kinect. Set as 0 to disable automatic updates.", GH_ParamAccess.item, tickRate);
             pManager.AddIntegerParameter("AverageFrames", "AF", "Amount of depth frames to average across. This number has to be greater than zero.", GH_ParamAccess.item, averageFrames);
-            pManager.AddIntegerParameter("BlurRadius", "BR", "Radius for the gaussian blur.", GH_ParamAccess.item, blurRadiusOld);
-            pManager.AddIntegerParameter("BlurRadius", "BR", "Radius for the gaussian blur.", GH_ParamAccess.item, blurRadiusNew);
+            pManager.AddIntegerParameter("BlurRadiusOld", "BR", "Radius for the gaussian blur.", GH_ParamAccess.item, blurRadiusOld);
+            pManager.AddIntegerParameter("BlurRadiusNew", "BR", "Radius for the gaussian blur.", GH_ParamAccess.item, blurRadiusNew);
 
             pManager[0].Optional = true;
             pManager[1].Optional = true;
@@ -196,78 +200,97 @@ namespace SandWorm
                     vertexColors = new Color[trimmedWidth * trimmedHeight];
                     int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
                     double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
+                    int[] previousDepthFrameData = new int[trimmedWidth * trimmedHeight];
 
                     //initialize outputs
                     outputMesh = new List<Mesh>();
                     output = new List<string>(); //debugging
 
                     Point3d tempPoint = new Point3d();
-
                     Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation); //calculate xy distance between pixels
 
                     //trim the depth array and cast ushort values to int
                     Core.CopyAsIntArray(KinectController.depthFrameData, depthFrameDataInt, leftColumns, rightColumns, topRows, bottomRows, KinectController.depthHeight, KinectController.depthWidth);
-                    renderBuffer.Enqueue(depthFrameDataInt);
 
                     averageFrames = averageFrames < 1 ? 1 : averageFrames; //make sure there is at least one frame in the render buffer
 
-                    if (renderBuffer.Count == averageFrames) //catch edge cases with slider manipulation
+                    if (renderBuffer.Count > averageFrames)
                     {
-                        for (int a = 0; a < depthFrameDataInt.Length; a++)
+                        renderBuffer.Clear();
+                        Array.Clear(runningSum, 0, runningSum.Length);
+                        renderBuffer.Enqueue(depthFrameDataInt);
+                    }
+                    else
+                        renderBuffer.Enqueue(depthFrameDataInt);
+
+                    output.Add(String.Format("Render buffer length: {0} frames", renderBuffer.Count));
+
+                    for (int pixel = 0; pixel < depthFrameDataInt.Length; pixel++)
+                    {
+                        if (depthFrameDataInt[pixel] != 0)
+                            runningSum[pixel] += depthFrameDataInt[pixel];
+                        else
+                            runningSum[pixel] += (int)(sensorElevation * unitsMultiplier);
+                        averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count;
+
+                        if (renderBuffer.Count == averageFrames)
+                            runningSum[pixel] -= renderBuffer.Peek()[pixel];
+                    }
+
+                    timer.Stop();
+                    output.Add("Frames averaging: " + timer.ElapsedMilliseconds.ToString() + " ms");
+                    timer.Restart(); //debugging
+
+                    if (blurRadiusOld > 1) //apply gaussian blur
+                    {
+                        var gaussianBlur = new GaussianBlur(averagedDepthFrameData);
+                        var blurredFrame = gaussianBlur.Process(blurRadiusOld, trimmedWidth, trimmedHeight);
+                        timer.Stop();
+                        output.Add("Blurring old method: " + timer.ElapsedMilliseconds.ToString() + " ms");
+                        timer.Restart(); //debugging
+                    }
+                    if (blurRadiusNew > 1) //apply gaussian blur
+                    {
+                        GaussianBlurProcessor gaussianBlurProcessor = new GaussianBlurProcessor(blurRadiusNew, trimmedWidth, trimmedHeight);
+                        gaussianBlurProcessor.Apply(averagedDepthFrameData);
+                        timer.Stop();
+                        output.Add("Blurring new method: " + timer.ElapsedMilliseconds.ToString() + " ms");
+                        timer.Restart(); //debugging
+                    }
+
+
+                    int i = 0;
+
+                    for (int rows = 0; rows < trimmedHeight; rows++)
+                    {
+                        for (int columns = 0; columns < trimmedWidth; columns++)
                         {
-                            averagedDepthFrameData[a] = (double)depthFrameDataInt[a]; //TODO define actual averaging function
-                        }
+                            tempPoint.X = columns * -unitsMultiplier * depthPixelSize.x;
+                            tempPoint.Y = rows * -unitsMultiplier * depthPixelSize.y;
 
-                        if (blurRadiusOld > 1) //apply gaussian blur
-                        {
-                            var gaussianBlur = new GaussianBlur(averagedDepthFrameData);
-                            var blurredFrame = gaussianBlur.Process(blurRadiusOld, trimmedWidth, trimmedHeight);
-                            timer.Stop();
-                            output.Add("Blurring old method: " + timer.ElapsedMilliseconds.ToString() + " ms");
-                            timer.Restart(); //debugging
-                        }
-                        if (blurRadiusNew > 1) //apply gaussian blur
-                        {
-                            GaussianBlurProcessor gaussianBlurProcessor = new GaussianBlurProcessor(blurRadiusNew, trimmedWidth, trimmedHeight);
-                            gaussianBlurProcessor.Apply(averagedDepthFrameData);
-                            timer.Stop();
-                            output.Add("Blurring new method: " + timer.ElapsedMilliseconds.ToString() + " ms");
-                            timer.Restart(); //debugging
-                        }
+                            /*
+                            if (averagedDepthFrameData[i] == 0 || averagedDepthFrameData[i] >= lookupTable.Length)
+                                depthPoint = sensorElevation;
+                            else
+                            */
+                            depthPoint = averagedDepthFrameData[i];
 
+                            tempPoint.Z = (depthPoint - sensorElevation) * -unitsMultiplier;
+                            /*
+                            Color? pixelColor = Analysis.AnalysisManager.GetPixelColor((int)Math.Round(depthPoint));
+                            if (pixelColor.HasValue)
+                                vertexColors[i] = pixelColor.Value;
+                                */
+                            pointCloud[i] = tempPoint;
 
-                        int i = 0;
-
-                        for (int rows = 0; rows < trimmedHeight; rows++)
-                        {
-                            for (int columns = 0; columns < trimmedWidth; columns++)
-                            {
-                                tempPoint.X = columns * -unitsMultiplier * depthPixelSize.x;
-                                tempPoint.Y = rows * -unitsMultiplier * depthPixelSize.y;
-
-                                if (averagedDepthFrameData[i] == 0 || averagedDepthFrameData[i] >= lookupTable.Length) 
-                                    depthPoint = sensorElevation;
-                                else
-                                    depthPoint = averagedDepthFrameData[i];
-
-                                tempPoint.Z = (depthPoint - sensorElevation) * -unitsMultiplier;
-                                /*
-                                Color? pixelColor = Analysis.AnalysisManager.GetPixelColor((int)Math.Round(depthPoint));
-                                if (pixelColor.HasValue)
-                                    vertexColors[i] = pixelColor.Value;
-                                    */
-                                pointCloud[i] = tempPoint;
-
-                                i++;
-                            }
+                            i++;
                         }
                     }
 
-                    int[] previousDepthFrameData = new int[trimmedWidth * trimmedHeight];
                     //keep only the desired amount of frames in the buffer
-                    while (renderBuffer.Count >= averageFrames && averageFrames > 0)
+                    while (renderBuffer.Count >= averageFrames)
                     {
-                        previousDepthFrameData = renderBuffer.Dequeue();
+                        renderBuffer.Dequeue();
                     }
 
                     //debugging
