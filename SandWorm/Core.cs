@@ -7,7 +7,7 @@ namespace SandWorm
 {
     public static class Core
     {
-        public static Mesh CreateQuadMesh(Mesh mesh, Point3f[] vertices, Color[] colors, int xStride, int yStride)
+        public static Mesh CreateQuadMesh(Mesh mesh, Point3d[] vertices, Color[] colors, int xStride, int yStride)
         {
             int xd = xStride;       // The x-dimension of the data
             int yd = yStride;       // They y-dimension of the data
@@ -48,16 +48,16 @@ namespace SandWorm
 
         public struct PixelSize // Unfortunately no nice tuples in this version of C# :(
         {
-            public float x;
-            public float y;
+            public double x;
+            public double y;
         }
 
-        public static PixelSize GetDepthPixelSpacing(float sensorHeight)
+        public static PixelSize GetDepthPixelSpacing(double sensorHeight)
         {
-            float kinect2FOVForX = 70.6F; 
-            float kinect2FOVForY = 60.0F;
-            float kinect2ResolutionForX = 512F;
-            float kinect2ResolutionForY = 424F;
+            double kinect2FOVForX = 70.6; 
+            double kinect2FOVForY = 60.0;
+            double kinect2ResolutionForX = 512;
+            double kinect2ResolutionForY = 424;
 
             PixelSize pixelsForHeight = new PixelSize
             {
@@ -67,10 +67,10 @@ namespace SandWorm
             return pixelsForHeight;
         }
 
-        private static float GetDepthPixelSizeInDimension(float fovAngle, float resolution, float height)
+        private static double GetDepthPixelSizeInDimension(double fovAngle, double resolution, double height)
         {
-            float fovInRadians = ((float)Math.PI / 180) * fovAngle;
-            float dimensionSpan = 2 * height * (float)Math.Tan(fovInRadians / 2);
+            double fovInRadians = (Math.PI / 180) * fovAngle;
+            double dimensionSpan = 2 * height * Math.Tan(fovInRadians / 2);
             return dimensionSpan / resolution;
         }
 

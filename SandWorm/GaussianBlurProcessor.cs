@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace SandWorm
 {
     /// <summary>
-    /// Applies Gaussian blur processing to a <see cref="float"/> image
+    /// Applies Gaussian blur processing to a <see cref="double"/> image
     /// </summary>
     public sealed class GaussianBlurProcessor
     {
@@ -23,12 +23,12 @@ namespace SandWorm
         /// <summary>
         /// The 1D kernel to apply
         /// </summary>
-        private readonly float[] Kernel;
+        private readonly double[] Kernel;
 
         /// <summary>
         /// The array to store the results of the first convolution pass
         /// </summary>
-        private readonly float[] FirstPassBuffer;
+        private readonly double[] FirstPassBuffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GaussianBlurProcessor"/> class
@@ -40,7 +40,7 @@ namespace SandWorm
         {
             int kernelSize = radius * 2 + 1;
             Kernel = CreateGaussianBlurKernel(kernelSize, radius / 3f);
-            FirstPassBuffer = new float[width * height];
+            FirstPassBuffer = new double[width * height];
             Width = width;
             Height = height;
         }
@@ -49,18 +49,18 @@ namespace SandWorm
         /// Creates a 1 dimensional Gaussian kernel using the Gaussian G(x) function
         /// </summary>
         [Pure]
-        private static float[] CreateGaussianBlurKernel(int size, float weight)
+        private static double[] CreateGaussianBlurKernel(int size, double weight)
         {
-            float[] kernel = new float[size];
-            ref float rKernel = ref kernel[0];
+            double[] kernel = new double[size];
+            ref double rKernel = ref kernel[0];
 
-            float sum = 0F;
-            float midpoint = (size - 1) / 2F;
+            double sum = 0F;
+            double midpoint = (size - 1) / 2F;
 
             for (int i = 0; i < size; i++)
             {
-                float x = i - midpoint;
-                float gx = Gaussian(x, weight);
+                double x = i - midpoint;
+                double gx = Gaussian(x, weight);
                 sum += gx;
                 Unsafe.Add(ref rKernel, i) = gx;
             }
@@ -81,16 +81,16 @@ namespace SandWorm
         /// <param name="sigma">The spread of the blur</param>
         /// <returns>The Gaussian G(x)</returns>
         [Pure]
-        private static float Gaussian(float x, float sigma)
+        private static double Gaussian(double x, double sigma)
         {
-            const float Numerator = 1.0f;
-            float denominator = (float)Math.Sqrt(2 * Math.PI) * sigma;
+            const double Numerator = 1.0f;
+            double denominator = (double)Math.Sqrt(2 * Math.PI) * sigma;
 
-            float exponentNumerator = -x * x;
-            float exponentDenominator = 2 * sigma * sigma;
+            double exponentNumerator = -x * x;
+            double exponentDenominator = 2 * sigma * sigma;
 
-            float left = Numerator / denominator;
-            float right = (float)Math.Exp(exponentNumerator / exponentDenominator);
+            double left = Numerator / denominator;
+            double right = (double)Math.Exp(exponentNumerator / exponentDenominator);
 
             return left * right;
         }
@@ -99,7 +99,7 @@ namespace SandWorm
         /// Applies the current effect to a target array
         /// </summary>
         /// <param name="source">The source and destination array</param>
-        public void Apply(float[] source)
+        public void Apply(double[] source)
         {
             ApplyVerticalConvolution(source, FirstPassBuffer, Kernel);
             ApplyHorizontalConvolution(FirstPassBuffer, source, Kernel);
@@ -111,7 +111,7 @@ namespace SandWorm
         /// <param name="source">The source array to read data from</param>
         /// <param name="target">The target array to write the results to</param>
         /// <param name="kernel">The array with the values for the current complex kernel</param>
-        private void ApplyVerticalConvolution(float[] source, float[] target, float[] kernel)
+        private void ApplyVerticalConvolution(double[] source, double[] target, double[] kernel)
         {
             int width = Width;
             int height = Height;
@@ -123,7 +123,7 @@ namespace SandWorm
             {
                 for (int x = 0; x < width; x++)
                 {
-                    float result = 0;
+                    double result = 0;
                     int radiusY = kernelLength >> 1;
                     int sourceOffsetColumnBase = x;
 
@@ -131,7 +131,7 @@ namespace SandWorm
                     {
                         int offsetY = Clamp(y + i - radiusY, 0, maxY);
                         int offsetX = Clamp(sourceOffsetColumnBase, 0, maxX);
-                        float value = source[offsetY * width + offsetX];
+                        double value = source[offsetY * width + offsetX];
 
                         result += kernel[i] * value;
                     }
@@ -148,7 +148,7 @@ namespace SandWorm
         /// <param name="source">The source array to read data from</param>
         /// <param name="target">The target array to write the results to</param>
         /// <param name="kernel">The array with the values for the current complex kernel</param>
-        private void ApplyHorizontalConvolution(float[] source, float[] target, float[] kernel)
+        private void ApplyHorizontalConvolution(double[] source, double[] target, double[] kernel)
         {
             int height = Height;
             int width = Width;
@@ -160,7 +160,7 @@ namespace SandWorm
             {
                 for (int x = 0; x < width; x++)
                 {
-                    float result = 0;
+                    double result = 0;
                     int radiusX = kernelLength >> 1;
                     int sourceOffsetColumnBase = x;
                     int offsetY = Clamp(y, 0, maxY);
@@ -170,7 +170,7 @@ namespace SandWorm
                     {
                         int offsetX = Clamp(sourceOffsetColumnBase + i - radiusX, 0, maxX);
                         offsetXY = offsetY * width + offsetX;
-                        float value = source[offsetXY];
+                        double value = source[offsetXY];
 
                         result += kernel[i] * value;
                     }
