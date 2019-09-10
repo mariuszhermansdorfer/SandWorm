@@ -1,7 +1,7 @@
 ﻿using Rhino.Geometry;
-using Rhino.Display;
 using System.Drawing;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace SandWorm
 {
@@ -48,16 +48,16 @@ namespace SandWorm
 
         public struct PixelSize // Unfortunately no nice tuples in this version of C# :(
         {
-            public double x;
-            public double y;
+            public float x;
+            public float y;
         }
 
-        public static PixelSize GetDepthPixelSpacing(double sensorHeight)
+        public static PixelSize GetDepthPixelSpacing(float sensorHeight)
         {
-            double kinect2FOVForX = 70.6; 
-            double kinect2FOVForY = 60.0;
-            double kinect2ResolutionForX = 512;
-            double kinect2ResolutionForY = 404;
+            float kinect2FOVForX = 70.6F; 
+            float kinect2FOVForY = 60.0F;
+            float kinect2ResolutionForX = 512F;
+            float kinect2ResolutionForY = 424F;
 
             PixelSize pixelsForHeight = new PixelSize
             {
@@ -67,11 +67,29 @@ namespace SandWorm
             return pixelsForHeight;
         }
 
-        private static double GetDepthPixelSizeInDimension(double fovAngle, double resolution, double height)
+        private static float GetDepthPixelSizeInDimension(float fovAngle, float resolution, float height)
         {
-            double fovInRadians = (Math.PI / 180) * fovAngle;
-            double dimensionSpan = 2 * height * Math.Tan(fovInRadians / 2);
+            float fovInRadians = ((float)Math.PI / 180) * fovAngle;
+            float dimensionSpan = 2 * height * (float)Math.Tan(fovInRadians / 2);
             return dimensionSpan / resolution;
+        }
+
+        public static void CopyAsIntArray(ushort[] source, int[] destination, int leftColumns, int rightColumns, int topRows, int bottomRows, int height, int width)
+        {
+            ref ushort ru0 = ref source[0];
+            ref int ri0 = ref destination[0];
+            int j = 0;
+
+            for (int rows = topRows; rows < height - bottomRows; rows++)
+            {
+                for (int columns = rightColumns; columns < width - leftColumns; columns++)
+                {
+                    int i = rows * width + columns;
+                    Unsafe.Add(ref ri0, j) = Unsafe.Add(ref ru0, i);
+                    j++;
+                }
+            }
+                
         }
     }
 }

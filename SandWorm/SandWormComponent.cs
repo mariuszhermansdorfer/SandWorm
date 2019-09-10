@@ -20,15 +20,15 @@ namespace SandWorm
         private KinectSensor kinectSensor = null;
         private Point3f[] pointCloud;
         private List<Mesh> outputMesh = null;
-        public static List<String> output = null;//debugging
-        private Queue<ushort[]> renderBuffer = new Queue<ushort[]>();
+        public static List<string> output = null;//debugging
+        private Queue<int[]> renderBuffer = new Queue<int[]>();
 
-        public static int depthPoint;
+        public float depthPoint;
         public static Color[] lookupTable = new Color[1500]; //to do - fix arbitrary value assuming 1500 mm as max distance from the kinect sensor
         public Color[] vertexColors;
         public Mesh quadMesh = new Mesh();
 
-        public double sensorElevation = 1000; // Arbitrary default value (must be >0)
+        public float sensorElevation = 1000; // Arbitrary default value (must be >0)
         public int leftColumns = 0;
         public int rightColumns = 0;
         public int topRows = 0;
@@ -37,7 +37,7 @@ namespace SandWorm
         public int averageFrames = 1;
         public int blurRadius = 1;
         public static Rhino.UnitSystem units = Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem;
-        public static double unitsMultiplier;
+        public static float unitsMultiplier;
 
         // Analysis state
         private int waterLevel = 1000;
@@ -80,7 +80,7 @@ namespace SandWorm
             pManager[6].Optional = true;
             pManager[7].Optional = true;
             pManager[8].Optional = true;
-            
+
         }
 
         /// <summary>
@@ -92,8 +92,8 @@ namespace SandWorm
             pManager.AddTextParameter("Output", "O", "Output", GH_ParamAccess.list); //debugging
         }
 
-        protected override void AppendAdditionalComponentMenuItems(ToolStripDropDown menu) 
-        {            
+        protected override void AppendAdditionalComponentMenuItems(ToolStripDropDown menu)
+        {
             base.AppendAdditionalComponentMenuItems(menu);
             foreach (Analysis.MeshVisualisation option in Analysis.AnalysisManager.options) // Add analysis items to menu
             {
@@ -107,7 +107,7 @@ namespace SandWorm
 
         private void SetMeshVisualisation(object sender, EventArgs e)
         {
-            Analysis.AnalysisManager.SetEnabledOptions((ToolStripMenuItem)sender);   
+            Analysis.AnalysisManager.SetEnabledOptions((ToolStripMenuItem)sender);
             Analysis.AnalysisManager.ComputeLookupTables(sensorElevation, waterLevel);
             ExpireSolution(true);
             quadMesh.VertexColors.Clear(); // Must flush mesh colors to properly updated display
@@ -125,7 +125,7 @@ namespace SandWorm
         /// to store data in output parameters.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            DA.GetData<double>(0, ref sensorElevation);
+            DA.GetData<float>(0, ref sensorElevation);
             DA.GetData<int>(1, ref waterLevel);
             DA.GetData<int>(2, ref leftColumns);
             DA.GetData<int>(3, ref rightColumns);
@@ -138,31 +138,31 @@ namespace SandWorm
             switch (units.ToString())
             {
                 case "Kilometers":
-                    unitsMultiplier = 0.0001;
+                    unitsMultiplier = 0.0001F;
                     break;
 
                 case "Meters":
-                    unitsMultiplier = 0.001;
+                    unitsMultiplier = 0.001F;
                     break;
 
                 case "Decimeters":
-                    unitsMultiplier = 0.01;
+                    unitsMultiplier = 0.01F;
                     break;
 
                 case "Centimeters":
-                    unitsMultiplier = 0.1;
+                    unitsMultiplier = 0.1F;
                     break;
 
                 case "Millimeters":
-                    unitsMultiplier = 1;
+                    unitsMultiplier = 1F;
                     break;
 
                 case "Inches":
-                    unitsMultiplier = 0.0393701;
+                    unitsMultiplier = 0.0393701F;
                     break;
 
                 case "Feet":
-                    unitsMultiplier = 0.0328084;
+                    unitsMultiplier = 0.0328084F;
                     break;
             }
 
@@ -182,73 +182,73 @@ namespace SandWorm
             {
                 if (KinectController.depthFrameData != null)
                 {
-                    pointCloud = new Point3f[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
-                    Point3f tempPoint = new Point3f();
+                    int trimmedWidth = KinectController.depthWidth - leftColumns - rightColumns;
+                    int trimmedHeight = KinectController.depthHeight - topRows - bottomRows;
+
+                    // initialize all arrays
+                    pointCloud = new Point3f[trimmedWidth * trimmedHeight];
+                    vertexColors = new Color[trimmedWidth * trimmedHeight];
+                    int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
+                    float[] averagedDepthFrameData = new float[trimmedWidth * trimmedHeight];
+
+                    //initialize outputs
                     outputMesh = new List<Mesh>();
-                    output = new List<String>(); //debugging
-                    Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
-                    vertexColors = new Color[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
+                    output = new List<string>(); //debugging
 
+                    Point3f tempPoint = new Point3f();
 
-                    if (blurRadius > 1)
+                    Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation); //calculate xy distance between pixels
+                    
+                    //trim the depth array and cast ushort values to int
+                    Core.CopyAsIntArray(KinectController.depthFrameData, depthFrameDataInt, leftColumns, rightColumns, topRows, bottomRows, KinectController.depthHeight, KinectController.depthWidth);
+
+                    renderBuffer.Enqueue(depthFrameDataInt);
+
+                    averageFrames = averageFrames < 1 ? 1 : averageFrames; //make sure there is at least one frame in the render buffer
+
+                    if (renderBuffer.Count == averageFrames) //catch edge cases with slider manipulation
                     {
-                        var gaussianBlur = new GaussianBlur(KinectController.depthFrameData);
-                        var blurredFrame = gaussianBlur.Process(blurRadius, KinectController.depthWidth, KinectController.depthHeight);
-
-                        renderBuffer.Enqueue(blurredFrame);
-                    }
-                    else
-                    {
-                        renderBuffer.Enqueue(KinectController.depthFrameData);
-                    }
 
 
-                    for (int rows = topRows; rows < KinectController.depthHeight - bottomRows; rows++)
-
-                    {
-                        for (int columns = rightColumns; columns < KinectController.depthWidth - leftColumns; columns++)
+                        if (blurRadius > 1) //apply gaussian blur
                         {
-
-                            int i = rows * KinectController.depthWidth + columns;
-                            int arrayIndex = i - ((topRows * KinectController.depthWidth) + rightColumns) - ((rows - topRows) * (leftColumns + rightColumns)); //get index in the trimmed array
-
-                            tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x); 
-                            tempPoint.Y = (float)(rows * -unitsMultiplier * depthPixelSize.y);
-
-                            if (averageFrames > 1)
-                            {
-                                int depthPointRunningSum = 0;
-                                foreach (var frame in renderBuffer)
-                                {
-                                    depthPointRunningSum += frame[i];
-                                }
-                                depthPoint = depthPointRunningSum / renderBuffer.Count;
-                            }
-                            else
-                            {
-                                depthPoint = KinectController.depthFrameData[i];
-                            }
-
-                            if (depthPoint == 0 || depthPoint >= lookupTable.Length) //check for invalid pixels
-                            {
-                                depthPoint = (int)sensorElevation;
-                            }
-
-
-                            tempPoint.Z = (float)((depthPoint - sensorElevation) * -unitsMultiplier);
-
-                            Color? pixelColor = Analysis.AnalysisManager.GetPixelColor(depthPoint);
-                            if (pixelColor.HasValue)
-                                vertexColors[arrayIndex] = pixelColor.Value;
- 
-                            pointCloud[arrayIndex] = tempPoint;
+                            GaussianBlurProcessor gaussianBlurProcessor = new GaussianBlurProcessor(blurRadius, trimmedWidth, trimmedHeight);
+                            gaussianBlurProcessor.Apply(averagedDepthFrameData); 
                         }
-                    };
 
+
+                        int i = 0;
+
+                        for (int rows = 0; rows < trimmedHeight; rows++)
+                        {
+                            for (int columns = 0; columns < trimmedWidth; columns++)
+                            {
+                                tempPoint.X = columns * -unitsMultiplier * depthPixelSize.x;
+                                tempPoint.Y = rows * -unitsMultiplier * depthPixelSize.y;
+
+                                if (averagedDepthFrameData[i] == 0 || averagedDepthFrameData[i] >= lookupTable.Length) 
+                                    depthPoint = sensorElevation;
+                                else
+                                    depthPoint = averagedDepthFrameData[i];
+
+                                tempPoint.Z = (depthPoint - sensorElevation) * -unitsMultiplier;
+
+                                Color? pixelColor = Analysis.AnalysisManager.GetPixelColor((int)Math.Round(depthPoint));
+                                if (pixelColor.HasValue)
+                                    vertexColors[i] = pixelColor.Value;
+
+                                pointCloud[i] = tempPoint;
+
+                                i++;
+                            }
+                        }
+                    }
+
+                    int[] previousDepthFrameData = new int[trimmedWidth * trimmedHeight];
                     //keep only the desired amount of frames in the buffer
                     while (renderBuffer.Count >= averageFrames && averageFrames > 0)
                     {
-                        renderBuffer.Dequeue();
+                        previousDepthFrameData = renderBuffer.Dequeue();
                     }
 
                     //debugging
@@ -257,7 +257,6 @@ namespace SandWorm
 
 
                     timer.Restart(); //debugging
-
 
                     quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, KinectController.depthWidth - leftColumns - rightColumns, KinectController.depthHeight - topRows - bottomRows);
                     outputMesh.Add(quadMesh);
