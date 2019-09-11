@@ -95,7 +95,7 @@ namespace SandWorm
         protected override void AppendAdditionalComponentMenuItems(ToolStripDropDown menu) 
         {            
             base.AppendAdditionalComponentMenuItems(menu);
-            foreach (Analysis.MeshVisualisation option in Analysis.AnalysisManager.options) // Add analysis items to menu
+            foreach (Analysis.MeshAnalysis option in Analysis.AnalysisManager.options) // Add analysis items to menu
             {
                 Menu_AppendItem(menu, option.Name, SetMeshVisualisation, true, option.IsEnabled);
                 // Create reference to the menu item in the analysis class
@@ -166,6 +166,7 @@ namespace SandWorm
                     break;
             }
             sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units 
+            Analysis.AnalysisManager.ComputeLookupTables(sensorElevation, waterLevel); // First-run computing of tables
 
             Stopwatch timer = Stopwatch.StartNew(); //debugging
 
@@ -185,8 +186,12 @@ namespace SandWorm
                     outputMesh = new List<Mesh>();
                     output = new List<String>(); //debugging
                     Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
-                    vertexColors = new Color[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
 
+                    // Only initialise a full-size vertex color array if a mesh-coloring visualisation is enabled
+                    if (Analysis.AnalysisManager.enabledMeshVisualisationOptions.Count > 0)
+                        vertexColors = new Color[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
+                    else
+                        vertexColors = new Color[0];
 
                     if (blurRadius > 1)
                     {
@@ -235,9 +240,8 @@ namespace SandWorm
 
                             tempPoint.Z = (float)((depthPoint - sensorElevation) * -unitsMultiplier);
 
-                            Color? pixelColor = Analysis.AnalysisManager.GetPixelColor(depthPoint);
-                            if (pixelColor.HasValue)
-                                vertexColors[arrayIndex] = pixelColor.Value;
+                            if (vertexColors.Length > 0) // Proxy for whether a mesh-coloring visualisation has been enabled
+                                vertexColors[arrayIndex] = Analysis.AnalysisManager.GetPixelColor(depthPoint);
  
                             pointCloud[arrayIndex] = tempPoint;
                         }

@@ -13,51 +13,64 @@ namespace SandWorm
         public static class AnalysisManager
         {
             /// <summary>Stories copies of each analysis option and intefaces their use with components.</summary>
-            public static List<MeshVisualisation> options;
+            public static List<MeshAnalysis> options;
+            public static List<MeshAnalysis> enabledOptions; 
+            public static List<MeshAnalysisWithMeshGradient> enabledMeshVisualisationOptions; 
 
             static AnalysisManager()
             {
                 // Note their order in array determines their priority; i.e. which color 'wins'
                 // Also needs to manually arrange the exclusive options together
-                options = new List<Analysis.MeshVisualisation> {
+                options = new List<Analysis.MeshAnalysis> {
                     new Analysis.Water(), new Analysis.Contours(),
                     new Analysis.None(),
                     new Analysis.Elevation(), new Analysis.Slope(), new Analysis.Aspect(),
                 };
                 // Default to showing elevation analysis
                 options[3].IsEnabled = true;
+                SetEnabledLookups();
+            }
+
+            private static void SetEnabledLookups()
+            {
+                // Store the enabled analysis options to prevent recaclulating them during GetPixelColor() calls
+                enabledOptions = options.FindAll(x => x.IsEnabled);
+                enabledMeshVisualisationOptions = new List<MeshAnalysisWithMeshGradient>();
+                foreach (MeshAnalysis enabledOption in enabledOptions) // Store analysis types that can color pixels
+                {
+                    Type optionType = enabledOption.GetType();
+                    bool optionTest = optionType.IsSubclassOf(typeof(MeshAnalysisWithMeshGradient));
+                    if (enabledOption.GetType().IsSubclassOf(typeof(MeshAnalysisWithMeshGradient)))
+                        enabledMeshVisualisationOptions.Add(enabledOption as MeshAnalysisWithMeshGradient);
+                }
             }
 
             public static void SetEnabledOptions(ToolStripMenuItem selectedMenuItem)
             {
-                MeshVisualisation selectedOption = options.Find(x => x.MenuItem == selectedMenuItem);
+                MeshAnalysis selectedOption = options.Find(x => x.MenuItem == selectedMenuItem);
                 if (selectedOption.IsExclusive)
-                    foreach (MeshVisualisation option in AnalysisManager.options)
-                        option.IsEnabled = selectedOption == option; // Tick a toggle on or off
+                    foreach (MeshAnalysis exclusiveOption in options.FindAll(x => x.IsExclusive))
+                        exclusiveOption.IsEnabled = selectedOption == exclusiveOption; // Toggle selected item; untoggle other exclusive items
                 else
                     selectedOption.IsEnabled = !selectedOption.IsEnabled; // Simple toggle for independent items
-            }
-
-            private static List<MeshVisualisation> GetEnabledOptions()
-            {
-                return options.FindAll(x => x.IsEnabled);
+                SetEnabledLookups(); 
             }
 
             public static void ComputeLookupTables(double sensorElevation, double waterLevel)
             {
-                foreach (Analysis.MeshVisualisation option in GetEnabledOptions())
+                foreach (MeshAnalysisWithMeshGradient option in enabledMeshVisualisationOptions)
                     option.ComputeLookupTableForAnalysis((int)sensorElevation, (int)waterLevel);
             }
 
-            public static Color? GetPixelColor(int depthPoint) // Get color for pixel given enabled options
+            public static Color GetPixelColor(int depthPoint) // Get color for pixel given enabled options
             {
-                foreach (Analysis.MeshVisualisation option in GetEnabledOptions())
+                foreach (Analysis.MeshAnalysisWithMeshGradient option in enabledMeshVisualisationOptions)
                 {
-                    Color? analysisColor = option.GetPixelColorForAnalysis(depthPoint);
-                    if (analysisColor.HasValue)
-                        return analysisColor.Value;
+                    Color? pixelColor = option.GetPixelColorForAnalysis(depthPoint);
+                    if (pixelColor.HasValue)
+                        return pixelColor.Value;
                 }
-                return null;
+                return Color.Transparent; // Fallback - shouldn't happen
             }
         }
 
@@ -79,22 +92,30 @@ namespace SandWorm
             }
         }
 
-        public abstract class MeshVisualisation 
+        public abstract class MeshAnalysis 
         {
             /// <summary>Inherited by all possible analysis options (even if not coloring the mesh).</summary>
             public string Name { get; } // Name used in the toggle menu
-            public bool IsExclusive { get; } // Whether this can be applied indepedently of other analysis
-            public bool IsEnabled { get; set; } // Whether to apply the analysis
+            public bool IsEnabled = false; // Whether to apply the analysis
+            public bool IsExclusive { get; set; } // Whether the analysis can be applied independent of other options
             public ToolStripMenuItem MenuItem { get; set; } 
             public Dictionary<int, Color> lookupTable; // Dictionary of integers that map to color values
 
-            public MeshVisualisation(string menuName, bool exclusive)
+            public MeshAnalysis(string menuName, bool exclusive)
             {
-                Name = menuName; 
+                Name = menuName;
                 IsExclusive = exclusive;
-                IsEnabled = false;
-            }
+            }            
+        }
 
+        public abstract class MeshAnalysisWithMeshGradient: MeshAnalysis
+        {
+            /// <summary>Inherited by analysis options that color the entire mesh (and are thus mutually exclusive).</summary>
+            public abstract Color? GetPixelColorForAnalysis(int elevation);
+
+            public MeshAnalysisWithMeshGradient(string menuName, bool exclusive) : base(menuName, exclusive) { }
+
+            public abstract void ComputeLookupTableForAnalysis(int sensorElevation, int waterLevel);
             public void ComputeLinearRanges(params VisualisationRangeWithColor[] lookUpRanges)
             {
                 int lookupTableMaximumSize = 0;
@@ -109,7 +130,7 @@ namespace SandWorm
                     lookupTable = new Dictionary<int, Color>(lookupTableMaximumSize); // Init dict with needed size
 
                 // Populate dict values by interpolating colors within each of the lookup ranges
-                foreach (VisualisationRangeWithColor range in lookUpRanges) 
+                foreach (VisualisationRangeWithColor range in lookUpRanges)
                 {
                     for (int i = range.ValueStart; i < range.ValueEnd; i++)
                     {
@@ -118,23 +139,14 @@ namespace SandWorm
                     }
                 }
             }
-            
-            public abstract Color? GetPixelColorForAnalysis(int elevation);
-            public abstract void ComputeLookupTableForAnalysis(int sensorElevation, int waterLevel);
         }
 
-        public class None : MeshVisualisation
+        public class None : MeshAnalysis
         {
             public None() : base("No Visualisation", true) { }
-
-            public override Color? GetPixelColorForAnalysis(int elevation) {
-                return null; 
-            }
-
-            public override void ComputeLookupTableForAnalysis(int sensorElevation, int waterLevel) { }
         }
 
-        public class Water : MeshVisualisation
+        public class Water : MeshAnalysisWithMeshGradient
         {
             public Water() : base("Show Water Level", false) { }
 
@@ -160,7 +172,7 @@ namespace SandWorm
             }
         }
 
-        public class Elevation : MeshVisualisation
+        public class Elevation : MeshAnalysisWithMeshGradient
         {
             public Elevation() : base("Visualise Elevation", true) { }
 
@@ -186,13 +198,13 @@ namespace SandWorm
             }
         }
         
-        class Slope : MeshVisualisation
+        class Slope : MeshAnalysisWithMeshGradient
         {
             public Slope() : base("Visualise Slope", true) { }
 
             public override Color? GetPixelColorForAnalysis(int slopeValue)
             {
-                return null; // TODO
+                return Color.Red; // TODO: implement slope analysis
             }
 
             public override void ComputeLookupTableForAnalysis(int sensorElevation, int waterLevel)
@@ -208,13 +220,13 @@ namespace SandWorm
             }
         }
 
-        class Aspect : MeshVisualisation
+        class Aspect : MeshAnalysisWithMeshGradient
         {
             public Aspect() : base("Visualise Aspect", true) { }
 
             public override Color? GetPixelColorForAnalysis(int aspectValue)
             {
-                return null; // TODO
+                return Color.Yellow; // TODO: implement aspect analysis
             }
 
             public override void ComputeLookupTableForAnalysis(int sensorElevation, int waterLevel)
@@ -238,16 +250,9 @@ namespace SandWorm
         }
 
 
-        public class Contours : MeshVisualisation
+        public class Contours : MeshAnalysis
         {
             public Contours() : base("Show Contour Lines", false) { }
-
-            public override Color? GetPixelColorForAnalysis(int elevation)
-            {
-                return null; 
-            }
-
-            public override void ComputeLookupTableForAnalysis(int sensorElevation, int waterLevel) { }
         }
 
     }
