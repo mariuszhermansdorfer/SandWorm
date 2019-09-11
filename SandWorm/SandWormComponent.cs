@@ -109,8 +109,8 @@ namespace SandWorm
         {
             Analysis.AnalysisManager.SetEnabledOptions((ToolStripMenuItem)sender);   
             Analysis.AnalysisManager.ComputeLookupTables(sensorElevation, waterLevel);
-            ExpireSolution(true);
             quadMesh.VertexColors.Clear(); // Must flush mesh colors to properly updated display
+            ExpireSolution(true);
         }
 
         private void ScheduleDelegate(GH_Document doc)
@@ -165,9 +165,7 @@ namespace SandWorm
                     unitsMultiplier = 0.0328084;
                     break;
             }
-
             sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units 
-            Analysis.AnalysisManager.ComputeLookupTables(sensorElevation, waterLevel); // Update when params change
 
             Stopwatch timer = Stopwatch.StartNew(); //debugging
 

@@ -24,8 +24,8 @@ namespace SandWorm
                     new Analysis.None(),
                     new Analysis.Elevation(), new Analysis.Slope(), new Analysis.Aspect(),
                 };
-                // Default to showing no analysis
-                options[2].IsEnabled = true;
+                // Default to showing elevation analysis
+                options[3].IsEnabled = true;
             }
 
             public static void SetEnabledOptions(ToolStripMenuItem selectedMenuItem)
@@ -178,8 +178,8 @@ namespace SandWorm
                 {
                     ValueStart = sensorElevation - 750, // TODO: don't assume maximum value here
                     ValueEnd = sensorElevation,
-                    ColorStart = new ColorHSL(0.39, 0.39, 0.09),
-                    ColorEnd = new ColorHSL(0.43, 0.68, 0.45)
+                    ColorStart = new ColorHSL(0.00, 0.25, 0.05),
+                    ColorEnd = new ColorHSL(0.50, 0.85, 0.75)
                 };
                 ComputeLinearRanges(new VisualisationRangeWithColor[] { elevationRange });
 
