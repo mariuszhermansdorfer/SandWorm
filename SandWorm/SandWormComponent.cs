@@ -25,7 +25,6 @@ namespace SandWorm
         private LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
         public int[] runningSum = Enumerable.Range(1, 217088).Select(i => new int()).ToArray();
 
-
         public double depthPoint;
         public static Color[] lookupTable = new Color[1500]; //to do - fix arbitrary value assuming 1500 mm as max distance from the kinect sensor
         public Color[] vertexColors;
@@ -188,17 +187,14 @@ namespace SandWorm
                     int trimmedHeight = KinectController.depthHeight - topRows - bottomRows;
 
 
-
                     // initialize all arrays
                     pointCloud = new Point3d[trimmedWidth * trimmedHeight];
                     vertexColors = new Color[trimmedWidth * trimmedHeight];
                     int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
                     double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
-                    int[] previousDepthFrameData = new int[trimmedWidth * trimmedHeight];
 
                     //initialize outputs
                     outputMesh = new List<Mesh>();
-
                     output = new List<string>(); //debugging
 
                     Point3d tempPoint = new Point3d();
@@ -206,7 +202,7 @@ namespace SandWorm
 
                     // Only initialise a full-size vertex color array if a mesh-coloring visualisation is enabled
                     if (Analysis.AnalysisManager.enabledMeshVisualisationOptions.Count > 0)
-                        vertexColors = new Color[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
+                        vertexColors = new Color[trimmedWidth * trimmedHeight];
                     else
                         vertexColors = new Color[0];
 
@@ -266,7 +262,7 @@ namespace SandWorm
                     }
 
 
-                    int i = 0;
+                    int arrayIndex = 0;
 
                     for (int rows = 0; rows < trimmedHeight; rows++)
                     {
@@ -275,21 +271,15 @@ namespace SandWorm
                             tempPoint.X = columns * -unitsMultiplier * depthPixelSize.x;
                             tempPoint.Y = rows * -unitsMultiplier * depthPixelSize.y;
 
-                            depthPoint = averagedDepthFrameData[i];
+                            depthPoint = averagedDepthFrameData[arrayIndex];
                             tempPoint.Z = (depthPoint - sensorElevation) * -unitsMultiplier;
-                            /*
-                            Color? pixelColor = Analysis.AnalysisManager.GetPixelColor((int)Math.Round(depthPoint));
-                            if (pixelColor.HasValue)
-                                vertexColors[i] = pixelColor.Value;
-                                */
-                            pointCloud[i] = tempPoint;
 
-                            i++;
+                            pointCloud[arrayIndex] = tempPoint;
                             
                             if (vertexColors.Length > 0) // Proxy for whether a mesh-coloring visualisation has been enabled
-                                vertexColors[arrayIndex] = Analysis.AnalysisManager.GetPixelColor(depthPoint);
+                                vertexColors[arrayIndex] = Analysis.AnalysisManager.GetPixelColor((int)depthPoint);
  
-                            pointCloud[arrayIndex] = tempPoint;
+                            arrayIndex++;
                         }
                     }
 
