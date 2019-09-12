@@ -86,7 +86,6 @@
   <ItemGroup>
     <Compile Include="Analysis.cs" />
     <Compile Include="Core.cs" />
-    <Compile Include="GaussianBlur.cs" />
     <Compile Include="GaussianBlurProcessor.cs" />
     <Compile Include="KinectController.cs" />
     <Compile Include="SandWormComponent.cs" />
