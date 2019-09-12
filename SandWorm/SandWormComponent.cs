@@ -22,8 +22,7 @@ namespace SandWorm
         private Point3d[] pointCloud;
         private List<Mesh> outputMesh = null;
         public static List<string> output = null;//debugging
-        private Queue<int[]> renderBuffer = new Queue<int[]>();
-        //public int[] runningSum = new int[KinectController.depthWidth * KinectController.depthHeight];
+        private LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
         public int[] runningSum = Enumerable.Range(1, 217088).Select(i => new int()).ToArray();
 
 
@@ -39,8 +38,7 @@ namespace SandWorm
         public int bottomRows = 0;
         public int tickRate = 20; // In ms
         public int averageFrames = 1;
-        public int blurRadiusOld = 1;
-        public int blurRadiusNew = 1;
+        public int blurRadius = 1;
         public static Rhino.UnitSystem units = Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem;
         public static double unitsMultiplier;
 
@@ -74,8 +72,7 @@ namespace SandWorm
             pManager.AddIntegerParameter("BottomRows", "BR", "Number of rows to trim from the bottom", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("TickRate", "TR", "The time interval, in milliseconds, to update geometry from the Kinect. Set as 0 to disable automatic updates.", GH_ParamAccess.item, tickRate);
             pManager.AddIntegerParameter("AverageFrames", "AF", "Amount of depth frames to average across. This number has to be greater than zero.", GH_ParamAccess.item, averageFrames);
-            pManager.AddIntegerParameter("BlurRadiusOld", "BR", "Radius for the gaussian blur.", GH_ParamAccess.item, blurRadiusOld);
-            pManager.AddIntegerParameter("BlurRadiusNew", "BR", "Radius for the gaussian blur.", GH_ParamAccess.item, blurRadiusNew);
+            pManager.AddIntegerParameter("BlurRadius", "BR", "Radius for Gaussian blur.", GH_ParamAccess.item, blurRadius);
 
             pManager[0].Optional = true;
             pManager[1].Optional = true;
@@ -86,7 +83,6 @@ namespace SandWorm
             pManager[6].Optional = true;
             pManager[7].Optional = true;
             pManager[8].Optional = true;
-            pManager[9].Optional = true;
 
         }
 
@@ -140,8 +136,7 @@ namespace SandWorm
             DA.GetData<int>(5, ref bottomRows);
             DA.GetData<int>(6, ref tickRate);
             DA.GetData<int>(7, ref averageFrames);
-            DA.GetData<int>(8, ref blurRadiusOld);
-            DA.GetData<int>(9, ref blurRadiusNew);
+            DA.GetData<int>(8, ref blurRadius);
 
             switch (units.ToString())
             {
@@ -213,48 +208,54 @@ namespace SandWorm
                     Core.CopyAsIntArray(KinectController.depthFrameData, depthFrameDataInt, leftColumns, rightColumns, topRows, bottomRows, KinectController.depthHeight, KinectController.depthWidth);
 
                     averageFrames = averageFrames < 1 ? 1 : averageFrames; //make sure there is at least one frame in the render buffer
-
-                    if (renderBuffer.Count > averageFrames)
+                    
+                    //reset everything when resizing Kinect's field of view or changing the amounts of frame to average across
+                    if (renderBuffer.Count > averageFrames || quadMesh.Faces.Count != (trimmedWidth - 2) * (trimmedHeight - 2))
                     {
                         renderBuffer.Clear();
                         Array.Clear(runningSum, 0, runningSum.Length);
-                        renderBuffer.Enqueue(depthFrameDataInt);
+                        renderBuffer.AddLast(depthFrameDataInt);
                     }
                     else
-                        renderBuffer.Enqueue(depthFrameDataInt);
+                        renderBuffer.AddLast(depthFrameDataInt);
 
-                    output.Add(String.Format("Render buffer length: {0} frames", renderBuffer.Count));
+                    output.Add(String.Format("Render buffer length: {0} frames", renderBuffer.Count)); //debugging
 
+                    //average across multiple frames
                     for (int pixel = 0; pixel < depthFrameDataInt.Length; pixel++)
                     {
-                        if (depthFrameDataInt[pixel] != 0)
+                        if (depthFrameDataInt[pixel] > 200 && depthFrameDataInt[pixel] <= lookupTable.Length) //We have a valid pixel. TODO remove reference to the lookup table
                             runningSum[pixel] += depthFrameDataInt[pixel];
                         else
-                            runningSum[pixel] += (int)(sensorElevation * unitsMultiplier);
-                        averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count;
+                        {
+                            if (pixel > 0) //pixel is invalid and we have a neighbor to steal information from
+                            {
+                                runningSum[pixel] += depthFrameDataInt[pixel - 1];
+                                renderBuffer.Last.Value[pixel] = depthFrameDataInt[pixel - 1]; //replace the zero value from the depth array with the one from the neighboring pixel
+                            }
+                            else //pixel is invalid and it is the first one in the list. (No neighbor on the left hand side, so we set it to the lowest point on the table)
+                            {
+                                runningSum[pixel] += (int)sensorElevation;
+                                renderBuffer.Last.Value[pixel] = (int)sensorElevation;
+                            }
+                        }
+                            
+                        averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count; //calculate average values
 
-                        if (renderBuffer.Count == averageFrames)
-                            runningSum[pixel] -= renderBuffer.Peek()[pixel];
+                        if (renderBuffer.Count >= averageFrames) 
+                            runningSum[pixel] -= renderBuffer.First.Value[pixel]; //subtract the oldest value from the sum 
                     }
 
                     timer.Stop();
                     output.Add("Frames averaging: " + timer.ElapsedMilliseconds.ToString() + " ms");
                     timer.Restart(); //debugging
 
-                    if (blurRadiusOld > 1) //apply gaussian blur
+                    if (blurRadius > 1) //apply gaussian blur
                     {
-                        var gaussianBlur = new GaussianBlur(averagedDepthFrameData);
-                        var blurredFrame = gaussianBlur.Process(blurRadiusOld, trimmedWidth, trimmedHeight);
-                        timer.Stop();
-                        output.Add("Blurring old method: " + timer.ElapsedMilliseconds.ToString() + " ms");
-                        timer.Restart(); //debugging
-                    }
-                    if (blurRadiusNew > 1) //apply gaussian blur
-                    {
-                        GaussianBlurProcessor gaussianBlurProcessor = new GaussianBlurProcessor(blurRadiusNew, trimmedWidth, trimmedHeight);
+                        GaussianBlurProcessor gaussianBlurProcessor = new GaussianBlurProcessor(blurRadius, trimmedWidth, trimmedHeight);
                         gaussianBlurProcessor.Apply(averagedDepthFrameData);
                         timer.Stop();
-                        output.Add("Blurring new method: " + timer.ElapsedMilliseconds.ToString() + " ms");
+                        output.Add("Gaussian blurring: " + timer.ElapsedMilliseconds.ToString() + " ms");
                         timer.Restart(); //debugging
                     }
 
@@ -268,13 +269,7 @@ namespace SandWorm
                             tempPoint.X = columns * -unitsMultiplier * depthPixelSize.x;
                             tempPoint.Y = rows * -unitsMultiplier * depthPixelSize.y;
 
-                            /*
-                            if (averagedDepthFrameData[i] == 0 || averagedDepthFrameData[i] >= lookupTable.Length)
-                                depthPoint = sensorElevation;
-                            else
-                            */
                             depthPoint = averagedDepthFrameData[i];
-
                             tempPoint.Z = (depthPoint - sensorElevation) * -unitsMultiplier;
                             /*
                             Color? pixelColor = Analysis.AnalysisManager.GetPixelColor((int)Math.Round(depthPoint));
@@ -290,7 +285,7 @@ namespace SandWorm
                     //keep only the desired amount of frames in the buffer
                     while (renderBuffer.Count >= averageFrames)
                     {
-                        renderBuffer.Dequeue();
+                        renderBuffer.RemoveFirst();
                     }
 
                     //debugging

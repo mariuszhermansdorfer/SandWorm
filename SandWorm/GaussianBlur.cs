@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Runtime.CompilerServices;
 
 namespace SandWorm
 {
@@ -58,7 +57,6 @@ namespace SandWorm
         private void BoxBlur_4(double[] source, double[] dest, int w, int h, int r)
         {
             for (var i = 0; i < source.Length; i++) dest[i] = source[i];
-            //source.AsSpan().CopyTo(dest);
             BoxBlurH_4(dest, source, w, h, r);
             BoxBlurT_4(source, dest, w, h, r);
         }
