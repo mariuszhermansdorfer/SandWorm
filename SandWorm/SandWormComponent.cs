@@ -98,7 +98,7 @@ namespace SandWorm
         protected override void AppendAdditionalComponentMenuItems(ToolStripDropDown menu)
         {
             base.AppendAdditionalComponentMenuItems(menu);
-            foreach (Analysis.MeshVisualisation option in Analysis.AnalysisManager.options) // Add analysis items to menu
+            foreach (Analysis.MeshAnalysis option in Analysis.AnalysisManager.options) // Add analysis items to menu
             {
                 Menu_AppendItem(menu, option.Name, SetMeshVisualisation, true, option.IsEnabled);
                 // Create reference to the menu item in the analysis class
@@ -112,8 +112,8 @@ namespace SandWorm
         {
             Analysis.AnalysisManager.SetEnabledOptions((ToolStripMenuItem)sender);
             Analysis.AnalysisManager.ComputeLookupTables(sensorElevation, waterLevel);
-            ExpireSolution(true);
             quadMesh.VertexColors.Clear(); // Must flush mesh colors to properly updated display
+            ExpireSolution(true);
         }
 
         private void ScheduleDelegate(GH_Document doc)
@@ -168,9 +168,8 @@ namespace SandWorm
                     unitsMultiplier = 0.0328084;
                     break;
             }
-
             sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units 
-            Analysis.AnalysisManager.ComputeLookupTables(sensorElevation, waterLevel); // Update when params change
+            Analysis.AnalysisManager.ComputeLookupTables(sensorElevation, waterLevel); // First-run computing of tables
 
             Stopwatch timer = Stopwatch.StartNew(); //debugging
 
@@ -199,10 +198,17 @@ namespace SandWorm
 
                     //initialize outputs
                     outputMesh = new List<Mesh>();
+
                     output = new List<string>(); //debugging
 
                     Point3d tempPoint = new Point3d();
-                    Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation); //calculate xy distance between pixels
+                    Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
+
+                    // Only initialise a full-size vertex color array if a mesh-coloring visualisation is enabled
+                    if (Analysis.AnalysisManager.enabledMeshVisualisationOptions.Count > 0)
+                        vertexColors = new Color[(KinectController.depthHeight - topRows - bottomRows) * (KinectController.depthWidth - leftColumns - rightColumns)];
+                    else
+                        vertexColors = new Color[0];
 
                     //trim the depth array and cast ushort values to int
                     Core.CopyAsIntArray(KinectController.depthFrameData, depthFrameDataInt, leftColumns, rightColumns, topRows, bottomRows, KinectController.depthHeight, KinectController.depthWidth);
@@ -279,6 +285,11 @@ namespace SandWorm
                             pointCloud[i] = tempPoint;
 
                             i++;
+                            
+                            if (vertexColors.Length > 0) // Proxy for whether a mesh-coloring visualisation has been enabled
+                                vertexColors[arrayIndex] = Analysis.AnalysisManager.GetPixelColor(depthPoint);
+ 
+                            pointCloud[arrayIndex] = tempPoint;
                         }
                     }
 
