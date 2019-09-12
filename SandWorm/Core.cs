@@ -1,13 +1,13 @@
 ﻿using Rhino.Geometry;
-using Rhino.Display;
 using System.Drawing;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace SandWorm
 {
     public static class Core
     {
-        public static Mesh CreateQuadMesh(Mesh mesh, Point3f[] vertices, Color[] colors, int xStride, int yStride)
+        public static Mesh CreateQuadMesh(Mesh mesh, Point3d[] vertices, Color[] colors, int xStride, int yStride)
         {
             int xd = xStride;       // The x-dimension of the data
             int yd = yStride;       // They y-dimension of the data
@@ -57,7 +57,7 @@ namespace SandWorm
             double kinect2FOVForX = 70.6; 
             double kinect2FOVForY = 60.0;
             double kinect2ResolutionForX = 512;
-            double kinect2ResolutionForY = 404;
+            double kinect2ResolutionForY = 424;
 
             PixelSize pixelsForHeight = new PixelSize
             {
@@ -72,6 +72,24 @@ namespace SandWorm
             double fovInRadians = (Math.PI / 180) * fovAngle;
             double dimensionSpan = 2 * height * Math.Tan(fovInRadians / 2);
             return dimensionSpan / resolution;
+        }
+
+        public static void CopyAsIntArray(ushort[] source, int[] destination, int leftColumns, int rightColumns, int topRows, int bottomRows, int height, int width)
+        {
+            ref ushort ru0 = ref source[0];
+            ref int ri0 = ref destination[0];
+            int j = 0;
+
+            for (int rows = topRows; rows < height - bottomRows; rows++)
+            {
+                for (int columns = rightColumns; columns < width - leftColumns; columns++)
+                {
+                    int i = rows * width + columns;
+                    Unsafe.Add(ref ri0, j) = Unsafe.Add(ref ru0, i);
+                    j++;
+                }
+            }
+                
         }
     }
 }
