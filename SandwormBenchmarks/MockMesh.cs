@@ -8,6 +8,7 @@ namespace SandwormBenchmarks
     public class MockMesh
     {
         public static int runs = 100;
+        public static int trimmedRuns = 25; // Remove the top N and bottom N results
         public static int trimmedHeight = 424;
         public static int trimmedWidth = 512;
         public static int sensorElevation = 1000;
