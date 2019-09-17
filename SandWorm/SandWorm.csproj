@@ -109,24 +109,26 @@
   <Target Name="AfterBuild">
   </Target>
   -->
-  <PropertyGroup Condition="Exists('/Applications/Rhinoceros.app/')">
+  <PropertyGroup Condition="Exists('/Applications/') AND '$(Configuration)' == 'Debug'">
     <PostBuildEvent>
       cp "$(TargetPath)" "$(TargetDir)$(ProjectName).gha"
+      rm "$(TargetDir)$(ProjectName).dll"
     </PostBuildEvent>
   </PropertyGroup>
-  <PropertyGroup Condition="Exists('C:\Program Files\Rhino 6\System\')">
+  <PropertyGroup Condition="Exists('C:\Program Files\') AND '$(Configuration)' == 'Debug'">
+    <PostBuildEvent>
+      Copy "$(TargetPath)" "$(TargetDir)$(ProjectName).gha"
+      Erase "$(TargetPath)"
+    </PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup Condition="Exists('C:\Program Files\') AND '$(Configuration)' != 'Debug'">
     <PostBuildEvent>
       Copy "$(TargetPath)" "$(TargetDir)$(ProjectName).gha"
     </PostBuildEvent>
   </PropertyGroup>
-  <PropertyGroup Condition="Exists('/Applications/Rhinoceros.app/') AND '$(Configuration)' == 'Debug'">
+  <PropertyGroup Condition="Exists('/Applications/') AND '$(Configuration)' != 'Debug'">
     <PostBuildEvent>
-      rm "$(TargetDir)$(ProjectName).dll"
-    </PostBuildEvent>
-  </PropertyGroup>
-  <PropertyGroup Condition="Exists('C:\Program Files\Rhino 6\System\') AND '$(Configuration)' == 'Debug'">
-    <PostBuildEvent>
-      Erase "$(TargetPath)"
+      cp "$(TargetPath)" "$(TargetDir)$(ProjectName).gha"
     </PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
