@@ -29,7 +29,6 @@ namespace SandwormBenchmarks
             {
                 averagedDepthFrameData[i] = randNum.Next(800, 1000);
             }
-            Analysis.AnalysisManager.ComputeLookupTables(sensorElevation, waterLevel);
         }
     }
 }
