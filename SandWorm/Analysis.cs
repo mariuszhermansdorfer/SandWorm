@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Drawing;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Windows.Media.Media3D;
 using Rhino.Display;
 using Rhino.Geometry;
-using Grasshopper.Kernel;
-using System.Windows.Forms;
 
 namespace SandWorm
 {
@@ -12,71 +12,55 @@ namespace SandWorm
     {
         public static class AnalysisManager
         {
-            /// <summary>Stories copies of each analysis option and intefaces their use with components.</summary>
+            /// <summary>Stories copies of each analysis option and interfaces their use with components.</summary>
             public static List<MeshAnalysis> options;
-            public static List<MeshAnalysis> enabledOptions; 
-            public static List<MeshAnalysisWithMeshGradient> enabledMeshVisualisationOptions; 
 
-            static AnalysisManager()
+            static AnalysisManager() // Note that the order of items here determines their menu order
             {
-                // Note their order in array determines their priority; i.e. which color 'wins'
-                // Also needs to manually arrange the exclusive options together
-                options = new List<Analysis.MeshAnalysis> {
-                    new Analysis.Water(), new Analysis.Contours(),
-                    new Analysis.None(),
-                    new Analysis.Elevation(), new Analysis.Slope(), new Analysis.Aspect(),
+                options = new List<MeshAnalysis>
+                {
+                    new Water(), new Contours(),
+                    new None(),
+                    new Elevation(), new Slope(), new Aspect()
                 };
                 // Default to showing elevation analysis
                 options[3].IsEnabled = true;
-                SetEnabledLookups();
             }
 
-            private static void SetEnabledLookups()
+            public static List<MeshAnalysis> GetEnabledAnalyses() => options.FindAll(x => x.IsEnabled);
+
+            public static MeshColorAnalysis GetEnabledMeshColoring()
             {
-                // Store the enabled analysis options to prevent recaclulating them during GetPixelColor() calls
-                enabledOptions = options.FindAll(x => x.IsEnabled);
-                enabledMeshVisualisationOptions = new List<MeshAnalysisWithMeshGradient>();
-                foreach (MeshAnalysis enabledOption in enabledOptions) // Store analysis types that can color pixels
+                foreach (var enabledOption in GetEnabledAnalyses())
                 {
-                    Type optionType = enabledOption.GetType();
-                    bool optionTest = optionType.IsSubclassOf(typeof(MeshAnalysisWithMeshGradient));
-                    if (enabledOption.GetType().IsSubclassOf(typeof(MeshAnalysisWithMeshGradient)))
-                        enabledMeshVisualisationOptions.Add(enabledOption as MeshAnalysisWithMeshGradient);
+                    var optionType = enabledOption.GetType();
+                    var optionTest = optionType.IsSubclassOf(typeof(MeshColorAnalysis));
+                    if (enabledOption.GetType().IsSubclassOf(typeof(MeshColorAnalysis)))
+                        return enabledOption as MeshColorAnalysis;
                 }
+                return null; // Shouldn't happen; a mesh color (even no color) is always set
             }
 
             public static void SetEnabledOptions(ToolStripMenuItem selectedMenuItem)
             {
-                MeshAnalysis selectedOption = options.Find(x => x.MenuItem == selectedMenuItem);
+                var selectedOption = options.Find(x => x.MenuItem == selectedMenuItem);
                 if (selectedOption.IsExclusive)
-                    foreach (MeshAnalysis exclusiveOption in options.FindAll(x => x.IsExclusive))
-                        exclusiveOption.IsEnabled = selectedOption == exclusiveOption; // Toggle selected item; untoggle other exclusive items
+                    foreach (var exclusiveOption in options.FindAll(x => x.IsExclusive))
+                        exclusiveOption.IsEnabled =
+                            selectedOption == exclusiveOption; // Toggle selected item; untoggle other exclusive items
                 else
                     selectedOption.IsEnabled = !selectedOption.IsEnabled; // Simple toggle for independent items
-                SetEnabledLookups(); 
             }
 
-            public static void ComputeLookupTables(double sensorElevation, double waterLevel)
+            public static void ComputeLookupTables(double sensorElevation)
             {
-                foreach (MeshAnalysisWithMeshGradient option in enabledMeshVisualisationOptions)
-                    option.ComputeLookupTableForAnalysis((int)sensorElevation, (int)waterLevel);
-            }
-
-            public static Color GetPixelColor(int depthPoint) // Get color for pixel given enabled options
-            {
-                foreach (Analysis.MeshAnalysisWithMeshGradient option in enabledMeshVisualisationOptions)
-                {
-                    Color? pixelColor = option.GetPixelColorForAnalysis(depthPoint);
-                    if (pixelColor.HasValue)
-                        return pixelColor.Value;
-                }
-                return Color.Transparent; // Fallback - shouldn't happen
+                GetEnabledMeshColoring().ComputeLookupTableForAnalysis(sensorElevation);
             }
         }
 
-        public class VisualisationRangeWithColor 
+        public class VisualisationRangeWithColor
         {
-            /// <summary>Describes a numeric range (e.g. elevation/slope values) and color range to visualise it.</summary>
+            /// <summary>Describes a numeric range (e.g. elevation or slope values) and color range to visualise it.</summary>
             public int ValueStart { get; set; }
             public int ValueEnd { get; set; }
             public ColorHSL ColorStart { get; set; }
@@ -84,176 +68,182 @@ namespace SandWorm
 
             public ColorHSL InterpolateColor(double progress) // Progress is assumed to be a % value of 0.0 - 1.0
             {
-                return new ColorHSL( 
-                    ColorStart.H + ((ColorEnd.H - ColorStart.H) * progress),
-                    ColorStart.S + ((ColorEnd.S - ColorStart.S) * progress),
-                    ColorStart.L + ((ColorEnd.L - ColorStart.L) * progress)
+                return new ColorHSL(
+                    ColorStart.H + (ColorEnd.H - ColorStart.H) * progress,
+                    ColorStart.S + (ColorEnd.S - ColorStart.S) * progress,
+                    ColorStart.L + (ColorEnd.L - ColorStart.L) * progress
                 );
             }
         }
 
-        public abstract class MeshAnalysis 
+        public abstract class MeshAnalysis
         {
-            /// <summary>Inherited by all possible analysis options (even if not coloring the mesh).</summary>
-            public string Name { get; } // Name used in the toggle menu
-            public bool IsEnabled = false; // Whether to apply the analysis
-            public bool IsExclusive { get; set; } // Whether the analysis can be applied independent of other options
-            public ToolStripMenuItem MenuItem { get; set; } 
-            public Dictionary<int, Color> lookupTable; // Dictionary of integers that map to color values
+            /// <summary>Some form of analysis that applies, or derives from, the mesh.</summary>
+
+            public bool IsEnabled; // Whether to apply the analysis
 
             public MeshAnalysis(string menuName, bool exclusive)
             {
                 Name = menuName;
-                IsExclusive = exclusive;
-            }            
+                IsExclusive = exclusive; // Any analysis that applies to the mesh as a whole is mutually exclusive
+            }
+
+            /// <summary>Inherited by all possible analysis options (even if not coloring the mesh).</summary>
+            public string Name { get; } // Name used in the toggle menu
+
+            public bool IsExclusive { get; set; } // Whether the analysis can be applied independent of other options
+            public ToolStripMenuItem MenuItem { get; set; }
         }
 
-        public abstract class MeshAnalysisWithMeshGradient: MeshAnalysis
+        public abstract class MeshGeometryAnalysis : MeshAnalysis
         {
-            /// <summary>Inherited by analysis options that color the entire mesh (and are thus mutually exclusive).</summary>
-            public abstract Color? GetPixelColorForAnalysis(int elevation);
+            /// <summary>A form of analysis that outputs geometry (i.e. contours) based on the mesh</summary>
+            public MeshGeometryAnalysis(string menuName) : base(menuName, false) { } // Note: not mutually exclusive
+        }
 
-            public MeshAnalysisWithMeshGradient(string menuName, bool exclusive) : base(menuName, exclusive) { }
+        public abstract class MeshColorAnalysis : MeshAnalysis
+        {
+            /// <summary>A form of analysis that colors the vertices of the entire mesh</summary>
+            public Color[] lookupTable; // Dictionary of integers that map to color values
 
-            public abstract void ComputeLookupTableForAnalysis(int sensorElevation, int waterLevel);
+            public MeshColorAnalysis(string menuName) : base(menuName, true) { } // Note: is mutually exclusive
+
+            public abstract int GetPixelIndexForAnalysis(Point3d vertex, params Point3d[] analysisPts);
+
+            public abstract void ComputeLookupTableForAnalysis(double sensorElevation);
+
             public void ComputeLinearRanges(params VisualisationRangeWithColor[] lookUpRanges)
             {
-                int lookupTableMaximumSize = 0;
-                foreach (VisualisationRangeWithColor range in lookUpRanges)
-                {
-                    lookupTableMaximumSize += range.ValueEnd - range.ValueStart;
-                }
-
-                if (lookupTableMaximumSize == 0)
-                    return; // Can occur e.g. if the waterLevel is greater than the sensor height
-                else
-                    lookupTable = new Dictionary<int, Color>(lookupTableMaximumSize); // Init dict with needed size
+                var lookupTableMaximumSize = 1;
+                foreach (var range in lookUpRanges) lookupTableMaximumSize += range.ValueEnd - range.ValueStart;
+                lookupTable = new Color[lookupTableMaximumSize]; 
 
                 // Populate dict values by interpolating colors within each of the lookup ranges
-                foreach (VisualisationRangeWithColor range in lookUpRanges)
-                {
-                    for (int i = range.ValueStart; i < range.ValueEnd; i++)
+                foreach (var range in lookUpRanges)
+                    for (var i = range.ValueStart; i < range.ValueEnd; i++)
                     {
-                        double progress = ((double)i - range.ValueStart) / (range.ValueEnd - range.ValueStart);
+                        var progress = ((double)i - range.ValueStart) / (range.ValueEnd - range.ValueStart);
                         lookupTable[i] = range.InterpolateColor(progress);
                     }
-                }
             }
         }
 
-        public class None : MeshAnalysis
+        public class None : MeshColorAnalysis
         {
-            public None() : base("No Visualisation", true) { }
-        }
+            public None() : base("No Visualisation") { }
 
-        public class Water : MeshAnalysisWithMeshGradient
-        {
-            public Water() : base("Show Water Level", false) { }
-
-            public override Color? GetPixelColorForAnalysis(int elevation)
+            public override int GetPixelIndexForAnalysis(Point3d vertex, params Point3d[] analysisPts)
             {
-                if (lookupTable.ContainsKey(elevation))
-                    return lookupTable[elevation]; // If the elevation is within the water level
-                else
-                    return null;
+                return 0; // Should never be called (see below)
             }
 
-            public override void ComputeLookupTableForAnalysis(int sensorElevation, int waterLevel)
+            public override void ComputeLookupTableForAnalysis(double sensorElevation)
             {
-                VisualisationRangeWithColor waterRange = new VisualisationRangeWithColor
+                lookupTable = new Color[0]; // Empty color table allows pixel loop to skip lookup
+            }
+        }
+
+        public class Elevation : MeshColorAnalysis
+        {
+            public Elevation() : base("Visualise Elevation") { }
+
+            public override int GetPixelIndexForAnalysis(Point3d vertex, params Point3d[] analysisPts)
+            {
+                return (int)vertex.Z;
+            }
+
+            public override void ComputeLookupTableForAnalysis(double sensorElevation)
+            {
+                var normalElevationRange = new VisualisationRangeWithColor
                 {
-                    // From the sensor's perspective water is between specified level and max height (i.e. upside down)
-                    ValueStart = sensorElevation - waterLevel, 
-                    ValueEnd = sensorElevation,
-                    ColorStart = new ColorHSL(0.55, 0.85, 0.25), 
-                    ColorEnd = new ColorHSL(0.61, 0.65, 0.65)
-                };
-                ComputeLinearRanges(new VisualisationRangeWithColor[] { waterRange }); 
+                    ValueStart = 0,
+                    ValueEnd = (int)sensorElevation - 201,
+                    ColorStart = new ColorHSL(0.20, 0.35, 0.02),
+                    ColorEnd = new ColorHSL(0.50, 0.85, 0.85)
+                }; // A clear gradient for pixels inside the expected normal model height 
+
+                var extraElevationRange = new VisualisationRangeWithColor
+                {
+                    ValueStart = (int)sensorElevation - 200,
+                    ValueEnd = (int)sensorElevation + 1,
+                    ColorStart = new ColorHSL(1.00, 0.85, 0.76),
+                    ColorEnd = new ColorHSL(0.50, 0.85, 0.99)
+                }; // A fallback gradiend for those outside (TODO: set sensible colors here)
+                ComputeLinearRanges(normalElevationRange, extraElevationRange);
             }
         }
 
-        public class Elevation : MeshAnalysisWithMeshGradient
+        private class Slope : MeshColorAnalysis
         {
-            public Elevation() : base("Visualise Elevation", true) { }
+            public Slope() : base("Visualise Slope") { }
 
-            public override Color? GetPixelColorForAnalysis(int elevation)
+            public override int GetPixelIndexForAnalysis(Point3d vertex, params Point3d[] neighbours)
             {
-                if (lookupTable.ContainsKey(elevation))
-                    return lookupTable[elevation];
-                else
-                    return null;
+                return 22; // TODO: benchmark different methods for passing pixels before enabling a real calculation
+                // Loop over the neighbouring pixels; calculate slopes relative to vertex
+                //double slopeSum = 0;
+                //for (int i = 0; i < neighbours.Length; i++)
+                //{
+                //    double rise = vertex.Z - neighbours[i].Z;
+                //    double run = Math.Sqrt(Math.Pow(vertex.X - neighbours[i].X, 2) + Math.Pow(vertex.Y - neighbours[i].Y, 2));
+                //    slopeSum += rise / run;
+                //}
+                //double slopeAverage = Math.Abs(slopeSum / neighbours.Length);
+                //double slopeAsPercent = slopeAverage * 100; // Array is keyed as 0 - 100
+                //return (int)slopeAsPercent; // Cast to int as its cross-referenced to the lookup 
             }
 
-            public override void ComputeLookupTableForAnalysis(int sensorElevation, int waterLevel)
+            public override void ComputeLookupTableForAnalysis(double sensorElevation)
             {
-                VisualisationRangeWithColor elevationRange = new VisualisationRangeWithColor
+                var slopeRange = new VisualisationRangeWithColor
                 {
-                    ValueStart = sensorElevation - 750, // TODO: don't assume maximum value here
-                    ValueEnd = sensorElevation,
-                    ColorStart = new ColorHSL(0.00, 0.25, 0.05),
-                    ColorEnd = new ColorHSL(0.50, 0.85, 0.75)
-                };
-                ComputeLinearRanges(new VisualisationRangeWithColor[] { elevationRange });
-
-            }
-        }
-        
-        class Slope : MeshAnalysisWithMeshGradient
-        {
-            public Slope() : base("Visualise Slope", true) { }
-
-            public override Color? GetPixelColorForAnalysis(int slopeValue)
-            {
-                return Color.Red; // TODO: implement slope analysis
-            }
-
-            public override void ComputeLookupTableForAnalysis(int sensorElevation, int waterLevel)
-            {
-                VisualisationRangeWithColor slopeRange = new VisualisationRangeWithColor
-                {
-                    ValueStart = 0, 
-                    ValueEnd = 90,
+                    ValueStart = 0,
+                    ValueEnd = 100,
                     ColorStart = new ColorHSL(1.0, 1.0, 1.0), // White
                     ColorEnd = new ColorHSL(1.0, 1.0, 0.3) // Dark Red
                 };
-                ComputeLinearRanges(new VisualisationRangeWithColor[] { slopeRange });
+                ComputeLinearRanges(slopeRange);
             }
         }
 
-        class Aspect : MeshAnalysisWithMeshGradient
+        private class Aspect : MeshColorAnalysis
         {
-            public Aspect() : base("Visualise Aspect", true) { }
+            public Aspect() : base("Visualise Aspect") { }
 
-            public override Color? GetPixelColorForAnalysis(int aspectValue)
+            public override int GetPixelIndexForAnalysis(Point3d vertex, params Point3d[] analysisPts)
             {
-                return Color.Yellow; // TODO: implement aspect analysis
+                return 44;
             }
 
-            public override void ComputeLookupTableForAnalysis(int sensorElevation, int waterLevel)
+            public override void ComputeLookupTableForAnalysis(double sensorElevation)
             {
-                VisualisationRangeWithColor rightAspect = new VisualisationRangeWithColor
+                var rightAspect = new VisualisationRangeWithColor
                 {
-                    ValueStart = 0, 
+                    ValueStart = 0,
                     ValueEnd = 180,
                     ColorStart = new ColorHSL(1.0, 1.0, 1.0), // White
                     ColorEnd = new ColorHSL(1.0, 1.0, 0.3) // Dark Red
                 };
-                VisualisationRangeWithColor leftAspect = new VisualisationRangeWithColor
+                var leftAspect = new VisualisationRangeWithColor
                 {
                     ValueStart = 180, // For the other side of the aspect we loop back to the 0 value
                     ValueEnd = 359,
                     ColorStart = new ColorHSL(1.0, 1.0, 0.3), // Dark Red
                     ColorEnd = new ColorHSL(1.0, 1.0, 1.0) // White
                 };
-                ComputeLinearRanges(new VisualisationRangeWithColor[] { rightAspect, leftAspect });
+                ComputeLinearRanges(rightAspect, leftAspect);
             }
         }
 
 
-        public class Contours : MeshAnalysis
+        public class Contours : MeshGeometryAnalysis
         {
-            public Contours() : base("Show Contour Lines", false) { }
+            public Contours() : base("Show Contour Lines") { }
         }
 
+        public class Water : MeshGeometryAnalysis
+        {
+            public Water() : base("Show Water Level") { }
+        }
     }
 }
