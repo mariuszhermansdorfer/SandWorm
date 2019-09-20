@@ -10,6 +10,8 @@ namespace SandWorm
 {
     public static class Analysis
     {
+        /// <summary>Abstractions for managing analysis state.</summary>
+
         public static class AnalysisManager
         {
             /// <summary>Stories copies of each analysis option and interfaces their use with components.</summary>
@@ -19,9 +21,9 @@ namespace SandWorm
             {
                 options = new List<MeshAnalysis>
                 {
-                    new Water(), new Contours(),
-                    new None(),
-                    new Elevation(), new Slope(), new Aspect()
+                    new Analytics.Water(), new Analytics.Contours(),
+                    new Analytics.None(),
+                    new Analytics.Elevation(), new Analytics.Slope(), new Analytics.Aspect()
                 };
                 // Default to showing elevation analysis
                 options[3].IsEnabled = true;
@@ -33,12 +35,22 @@ namespace SandWorm
             {
                 foreach (var enabledOption in GetEnabledAnalyses())
                 {
-                    var optionType = enabledOption.GetType();
-                    var optionTest = optionType.IsSubclassOf(typeof(MeshColorAnalysis));
                     if (enabledOption.GetType().IsSubclassOf(typeof(MeshColorAnalysis)))
                         return enabledOption as MeshColorAnalysis;
                 }
-                return null; // Shouldn't happen; a mesh color (even no color) is always set
+                return null; // Shouldn't happen; a mesh coloring option (even no color) is always set
+            }
+
+            public static List<MeshGeometryAnalysis> GetEnabledMeshAnalytics()
+            {
+                var enabledGeometryAnalysis = new List<MeshGeometryAnalysis>();
+                foreach (var enabledOption in GetEnabledAnalyses())
+                {
+                    // Testing inheritance with generics is not going to work; so just check if the option is not a color one 
+                    if (enabledOption.GetType().IsSubclassOf(typeof(MeshGeometryAnalysis)))
+                        enabledGeometryAnalysis.Add(enabledOption as MeshGeometryAnalysis);
+                }
+                return enabledGeometryAnalysis; 
             }
 
             public static void SetEnabledOptions(ToolStripMenuItem selectedMenuItem)
@@ -99,6 +111,10 @@ namespace SandWorm
         {
             /// <summary>A form of analysis that outputs geometry (i.e. contours) based on the mesh</summary>
             public MeshGeometryAnalysis(string menuName) : base(menuName, false) { } // Note: not mutually exclusive
+
+            // Note that the use of <GeometryBase> may potentially exclude some geometric types as returnable
+            // Note also the need to hard-code params useful to any of the analytics; operator overloading wont work :(
+            public abstract void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, double waterLevel);
         }
 
         public abstract class MeshColorAnalysis : MeshAnalysis
@@ -126,124 +142,6 @@ namespace SandWorm
                         lookupTable[i] = range.InterpolateColor(progress);
                     }
             }
-        }
-
-        public class None : MeshColorAnalysis
-        {
-            public None() : base("No Visualisation") { }
-
-            public override int GetPixelIndexForAnalysis(Point3d vertex, params Point3d[] analysisPts)
-            {
-                return 0; // Should never be called (see below)
-            }
-
-            public override void ComputeLookupTableForAnalysis(double sensorElevation)
-            {
-                lookupTable = new Color[0]; // Empty color table allows pixel loop to skip lookup
-            }
-        }
-
-        public class Elevation : MeshColorAnalysis
-        {
-            public Elevation() : base("Visualise Elevation") { }
-
-            public override int GetPixelIndexForAnalysis(Point3d vertex, params Point3d[] analysisPts)
-            {
-                return (int)vertex.Z;
-            }
-
-            public override void ComputeLookupTableForAnalysis(double sensorElevation)
-            {
-                var normalElevationRange = new VisualisationRangeWithColor
-                {
-                    ValueStart = 0,
-                    ValueEnd = (int)sensorElevation - 201,
-                    ColorStart = new ColorHSL(0.20, 0.35, 0.02),
-                    ColorEnd = new ColorHSL(0.50, 0.85, 0.85)
-                }; // A clear gradient for pixels inside the expected normal model height 
-
-                var extraElevationRange = new VisualisationRangeWithColor
-                {
-                    ValueStart = (int)sensorElevation - 200,
-                    ValueEnd = (int)sensorElevation + 1,
-                    ColorStart = new ColorHSL(1.00, 0.85, 0.76),
-                    ColorEnd = new ColorHSL(0.50, 0.85, 0.99)
-                }; // A fallback gradiend for those outside (TODO: set sensible colors here)
-                ComputeLinearRanges(normalElevationRange, extraElevationRange);
-            }
-        }
-
-        private class Slope : MeshColorAnalysis
-        {
-            public Slope() : base("Visualise Slope") { }
-
-            public override int GetPixelIndexForAnalysis(Point3d vertex, params Point3d[] neighbours)
-            {
-                return 22; // TODO: benchmark different methods for passing pixels before enabling a real calculation
-                // Loop over the neighbouring pixels; calculate slopes relative to vertex
-                //double slopeSum = 0;
-                //for (int i = 0; i < neighbours.Length; i++)
-                //{
-                //    double rise = vertex.Z - neighbours[i].Z;
-                //    double run = Math.Sqrt(Math.Pow(vertex.X - neighbours[i].X, 2) + Math.Pow(vertex.Y - neighbours[i].Y, 2));
-                //    slopeSum += rise / run;
-                //}
-                //double slopeAverage = Math.Abs(slopeSum / neighbours.Length);
-                //double slopeAsPercent = slopeAverage * 100; // Array is keyed as 0 - 100
-                //return (int)slopeAsPercent; // Cast to int as its cross-referenced to the lookup 
-            }
-
-            public override void ComputeLookupTableForAnalysis(double sensorElevation)
-            {
-                var slopeRange = new VisualisationRangeWithColor
-                {
-                    ValueStart = 0,
-                    ValueEnd = 100,
-                    ColorStart = new ColorHSL(1.0, 1.0, 1.0), // White
-                    ColorEnd = new ColorHSL(1.0, 1.0, 0.3) // Dark Red
-                };
-                ComputeLinearRanges(slopeRange);
-            }
-        }
-
-        private class Aspect : MeshColorAnalysis
-        {
-            public Aspect() : base("Visualise Aspect") { }
-
-            public override int GetPixelIndexForAnalysis(Point3d vertex, params Point3d[] analysisPts)
-            {
-                return 44;
-            }
-
-            public override void ComputeLookupTableForAnalysis(double sensorElevation)
-            {
-                var rightAspect = new VisualisationRangeWithColor
-                {
-                    ValueStart = 0,
-                    ValueEnd = 180,
-                    ColorStart = new ColorHSL(1.0, 1.0, 1.0), // White
-                    ColorEnd = new ColorHSL(1.0, 1.0, 0.3) // Dark Red
-                };
-                var leftAspect = new VisualisationRangeWithColor
-                {
-                    ValueStart = 180, // For the other side of the aspect we loop back to the 0 value
-                    ValueEnd = 359,
-                    ColorStart = new ColorHSL(1.0, 1.0, 0.3), // Dark Red
-                    ColorEnd = new ColorHSL(1.0, 1.0, 1.0) // White
-                };
-                ComputeLinearRanges(rightAspect, leftAspect);
-            }
-        }
-
-
-        public class Contours : MeshGeometryAnalysis
-        {
-            public Contours() : base("Show Contour Lines") { }
-        }
-
-        public class Water : MeshGeometryAnalysis
-        {
-            public Water() : base("Show Water Level") { }
         }
     }
 }

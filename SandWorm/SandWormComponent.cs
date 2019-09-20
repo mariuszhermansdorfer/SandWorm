@@ -22,6 +22,7 @@ namespace SandWorm
         private KinectSensor kinectSensor = null;
         private Point3d[] pointCloud;
         private List<Mesh> outputMesh = null;
+        private List<Rhino.Geometry.GeometryBase> outputAnalysisGeometry = null;
         public static List<string> output = null;//debugging
         private LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
         public int[] runningSum = Enumerable.Range(1, 217088).Select(i => new int()).ToArray();
@@ -89,7 +90,8 @@ namespace SandWorm
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddMeshParameter("Mesh", "M", "Resulting Mesh", GH_ParamAccess.list);
+            pManager.AddMeshParameter("Mesh", "M", "Resulting mesh", GH_ParamAccess.list);
+            pManager.AddGeometryParameter("Analysis", "A", "Additional mesh analysis", GH_ParamAccess.list);
             pManager.AddTextParameter("Output", "O", "Output", GH_ParamAccess.list); //debugging
         }
 
@@ -182,7 +184,7 @@ namespace SandWorm
                 {
                     int trimmedWidth = KinectController.depthWidth - leftColumns - rightColumns;
                     int trimmedHeight = KinectController.depthHeight - topRows - bottomRows;
-                    
+
                     // initialize all arrays
                     pointCloud = new Point3d[trimmedWidth * trimmedHeight];
                     int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
@@ -190,6 +192,7 @@ namespace SandWorm
 
                     // initialize outputs
                     outputMesh = new List<Mesh>();
+                    outputAnalysisGeometry = new List<Rhino.Geometry.GeometryBase>();
                     output = new List<string>(); //debugging
 
                     Point3d tempPoint = new Point3d();
@@ -199,7 +202,7 @@ namespace SandWorm
                     Core.CopyAsIntArray(KinectController.depthFrameData, depthFrameDataInt, leftColumns, rightColumns, topRows, bottomRows, KinectController.depthHeight, KinectController.depthWidth);
 
                     averageFrames = averageFrames < 1 ? 1 : averageFrames; //make sure there is at least one frame in the render buffer
-                    
+
                     // reset everything when resizing Kinect's field of view or changing the amounts of frame to average across
                     if (renderBuffer.Count > averageFrames || quadMesh.Faces.Count != (trimmedWidth - 2) * (trimmedHeight - 2))
                     {
@@ -230,10 +233,10 @@ namespace SandWorm
                                 renderBuffer.Last.Value[pixel] = (int)sensorElevation;
                             }
                         }
-                            
+
                         averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count; //calculate average values
 
-                        if (renderBuffer.Count >= averageFrames) 
+                        if (renderBuffer.Count >= averageFrames)
                             runningSum[pixel] -= renderBuffer.First.Value[pixel]; //subtract the oldest value from the sum 
                     }
 
@@ -279,7 +282,7 @@ namespace SandWorm
                             arrayIndex++;
                         }
                     }
-                   
+
                     //keep only the desired amount of frames in the buffer
                     while (renderBuffer.Count >= averageFrames)
                     {
@@ -296,10 +299,21 @@ namespace SandWorm
 
                     timer.Stop(); //debugging
                     output.Add("Meshing: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
+                    timer.Restart(); //debugging
+
+                    // Add extra outputs (water planes; contours; etc) based on the mesh and currently enabled analysis
+                    foreach (var enabledAnalysis in Analysis.AnalysisManager.GetEnabledMeshAnalytics())
+                    {
+                        enabledAnalysis.GetGeometryForAnalysis(ref outputAnalysisGeometry, waterLevel);
+                    }
+
+                    timer.Stop(); //debugging
+                    output.Add("Analysing: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
                 }
 
                 DA.SetDataList(0, outputMesh);
-                DA.SetDataList(1, output); //debugging
+                DA.SetDataList(1, outputAnalysisGeometry);
+                DA.SetDataList(2, output); //debugging
             }
 
             if (tickRate > 0) // Allow users to force manual recalculation
