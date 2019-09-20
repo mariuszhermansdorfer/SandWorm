@@ -14,7 +14,7 @@ namespace SandWorm
         {
             public None() : base("No Visualisation") { }
 
-            public override int GetPixelIndexForAnalysis(Point3d vertex, params Point3d[] analysisPts)
+            public override int GetPixelIndexForAnalysis(Point3d vertex, List<Point3d> analysisPts)
             {
                 return 0; // Should never be called (see below)
             }
@@ -29,7 +29,7 @@ namespace SandWorm
         {
             public Elevation() : base("Visualise Elevation") { }
 
-            public override int GetPixelIndexForAnalysis(Point3d vertex, params Point3d[] analysisPts)
+            public override int GetPixelIndexForAnalysis(Point3d vertex, List<Point3d> analysisPts)
             {
                 return (int)vertex.Z;
             }
@@ -58,32 +58,51 @@ namespace SandWorm
         public class Slope : Analysis.MeshColorAnalysis
         {
             public Slope() : base("Visualise Slope") { }
+            private int slopeCap = 500; // As measuring in % need an uppper limit on the value
 
-            public override int GetPixelIndexForAnalysis(Point3d vertex, params Point3d[] neighbours)
+            public override int GetPixelIndexForAnalysis(Point3d vertex, List<Point3d> neighbours)
             {
                 // Loop over the neighbouring pixels; calculate slopes relative to vertex
                 double slopeSum = 0;
-                for (int i = 0; i < neighbours.Length; i++)
+                for (int i = 0; i < neighbours.Count; i++)
                 {
                     double rise = vertex.Z - neighbours[i].Z;
                     double run = Math.Sqrt(Math.Pow(vertex.X - neighbours[i].X, 2) + Math.Pow(vertex.Y - neighbours[i].Y, 2));
-                    slopeSum += rise / run;
+                    slopeSum += Math.Abs(rise / run);
                 }
-                double slopeAverage = Math.Abs(slopeSum / neighbours.Length);
+                double slopeAverage = slopeSum / neighbours.Count;
                 double slopeAsPercent = slopeAverage * 100; // Array is keyed as 0 - 100
-                return (int)slopeAsPercent; // Cast to int as its cross-referenced to the lookup 
+
+                if (slopeAsPercent >= slopeCap)
+                    return slopeCap;
+                else
+                    return (int)slopeAsPercent; // Cast to int as its then cross-referenced to the lookup 
             }
 
             public override void ComputeLookupTableForAnalysis(double sensorElevation)
             {
-                var slopeRange = new Analysis.VisualisationRangeWithColor
+                var slightSlopeRange = new Analysis.VisualisationRangeWithColor
                 {
                     ValueStart = 0,
-                    ValueEnd = 100,
-                    ColorStart = new ColorHSL(1.0, 1.0, 1.0), // White
-                    ColorEnd = new ColorHSL(1.0, 1.0, 0.3) // Dark Red
+                    ValueEnd = 30,
+                    ColorStart = new ColorHSL(0.30, 1.0, 0.5), // Green
+                    ColorEnd = new ColorHSL(0.15, 1.0, 0.5) // Yellow
                 };
-                ComputeLinearRanges(slopeRange);
+                var moderateSlopeRange = new Analysis.VisualisationRangeWithColor
+                {
+                    ValueStart = 30,
+                    ValueEnd = 200,
+                    ColorStart = new ColorHSL(0.15, 1.0, 0.5), // Green
+                    ColorEnd = new ColorHSL(0.0, 1.0, 0.5) // Red
+                };
+                var extremeSlopeRange = new Analysis.VisualisationRangeWithColor
+                {
+                    ValueStart = 200,
+                    ValueEnd = slopeCap,
+                    ColorStart = new ColorHSL(0.0, 1.0, 0.5), // Red
+                    ColorEnd = new ColorHSL(0.0, 1.0, 0.0) // Black
+                };
+                ComputeLinearRanges(slightSlopeRange, moderateSlopeRange, extremeSlopeRange);
             }
         }
 
@@ -91,7 +110,7 @@ namespace SandWorm
         {
             public Aspect() : base("Visualise Aspect") { }
 
-            public override int GetPixelIndexForAnalysis(Point3d vertex, params Point3d[] analysisPts)
+            public override int GetPixelIndexForAnalysis(Point3d vertex, List<Point3d> analysisPts)
             {
                 return 44;
             }

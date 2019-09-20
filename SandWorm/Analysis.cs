@@ -124,7 +124,7 @@ namespace SandWorm
 
             public MeshColorAnalysis(string menuName) : base(menuName, true) { } // Note: is mutually exclusive
 
-            public abstract int GetPixelIndexForAnalysis(Point3d vertex, params Point3d[] analysisPts);
+            public abstract int GetPixelIndexForAnalysis(Point3d vertex, List<Point3d> analysisPts);
 
             public abstract void ComputeLookupTableForAnalysis(double sensorElevation);
 
