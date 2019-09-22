@@ -145,7 +145,7 @@ namespace SandWorm
         {
             public Contours() : base("Show Contour Lines") { }
 
-            public override void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, double wl)
+            public override void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, double waterLevel, Point3d[] edgePts)
             {
                 var dummyLine = new Line(new Point3d(0, 0, 0), new Point3d(1, 1, 1));
                 var contour = NurbsCurve.CreateFromLine(dummyLine);
@@ -157,13 +157,14 @@ namespace SandWorm
         {
             public Water() : base("Show Water Level") { }
 
-            public override void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, double wl)
+            public override void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, double waterLevel, Point3d[] edgePts)
             {
-                var waterPlane = new Plane(new Point3d(0, 0, 0), new Vector3d(0, 0, 1));
-                var xInterval = new Interval(0, 100);
-                var yInterval = new Interval(0, 100);
-                var waterSrf = new PlaneSurface(waterPlane, xInterval, yInterval);
-                outputGeometry.Add(waterSrf); // TODO: actual implementation
+                var waterPlane = new Plane(new Point3d(edgePts[0].X, edgePts[0].Y, waterLevel), new Vector3d(0, 0, 1));
+                var waterSrf = new PlaneSurface(waterPlane,
+                    new Interval(edgePts[1].X, edgePts[0].X),
+                    new Interval(edgePts[1].Y, edgePts[0].Y)
+                );
+                outputGeometry.Add(waterSrf); 
             }
         }
     }

@@ -44,7 +44,7 @@ namespace SandWorm
         public static double unitsMultiplier;
 
         // Analysis state
-        private int waterLevel = 1000;
+        private int waterLevel = 50;
 
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
@@ -330,7 +330,10 @@ namespace SandWorm
                     // Add extra outputs (water planes; contours; etc) based on the mesh and currently enabled analysis
                     foreach (var enabledAnalysis in Analysis.AnalysisManager.GetEnabledMeshAnalytics())
                     {
-                        enabledAnalysis.GetGeometryForAnalysis(ref outputAnalysisGeometry, waterLevel);
+                        var edgePts = new Point3d[2];
+                        edgePts[0] = pointCloud[0];
+                        edgePts[1] = pointCloud[(trimmedHeight * trimmedWidth) - 1]; 
+                        enabledAnalysis.GetGeometryForAnalysis(ref outputAnalysisGeometry, waterLevel, edgePts);
                     }
 
                     timer.Stop(); //debugging
