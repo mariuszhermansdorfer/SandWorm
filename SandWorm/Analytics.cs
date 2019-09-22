@@ -145,24 +145,28 @@ namespace SandWorm
         {
             public Contours() : base("Show Contour Lines") { }
 
-            public override void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, double waterLevel, Point3d[] edgePts)
+            public override void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, int wl, int contourInterval, Mesh mesh)
             {
-                var dummyLine = new Line(new Point3d(0, 0, 0), new Point3d(1, 1, 1));
-                var contour = NurbsCurve.CreateFromLine(dummyLine);
-                outputGeometry.Add(contour); // TODO: actual implementation
-            }
+                var bounds = mesh.GetBoundingBox(false);
+                var originStart = new Point3d(0, 0, bounds.Min.Z);
+                var originEnd = new Point3d(0, 0, bounds.Max.Z);
+                var contours = Mesh.CreateContourCurves(mesh, originStart, originEnd, contourInterval);
+                outputGeometry.AddRange(contours);
+;            }
         }
 
         public class Water : Analysis.MeshGeometryAnalysis
         {
             public Water() : base("Show Water Level") { }
 
-            public override void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, double waterLevel, Point3d[] edgePts)
+            public override void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, int waterLevel, int ci, Mesh mesh)
             {
-                var waterPlane = new Plane(new Point3d(edgePts[0].X, edgePts[0].Y, waterLevel), new Vector3d(0, 0, 1));
+                var bounds = mesh.GetBoundingBox(false);
+                var waterPlane = new Plane(new Point3d(bounds.Max.X, bounds.Max.Y, waterLevel), new Vector3d(0, 0, 1));
+                var test = new Interval(bounds.Max.X, bounds.Min.X);
                 var waterSrf = new PlaneSurface(waterPlane,
-                    new Interval(edgePts[1].X, edgePts[0].X),
-                    new Interval(edgePts[1].Y, edgePts[0].Y)
+                    new Interval(bounds.Min.X, bounds.Max.X),
+                    new Interval(bounds.Min.Y, bounds.Max.Y)
                 );
                 outputGeometry.Add(waterSrf); 
             }

@@ -22,7 +22,7 @@ namespace SandWorm
         private KinectSensor kinectSensor = null;
         private Point3d[] pointCloud;
         private List<Mesh> outputMesh = null;
-        private List<Rhino.Geometry.GeometryBase> outputAnalysisGeometry = null;
+        private List<Rhino.Geometry.GeometryBase> outputGeometry = null;
         public static List<string> output = null;//debugging
         private LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
         public int[] runningSum = Enumerable.Range(1, 217088).Select(i => new int()).ToArray();
@@ -45,6 +45,7 @@ namespace SandWorm
 
         // Analysis state
         private int waterLevel = 50;
+        private int contourInterval = 10;
 
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
@@ -66,7 +67,8 @@ namespace SandWorm
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddNumberParameter("SensorHeight", "SH", "The height (in document units) of the sensor above your model", GH_ParamAccess.item, sensorElevation);
-            pManager.AddIntegerParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, 1000);
+            pManager.AddIntegerParameter("WaterLevel", "WL", "The water level (if this analysis is enabled)", GH_ParamAccess.item, 1000);
+            pManager.AddIntegerParameter("ContourInterval", "CI", "The interval (if this analysis is enabled)", GH_ParamAccess.item, 1000);
             pManager.AddIntegerParameter("LeftColumns", "LC", "Number of columns to trim from the left", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("RightColumns", "RC", "Number of columns to trim from the right", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("TopRows", "TR", "Number of rows to trim from the top", GH_ParamAccess.item, 0);
@@ -83,6 +85,7 @@ namespace SandWorm
             pManager[6].Optional = true;
             pManager[7].Optional = true;
             pManager[8].Optional = true;
+            pManager[9].Optional = true;
         }
 
         /// <summary>
@@ -130,13 +133,14 @@ namespace SandWorm
         {
             DA.GetData<double>(0, ref sensorElevation);
             DA.GetData<int>(1, ref waterLevel);
-            DA.GetData<int>(2, ref leftColumns);
-            DA.GetData<int>(3, ref rightColumns);
-            DA.GetData<int>(4, ref topRows);
-            DA.GetData<int>(5, ref bottomRows);
-            DA.GetData<int>(6, ref tickRate);
-            DA.GetData<int>(7, ref averageFrames);
-            DA.GetData<int>(8, ref blurRadius);
+            DA.GetData<int>(2, ref contourInterval);
+            DA.GetData<int>(3, ref leftColumns);
+            DA.GetData<int>(4, ref rightColumns);
+            DA.GetData<int>(5, ref topRows);
+            DA.GetData<int>(6, ref bottomRows);
+            DA.GetData<int>(7, ref tickRate);
+            DA.GetData<int>(8, ref averageFrames);
+            DA.GetData<int>(9, ref blurRadius);
 
             switch (units.ToString())
             {
@@ -192,7 +196,7 @@ namespace SandWorm
 
                     // initialize outputs
                     outputMesh = new List<Mesh>();
-                    outputAnalysisGeometry = new List<Rhino.Geometry.GeometryBase>();
+                    outputGeometry = new List<Rhino.Geometry.GeometryBase>();
                     output = new List<string>(); //debugging
 
                     Point3d tempPoint = new Point3d();
@@ -330,10 +334,7 @@ namespace SandWorm
                     // Add extra outputs (water planes; contours; etc) based on the mesh and currently enabled analysis
                     foreach (var enabledAnalysis in Analysis.AnalysisManager.GetEnabledMeshAnalytics())
                     {
-                        var edgePts = new Point3d[2];
-                        edgePts[0] = pointCloud[0];
-                        edgePts[1] = pointCloud[(trimmedHeight * trimmedWidth) - 1]; 
-                        enabledAnalysis.GetGeometryForAnalysis(ref outputAnalysisGeometry, waterLevel, edgePts);
+                        enabledAnalysis.GetGeometryForAnalysis(ref outputGeometry, waterLevel, contourInterval, quadMesh);
                     }
 
                     timer.Stop(); //debugging
@@ -341,7 +342,7 @@ namespace SandWorm
                 }
 
                 DA.SetDataList(0, outputMesh);
-                DA.SetDataList(1, outputAnalysisGeometry);
+                DA.SetDataList(1, outputGeometry);
                 DA.SetDataList(2, output); //debugging
             }
 
