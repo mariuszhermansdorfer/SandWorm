@@ -73,8 +73,7 @@ namespace SandWorm
         public class VisualisationRangeWithColor
         {
             /// <summary>Describes a numeric range (e.g. elevation or slope values) and color range to visualise it.</summary>
-            public int ValueStart { get; set; }
-            public int ValueEnd { get; set; }
+            public int ValueSpan { get; set; }
             public ColorHSL ColorStart { get; set; }
             public ColorHSL ColorEnd { get; set; }
 
@@ -114,7 +113,7 @@ namespace SandWorm
 
             // Note that the use of <GeometryBase> may potentially exclude some geometric types as returnable
             // Note also the need to hard-code params useful to any of the analytics; operator overloading wont work :(
-            public abstract void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, double waterLevel);
+            public abstract void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, double waterLevel, Point3d[] edgePts);
         }
 
         public abstract class MeshColorAnalysis : MeshAnalysis
@@ -130,16 +129,18 @@ namespace SandWorm
 
             public void ComputeLinearRanges(params VisualisationRangeWithColor[] lookUpRanges)
             {
-                var lookupTableMaximumSize = 1;
-                foreach (var range in lookUpRanges) lookupTableMaximumSize += range.ValueEnd - range.ValueStart;
-                lookupTable = new Color[lookupTableMaximumSize]; 
+                var lookupTableMaximumSize = lookUpRanges.Length;
+                foreach (var range in lookUpRanges) lookupTableMaximumSize += range.ValueSpan;
+                lookupTable = new Color[lookupTableMaximumSize];
 
                 // Populate dict values by interpolating colors within each of the lookup ranges
+                var index = 0;
                 foreach (var range in lookUpRanges)
-                    for (var i = range.ValueStart; i < range.ValueEnd; i++)
+                    for (var i = 0; i <= range.ValueSpan; i++)
                     {
-                        var progress = ((double)i - range.ValueStart) / (range.ValueEnd - range.ValueStart);
-                        lookupTable[i] = range.InterpolateColor(progress);
+                        var progress = (double)i / range.ValueSpan;
+                        lookupTable[index] = range.InterpolateColor(progress);
+                        index++;
                     }
             }
         }

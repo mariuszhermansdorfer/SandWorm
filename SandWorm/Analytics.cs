@@ -31,27 +31,38 @@ namespace SandWorm
 
             public override int GetPixelIndexForAnalysis(Point3d vertex, List<Point3d> analysisPts)
             {
-                return (int)vertex.Z;
+                if (vertex.Z > 0)
+                    return (int)vertex.Z;
+                return 0; // Usually occurs when sensor height is configured incorrectly
             }
 
             public override void ComputeLookupTableForAnalysis(double sensorElevation)
             {
-                var normalElevationRange = new Analysis.VisualisationRangeWithColor
+                var sElevationRange = new Analysis.VisualisationRangeWithColor
                 {
-                    ValueStart = 0,
-                    ValueEnd = (int)sensorElevation - 201,
-                    ColorStart = new ColorHSL(0.20, 0.35, 0.02),
-                    ColorEnd = new ColorHSL(0.50, 0.85, 0.85)
-                }; // A clear gradient for pixels inside the expected normal model height 
-
-                var extraElevationRange = new Analysis.VisualisationRangeWithColor
+                    ValueSpan = 50,
+                    ColorStart = new ColorHSL(0.40, 0.35, 0.3), // Dark Green
+                    ColorEnd = new ColorHSL(0.30, 0.85, 0.4) // Green
+                };
+                var mElevationRange = new Analysis.VisualisationRangeWithColor
                 {
-                    ValueStart = (int)sensorElevation - 200,
-                    ValueEnd = (int)sensorElevation + 1,
-                    ColorStart = new ColorHSL(1.00, 0.85, 0.76),
-                    ColorEnd = new ColorHSL(0.50, 0.85, 0.99)
-                }; // A fallback gradiend for those outside (TODO: set sensible colors here)
-                ComputeLinearRanges(normalElevationRange, extraElevationRange);
+                    ValueSpan = 50,
+                    ColorStart = new ColorHSL(0.30, 0.85, 0.4), // Green
+                    ColorEnd = new ColorHSL(0.20, 0.85, 0.5) // Yellow
+                };
+                var lElevationRange = new Analysis.VisualisationRangeWithColor
+                {
+                    ValueSpan = 50,
+                    ColorStart = new ColorHSL(0.20, 0.85, 0.5), // Yellow
+                    ColorEnd = new ColorHSL(0.10, 0.85, 0.6) // Orange
+                };
+                var xlElevationRange = new Analysis.VisualisationRangeWithColor
+                {
+                    ValueSpan = 50,
+                    ColorStart = new ColorHSL(0.10, 1, 0.6), // Orange
+                    ColorEnd = new ColorHSL(0.00, 1, 0.7) // Red
+                };
+                ComputeLinearRanges(sElevationRange, mElevationRange, lElevationRange, xlElevationRange);
             }
         }
 
@@ -83,22 +94,19 @@ namespace SandWorm
             {
                 var slightSlopeRange = new Analysis.VisualisationRangeWithColor
                 {
-                    ValueStart = 0,
-                    ValueEnd = 30,
+                    ValueSpan = 30,
                     ColorStart = new ColorHSL(0.30, 1.0, 0.5), // Green
                     ColorEnd = new ColorHSL(0.15, 1.0, 0.5) // Yellow
                 };
                 var moderateSlopeRange = new Analysis.VisualisationRangeWithColor
                 {
-                    ValueStart = 30,
-                    ValueEnd = 200,
+                    ValueSpan = 30,
                     ColorStart = new ColorHSL(0.15, 1.0, 0.5), // Green
                     ColorEnd = new ColorHSL(0.0, 1.0, 0.5) // Red
                 };
                 var extremeSlopeRange = new Analysis.VisualisationRangeWithColor
                 {
-                    ValueStart = 200,
-                    ValueEnd = slopeCap,
+                    ValueSpan = 200,
                     ColorStart = new ColorHSL(0.0, 1.0, 0.5), // Red
                     ColorEnd = new ColorHSL(0.0, 1.0, 0.0) // Black
                 };
@@ -119,15 +127,13 @@ namespace SandWorm
             {
                 var rightAspect = new Analysis.VisualisationRangeWithColor
                 {
-                    ValueStart = 0,
-                    ValueEnd = 180,
+                    ValueSpan = 180,
                     ColorStart = new ColorHSL(1.0, 1.0, 1.0), // White
                     ColorEnd = new ColorHSL(1.0, 1.0, 0.3) // Dark Red
                 };
                 var leftAspect = new Analysis.VisualisationRangeWithColor
                 {
-                    ValueStart = 180, // For the other side of the aspect we loop back to the 0 value
-                    ValueEnd = 359,
+                    ValueSpan = 180, // For the other side of the aspect we loop back to the 0 value
                     ColorStart = new ColorHSL(1.0, 1.0, 0.3), // Dark Red
                     ColorEnd = new ColorHSL(1.0, 1.0, 1.0) // White
                 };
