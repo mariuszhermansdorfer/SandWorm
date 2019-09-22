@@ -303,7 +303,11 @@ namespace SandWorm
                                 if (i % trimmedWidth != 0) 
                                     neighbourPixels.Add(pointCloud[i - 1]); // West neighbour
                             }
+
                             var colorIndex = enabledMeshColoring.GetPixelIndexForAnalysis(pointCloud[i], neighbourPixels);
+                            if (colorIndex >= enabledColorTable.Length)
+                                colorIndex = enabledColorTable.Length - 1; // Happens if sensorHeight is out of whack
+
                             vertexColors[i] = enabledColorTable[colorIndex];
                         }
                     }
