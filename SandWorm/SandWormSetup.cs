@@ -68,7 +68,6 @@ namespace SandWorm
             DA.GetData<int>(4, ref bottomRows);
             DA.GetData<int>(5, ref tickRate);
 
-
             options[0] = sensorElevation;
             options[1] = leftColumns;
             options[2] = rightColumns;
