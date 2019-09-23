@@ -89,7 +89,7 @@ namespace SandWorm
             base.AppendAdditionalComponentMenuItems(menu);
             foreach (Analysis.MeshAnalysis option in Analysis.AnalysisManager.options) // Add analysis items to menu
             {
-                Menu_AppendItem(menu, option.Name, SetMeshVisualisation, true, option.IsEnabled);
+                Menu_AppendItem(menu, option.Name, SetMeshVisualisation, true, option.isEnabled);
                 // Create reference to the menu item in the analysis class
                 option.MenuItem = (ToolStripMenuItem)menu.Items[menu.Items.Count - 1];
                 if (!option.IsExclusive)

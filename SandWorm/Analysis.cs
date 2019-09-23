@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Windows.Media.Media3D;
 using Rhino.Display;
 using Rhino.Geometry;
 
@@ -11,7 +9,6 @@ namespace SandWorm
     public static class Analysis
     {
         /// <summary>Abstractions for managing analysis state.</summary>
-
         public static class AnalysisManager
         {
             /// <summary>Stories copies of each analysis option and interfaces their use with components.</summary>
@@ -26,18 +23,19 @@ namespace SandWorm
                     new Analytics.Elevation(), new Analytics.Slope(), new Analytics.Aspect()
                 };
                 // Default to showing elevation analysis
-                options[3].IsEnabled = true;
+                options[3].isEnabled = true;
             }
 
-            public static List<MeshAnalysis> GetEnabledAnalyses() => options.FindAll(x => x.IsEnabled);
+            public static List<MeshAnalysis> GetEnabledAnalyses()
+            {
+                return options.FindAll(x => x.isEnabled);
+            }
 
             public static MeshColorAnalysis GetEnabledMeshColoring()
             {
                 foreach (var enabledOption in GetEnabledAnalyses())
-                {
                     if (enabledOption.GetType().IsSubclassOf(typeof(MeshColorAnalysis)))
                         return enabledOption as MeshColorAnalysis;
-                }
                 return null; // Shouldn't happen; a mesh coloring option (even no color) is always set
             }
 
@@ -58,10 +56,10 @@ namespace SandWorm
                 var selectedOption = options.Find(x => x.MenuItem == selectedMenuItem);
                 if (selectedOption.IsExclusive)
                     foreach (var exclusiveOption in options.FindAll(x => x.IsExclusive))
-                        exclusiveOption.IsEnabled =
+                        exclusiveOption.isEnabled =
                             selectedOption == exclusiveOption; // Toggle selected item; untoggle other exclusive items
                 else
-                    selectedOption.IsEnabled = !selectedOption.IsEnabled; // Simple toggle for independent items
+                    selectedOption.isEnabled = !selectedOption.isEnabled; // Simple toggle for independent items
             }
 
             public static void ComputeLookupTables(double sensorElevation)
@@ -74,6 +72,7 @@ namespace SandWorm
         {
             /// <summary>Describes a numeric range (e.g. elevation or slope values) and color range to visualise it.</summary>
             public int ValueSpan { get; set; }
+
             public ColorHSL ColorStart { get; set; }
             public ColorHSL ColorEnd { get; set; }
 
@@ -90,8 +89,7 @@ namespace SandWorm
         public abstract class MeshAnalysis
         {
             /// <summary>Some form of analysis that applies, or derives from, the mesh.</summary>
-
-            public bool IsEnabled; // Whether to apply the analysis
+            public bool isEnabled; // Whether to apply the analysis
 
             public MeshAnalysis(string menuName, bool exclusive)
             {
@@ -109,11 +107,14 @@ namespace SandWorm
         public abstract class MeshGeometryAnalysis : MeshAnalysis
         {
             /// <summary>A form of analysis that outputs geometry (i.e. contours) based on the mesh</summary>
-            public MeshGeometryAnalysis(string menuName) : base(menuName, false) { } // Note: not mutually exclusive
+            public MeshGeometryAnalysis(string menuName) : base(menuName, false)
+            {
+            } // Note: not mutually exclusive
 
             // Note that the use of <GeometryBase> may potentially exclude some geometric types as returnable
             // Note also the need to hard-code params useful to any of the analytics; operator overloading wont work :(
-            public abstract void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, int wl, int ci, Mesh mesh);
+            public abstract void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, int wl, int ci,
+                Mesh mesh);
         }
 
         public abstract class MeshColorAnalysis : MeshAnalysis
@@ -121,7 +122,9 @@ namespace SandWorm
             /// <summary>A form of analysis that colors the vertices of the entire mesh</summary>
             public Color[] lookupTable; // Dictionary of integers that map to color values
 
-            public MeshColorAnalysis(string menuName) : base(menuName, true) { } // Note: is mutually exclusive
+            public MeshColorAnalysis(string menuName) : base(menuName, true)
+            {
+            } // Note: is mutually exclusive
 
             public abstract int GetPixelIndexForAnalysis(Point3d vertex, List<Point3d> analysisPts);
 
@@ -138,7 +141,7 @@ namespace SandWorm
                 foreach (var range in lookUpRanges)
                     for (var i = 0; i <= range.ValueSpan; i++)
                     {
-                        var progress = (double)i / range.ValueSpan;
+                        var progress = (double) i / range.ValueSpan;
                         lookupTable[index] = range.InterpolateColor(progress);
                         index++;
                     }
