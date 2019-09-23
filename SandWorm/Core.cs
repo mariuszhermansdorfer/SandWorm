@@ -91,5 +91,42 @@ namespace SandWorm
             }
                 
         }
+
+        public static double ConvertDrawingUnits (Rhino.UnitSystem units)
+        {
+            double unitsMultiplier = 1.0;
+
+            switch (units.ToString())
+            {
+                case "Kilometers":
+                    unitsMultiplier = 0.0001;
+                    break;
+
+                case "Meters":
+                    unitsMultiplier = 0.001;
+                    break;
+
+                case "Decimeters":
+                    unitsMultiplier = 0.01;
+                    break;
+
+                case "Centimeters":
+                    unitsMultiplier = 0.1;
+                    break;
+
+                case "Millimeters":
+                    unitsMultiplier = 1.0;
+                    break;
+
+                case "Inches":
+                    unitsMultiplier = 0.0393701;
+                    break;
+
+                case "Feet":
+                    unitsMultiplier = 0.0328084;
+                    break;
+            }
+            return unitsMultiplier;
+        }
     }
 }
