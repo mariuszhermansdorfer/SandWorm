@@ -89,6 +89,7 @@
     <Compile Include="Core.cs" />
     <Compile Include="GaussianBlurProcessor.cs" />
     <Compile Include="KinectController.cs" />
+    <Compile Include="SandWormSetup.cs" />
     <Compile Include="SandWormComponent.cs" />
     <Compile Include="SandWormInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

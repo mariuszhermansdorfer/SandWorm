@@ -8,13 +8,7 @@ using Microsoft.Kinect;
 using System.Windows.Forms;
 using System.Linq;
 
-// comment 
-// In order to load the result of this wizard, you will also need to
-// add the output bin/ folder of this project to the list of loaded
-// folder in Grasshopper.
-// You can use the _GrasshopperDeveloperSettings Rhino command for that.
 
-//Test comment
 namespace SandWorm
 {
     public class SandWorm : GH_Component
@@ -31,12 +25,14 @@ namespace SandWorm
         public Color[] vertexColors;
         public Mesh quadMesh = new Mesh();
 
+        public List<double> options; // List of options coming from the SWSetup component
+
         public double sensorElevation = 1000; // Arbitrary default value (must be >0)
         public int leftColumns = 0;
         public int rightColumns = 0;
         public int topRows = 0;
         public int bottomRows = 0;
-        public int tickRate = 20; // In ms
+        public int tickRate = 33; // In ms
         public int averageFrames = 1;
         public int blurRadius = 1;
         public static Rhino.UnitSystem units = Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem;
@@ -64,24 +60,14 @@ namespace SandWorm
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddNumberParameter("SensorHeight", "SH", "The height (in document units) of the sensor above your model", GH_ParamAccess.item, sensorElevation);
             pManager.AddIntegerParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, 1000);
-            pManager.AddIntegerParameter("LeftColumns", "LC", "Number of columns to trim from the left", GH_ParamAccess.item, 0);
-            pManager.AddIntegerParameter("RightColumns", "RC", "Number of columns to trim from the right", GH_ParamAccess.item, 0);
-            pManager.AddIntegerParameter("TopRows", "TR", "Number of rows to trim from the top", GH_ParamAccess.item, 0);
-            pManager.AddIntegerParameter("BottomRows", "BR", "Number of rows to trim from the bottom", GH_ParamAccess.item, 0);
-            pManager.AddIntegerParameter("TickRate", "TR", "The time interval, in milliseconds, to update geometry from the Kinect. Set as 0 to disable automatic updates.", GH_ParamAccess.item, tickRate);
             pManager.AddIntegerParameter("AverageFrames", "AF", "Amount of depth frames to average across. This number has to be greater than zero.", GH_ParamAccess.item, averageFrames);
             pManager.AddIntegerParameter("BlurRadius", "BR", "Radius for Gaussian blur.", GH_ParamAccess.item, blurRadius);
+            pManager.AddNumberParameter("SandWormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.list);
             pManager[0].Optional = true;
             pManager[1].Optional = true;
             pManager[2].Optional = true;
             pManager[3].Optional = true;
-            pManager[4].Optional = true;
-            pManager[5].Optional = true;
-            pManager[6].Optional = true;
-            pManager[7].Optional = true;
-            pManager[8].Optional = true;
         }
 
         /// <summary>
@@ -106,6 +92,7 @@ namespace SandWorm
             }
         }
 
+
         private void SetMeshVisualisation(object sender, EventArgs e)
         {
             Analysis.AnalysisManager.SetEnabledOptions((ToolStripMenuItem)sender);
@@ -126,47 +113,24 @@ namespace SandWorm
         /// to store data in output parameters.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            DA.GetData<double>(0, ref sensorElevation);
-            DA.GetData<int>(1, ref waterLevel);
-            DA.GetData<int>(2, ref leftColumns);
-            DA.GetData<int>(3, ref rightColumns);
-            DA.GetData<int>(4, ref topRows);
-            DA.GetData<int>(5, ref bottomRows);
-            DA.GetData<int>(6, ref tickRate);
-            DA.GetData<int>(7, ref averageFrames);
-            DA.GetData<int>(8, ref blurRadius);
+            options = new List<double>();
+            DA.GetData<int>(0, ref waterLevel);
+            DA.GetData<int>(1, ref averageFrames);
+            DA.GetData<int>(2, ref blurRadius);
+            DA.GetDataList<double>(3, options);
 
-            switch (units.ToString())
+            if (options.Count != 0) // TODO add more robust checking whether all the options have been provided by the user
             {
-                case "Kilometers":
-                    unitsMultiplier = 0.0001;
-                    break;
-
-                case "Meters":
-                    unitsMultiplier = 0.001;
-                    break;
-
-                case "Decimeters":
-                    unitsMultiplier = 0.01;
-                    break;
-
-                case "Centimeters":
-                    unitsMultiplier = 0.1;
-                    break;
-
-                case "Millimeters":
-                    unitsMultiplier = 1;
-                    break;
-
-                case "Inches":
-                    unitsMultiplier = 0.0393701;
-                    break;
-
-                case "Feet":
-                    unitsMultiplier = 0.0328084;
-                    break;
+                sensorElevation = options[0];
+                leftColumns = (int)options[1];
+                rightColumns = (int)options[2];
+                topRows = (int)options[3];
+                bottomRows = (int)options[4];
+                tickRate = (int)options[5];
             }
-            sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units 
+
+            unitsMultiplier = Core.ConvertDrawingUnits(units); // Pick the correct multiplier based on the drawing units
+            sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units
 
             Stopwatch timer = Stopwatch.StartNew(); //debugging
 
@@ -182,7 +146,7 @@ namespace SandWorm
                 {
                     int trimmedWidth = KinectController.depthWidth - leftColumns - rightColumns;
                     int trimmedHeight = KinectController.depthHeight - topRows - bottomRows;
-                    
+
                     // initialize all arrays
                     pointCloud = new Point3d[trimmedWidth * trimmedHeight];
                     int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
@@ -192,6 +156,7 @@ namespace SandWorm
                     outputMesh = new List<Mesh>();
                     output = new List<string>(); //debugging
 
+
                     Point3d tempPoint = new Point3d();
                     Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
 
@@ -199,7 +164,7 @@ namespace SandWorm
                     Core.CopyAsIntArray(KinectController.depthFrameData, depthFrameDataInt, leftColumns, rightColumns, topRows, bottomRows, KinectController.depthHeight, KinectController.depthWidth);
 
                     averageFrames = averageFrames < 1 ? 1 : averageFrames; //make sure there is at least one frame in the render buffer
-                    
+
                     // reset everything when resizing Kinect's field of view or changing the amounts of frame to average across
                     if (renderBuffer.Count > averageFrames || quadMesh.Faces.Count != (trimmedWidth - 2) * (trimmedHeight - 2))
                     {
@@ -230,10 +195,10 @@ namespace SandWorm
                                 renderBuffer.Last.Value[pixel] = (int)sensorElevation;
                             }
                         }
-                            
+
                         averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count; //calculate average values
 
-                        if (renderBuffer.Count >= averageFrames) 
+                        if (renderBuffer.Count >= averageFrames)
                             runningSum[pixel] -= renderBuffer.First.Value[pixel]; //subtract the oldest value from the sum 
                     }
 
@@ -250,6 +215,7 @@ namespace SandWorm
                         timer.Restart(); //debugging
                     }
 
+
                     // Setup variables for the coloring process
                     Analysis.AnalysisManager.ComputeLookupTables(sensorElevation); // First-run computing of tables
                     var enabledMeshColoring = Analysis.AnalysisManager.GetEnabledMeshColoring();
@@ -257,6 +223,7 @@ namespace SandWorm
                     var hasColorTable = enabledColorTable.Length > 0; // Setting the 'no analysis' option == empty table  
                     vertexColors = new Color[hasColorTable ? trimmedWidth * trimmedHeight : 0]; // A 0-length array wont be used in meshing
                     var pixelsForAnalysis = new Point3d[4];
+
 
                     // Setup variables for per-pixel loop
                     pointCloud = new Point3d[trimmedWidth * trimmedHeight];
@@ -271,15 +238,17 @@ namespace SandWorm
                             tempPoint.Z = (depthPoint - sensorElevation) * -unitsMultiplier;
 
                             pointCloud[arrayIndex] = tempPoint; // Add new point to point cloud itself
+
                             if (hasColorTable) // Perform analysis as needed and lookup result in table
                             {
                                 var pixelIndex = enabledMeshColoring.GetPixelIndexForAnalysis(tempPoint, pixelsForAnalysis);
                                 vertexColors[arrayIndex] = enabledColorTable[pixelIndex];
                             }
+
                             arrayIndex++;
                         }
                     }
-                   
+
                     //keep only the desired amount of frames in the buffer
                     while (renderBuffer.Count >= averageFrames)
                     {
