@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using Grasshopper.Kernel;
+using SandWorm.Properties;
 
 namespace SandWorm
 {
@@ -13,14 +14,9 @@ namespace SandWorm
                 return "SandWorm";
             }
         }
-        public override Bitmap Icon
-        {
-            get
-            {
-                //Return a 24x24 pixel bitmap to represent this GHA library.
-                return null;
-            }
-        }
+
+        public override Bitmap Icon => Resources.icon_sandworm;
+
         public override string Description
         {
             get

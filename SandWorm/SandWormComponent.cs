@@ -7,6 +7,7 @@ using Rhino.Geometry;
 using Microsoft.Kinect;
 using System.Windows.Forms;
 using System.Linq;
+using SandWorm.Properties;
 
 // comment 
 // In order to load the result of this wizard, you will also need to
@@ -312,15 +313,7 @@ namespace SandWorm
         /// Provides an Icon for every component that will be visible in the User Interface.
         /// Icons need to be 24x24 pixels.
         /// </summary>
-        protected override System.Drawing.Bitmap Icon
-        {
-            get
-            {
-                // You can add image files to your project resources and access them like this:
-                //return Resources.IconForThisComponent;
-                return null;
-            }
-        }
+        protected override Bitmap Icon => Resources.icon_mesh;
 
         /// <summary>
         /// Each component must have a unique Guid to identify it. 
