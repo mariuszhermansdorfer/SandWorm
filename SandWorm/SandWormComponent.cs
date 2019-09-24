@@ -16,6 +16,7 @@ namespace SandWorm
         private KinectSensor kinectSensor = null;
         private Point3d[] pointCloud;
         private List<Mesh> outputMesh = null;
+        private List<Rhino.Geometry.GeometryBase> outputGeometry = null;
         public static List<string> output = null;//debugging
         private LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
         public int[] runningSum = Enumerable.Range(1, 217088).Select(i => new int()).ToArray();
@@ -39,7 +40,8 @@ namespace SandWorm
         public static double unitsMultiplier;
 
         // Analysis state
-        private int waterLevel = 1000;
+        private int waterLevel = 50;
+        private int contourInterval = 10;
 
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
@@ -60,7 +62,8 @@ namespace SandWorm
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddIntegerParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, 1000);
+            pManager.AddIntegerParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, 1000); 
+            pManager.AddIntegerParameter("ContourInterval", "CI", "The interval (if this analysis is enabled)", GH_ParamAccess.item, 1000);            
             pManager.AddIntegerParameter("AverageFrames", "AF", "Amount of depth frames to average across. This number has to be greater than zero.", GH_ParamAccess.item, averageFrames);
             pManager.AddIntegerParameter("BlurRadius", "BR", "Radius for Gaussian blur.", GH_ParamAccess.item, blurRadius);
             pManager.AddNumberParameter("SandWormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.list);
@@ -68,6 +71,7 @@ namespace SandWorm
             pManager[1].Optional = true;
             pManager[2].Optional = true;
             pManager[3].Optional = true;
+            pManager[4].Optional = true;
         }
 
         /// <summary>
@@ -75,7 +79,8 @@ namespace SandWorm
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddMeshParameter("Mesh", "M", "Resulting Mesh", GH_ParamAccess.list);
+            pManager.AddMeshParameter("Mesh", "M", "Resulting mesh", GH_ParamAccess.list);
+            pManager.AddGeometryParameter("Analysis", "A", "Additional mesh analysis", GH_ParamAccess.list);
             pManager.AddTextParameter("Output", "O", "Output", GH_ParamAccess.list); //debugging
         }
 
@@ -84,7 +89,7 @@ namespace SandWorm
             base.AppendAdditionalComponentMenuItems(menu);
             foreach (Analysis.MeshAnalysis option in Analysis.AnalysisManager.options) // Add analysis items to menu
             {
-                Menu_AppendItem(menu, option.Name, SetMeshVisualisation, true, option.IsEnabled);
+                Menu_AppendItem(menu, option.Name, SetMeshVisualisation, true, option.isEnabled);
                 // Create reference to the menu item in the analysis class
                 option.MenuItem = (ToolStripMenuItem)menu.Items[menu.Items.Count - 1];
                 if (!option.IsExclusive)
@@ -115,9 +120,10 @@ namespace SandWorm
         {
             options = new List<double>();
             DA.GetData<int>(0, ref waterLevel);
-            DA.GetData<int>(1, ref averageFrames);
-            DA.GetData<int>(2, ref blurRadius);
-            DA.GetDataList<double>(3, options);
+            DA.GetData<int>(1, ref contourInterval);
+            DA.GetData<int>(2, ref averageFrames);
+            DA.GetData<int>(3, ref blurRadius);
+            DA.GetDataList<double>(4, options);
 
             if (options.Count != 0) // TODO add more robust checking whether all the options have been provided by the user
             {
@@ -154,8 +160,8 @@ namespace SandWorm
 
                     // initialize outputs
                     outputMesh = new List<Mesh>();
+                    outputGeometry = new List<Rhino.Geometry.GeometryBase>();
                     output = new List<string>(); //debugging
-
 
                     Point3d tempPoint = new Point3d();
                     Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
@@ -215,16 +221,6 @@ namespace SandWorm
                         timer.Restart(); //debugging
                     }
 
-
-                    // Setup variables for the coloring process
-                    Analysis.AnalysisManager.ComputeLookupTables(sensorElevation); // First-run computing of tables
-                    var enabledMeshColoring = Analysis.AnalysisManager.GetEnabledMeshColoring();
-                    var enabledColorTable = enabledMeshColoring.lookupTable;
-                    var hasColorTable = enabledColorTable.Length > 0; // Setting the 'no analysis' option == empty table  
-                    vertexColors = new Color[hasColorTable ? trimmedWidth * trimmedHeight : 0]; // A 0-length array wont be used in meshing
-                    var pixelsForAnalysis = new Point3d[4];
-
-
                     // Setup variables for per-pixel loop
                     pointCloud = new Point3d[trimmedWidth * trimmedHeight];
                     int arrayIndex = 0;
@@ -236,18 +232,58 @@ namespace SandWorm
                             tempPoint.X = columns * -unitsMultiplier * depthPixelSize.x;
                             tempPoint.Y = rows * -unitsMultiplier * depthPixelSize.y;
                             tempPoint.Z = (depthPoint - sensorElevation) * -unitsMultiplier;
-
                             pointCloud[arrayIndex] = tempPoint; // Add new point to point cloud itself
-
-                            if (hasColorTable) // Perform analysis as needed and lookup result in table
-                            {
-                                var pixelIndex = enabledMeshColoring.GetPixelIndexForAnalysis(tempPoint, pixelsForAnalysis);
-                                vertexColors[arrayIndex] = enabledColorTable[pixelIndex];
-                            }
-
                             arrayIndex++;
                         }
                     }
+
+                    //debugging
+                    timer.Stop();
+                    output.Add("Point cloud generation: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
+                    timer.Restart(); //debugging
+
+                    // Setup variables for the coloring process
+                    Analysis.AnalysisManager.ComputeLookupTables(sensorElevation); // First-run computing of tables
+                    var enabledMeshColoring = Analysis.AnalysisManager.GetEnabledMeshColoring();
+                    var enabledColorTable = enabledMeshColoring.lookupTable;
+                    // Loop through point cloud to assign colors (TODO: should be very amenable to parallelising?)
+                    if (enabledColorTable.Length > 0) // Setting the 'no analysis' option == empty table  
+                    { 
+                        vertexColors = new Color[pointCloud.Length]; // A 0-length array wont be used in meshing
+                        var neighbourPixels = new List<Point3d>();
+                        // TODO: replace below with a more robust method of determing analytic method
+                        bool usingNeighbours = enabledMeshColoring.Name == "Visualise Slope" || enabledMeshColoring.Name == "Visualise Aspect";
+                        for (int i = 0; i < pointCloud.Length; i++)
+                        {
+                            if (usingNeighbours) // If analysis needs to be passed adjacent pixels
+                            {
+                                neighbourPixels.Clear();
+                                if (i >= trimmedWidth)
+                                    neighbourPixels.Add(pointCloud[i - trimmedWidth]); // North neighbour
+                                if ((i + 1) % (trimmedWidth) != 0)
+                                    neighbourPixels.Add(pointCloud[i + 1]); // East neighbour
+                                if (i < trimmedWidth * (trimmedHeight - 1))
+                                    neighbourPixels.Add(pointCloud[i + trimmedWidth]); // South neighbour
+                                if (i % trimmedWidth != 0) 
+                                    neighbourPixels.Add(pointCloud[i - 1]); // West neighbour
+                            }
+
+                            var colorIndex = enabledMeshColoring.GetPixelIndexForAnalysis(pointCloud[i], neighbourPixels);
+                            if (colorIndex >= enabledColorTable.Length)
+                                colorIndex = enabledColorTable.Length - 1; // Happens if sensorHeight is out of whack
+
+                            vertexColors[i] = enabledColorTable[colorIndex];
+                        }
+                    }
+                    else
+                    {
+                        vertexColors = new Color[0]; // Unset vertex colors to clear previous results
+                    }
+
+                    //debugging
+                    timer.Stop();
+                    output.Add("Point cloud coloring: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
+                    timer.Restart(); //debugging
 
                     //keep only the desired amount of frames in the buffer
                     while (renderBuffer.Count >= averageFrames)
@@ -255,20 +291,26 @@ namespace SandWorm
                         renderBuffer.RemoveFirst();
                     }
 
-                    //debugging
-                    timer.Stop();
-                    output.Add("Point cloud generation/color: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
-                    timer.Restart(); //debugging
-
                     quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, trimmedWidth, trimmedHeight);
                     outputMesh.Add(quadMesh);
 
                     timer.Stop(); //debugging
                     output.Add("Meshing: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
+                    timer.Restart(); //debugging
+
+                    // Add extra outputs (water planes; contours; etc) based on the mesh and currently enabled analysis
+                    foreach (var enabledAnalysis in Analysis.AnalysisManager.GetEnabledMeshAnalytics())
+                    {
+                        enabledAnalysis.GetGeometryForAnalysis(ref outputGeometry, waterLevel, contourInterval, quadMesh);
+                    }
+
+                    timer.Stop(); //debugging
+                    output.Add("Analysing: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
                 }
 
                 DA.SetDataList(0, outputMesh);
-                DA.SetDataList(1, output); //debugging
+                DA.SetDataList(1, outputGeometry);
+                DA.SetDataList(2, output); //debugging
             }
 
             if (tickRate > 0) // Allow users to force manual recalculation
