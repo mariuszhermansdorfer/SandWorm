@@ -160,7 +160,6 @@ namespace SandWorm
 
                     // initialize outputs
                     outputMesh = new List<Mesh>();
-                    outputGeometry = new List<Rhino.Geometry.GeometryBase>();
                     output = new List<string>(); //debugging
 
                     Point3d tempPoint = new Point3d();
@@ -242,47 +241,28 @@ namespace SandWorm
                     output.Add("Point cloud generation: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
                     timer.Restart(); //debugging
 
-                    // Setup variables for the coloring process
-                    Analysis.AnalysisManager.ComputeLookupTables(sensorElevation); // First-run computing of tables
-                    var enabledMeshColoring = Analysis.AnalysisManager.GetEnabledMeshColoring();
-                    var enabledColorTable = enabledMeshColoring.lookupTable;
-                    // Loop through point cloud to assign colors (TODO: should be very amenable to parallelising?)
-                    if (enabledColorTable.Length > 0) // Setting the 'no analysis' option == empty table  
-                    { 
-                        vertexColors = new Color[pointCloud.Length]; // A 0-length array wont be used in meshing
-                        var neighbourPixels = new List<Point3d>();
-                        // TODO: replace below with a more robust method of determing analytic method
-                        bool usingNeighbours = enabledMeshColoring.Name == "Visualise Slope" || enabledMeshColoring.Name == "Visualise Aspect";
-                        for (int i = 0; i < pointCloud.Length; i++)
-                        {
-                            if (usingNeighbours) // If analysis needs to be passed adjacent pixels
-                            {
-                                neighbourPixels.Clear();
-                                if (i >= trimmedWidth)
-                                    neighbourPixels.Add(pointCloud[i - trimmedWidth]); // North neighbour
-                                if ((i + 1) % (trimmedWidth) != 0)
-                                    neighbourPixels.Add(pointCloud[i + 1]); // East neighbour
-                                if (i < trimmedWidth * (trimmedHeight - 1))
-                                    neighbourPixels.Add(pointCloud[i + trimmedWidth]); // South neighbour
-                                if (i % trimmedWidth != 0) 
-                                    neighbourPixels.Add(pointCloud[i - 1]); // West neighbour
-                            }
-
-                            var colorIndex = enabledMeshColoring.GetPixelIndexForAnalysis(pointCloud[i], neighbourPixels);
-                            if (colorIndex >= enabledColorTable.Length)
-                                colorIndex = enabledColorTable.Length - 1; // Happens if sensorHeight is out of whack
-
-                            vertexColors[i] = enabledColorTable[colorIndex];
-                        }
-                    }
-                    else
+                    vertexColors = new Color[pointCloud.Length];
+                    switch (Analysis.AnalysisManager.GetEnabledMeshColoring())
                     {
-                        vertexColors = new Color[0]; // Unset vertex colors to clear previous results
+                        case Analytics.None analysis:
+                            break;
+                        case Analytics.Elevation analysis:
+                            analysis.getColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData);
+                            break;
+                        case Analytics.Slope analysis:
+                            analysis.getColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData,
+                                trimmedWidth, trimmedHeight, depthPixelSize.x, depthPixelSize.y);
+                            break;
+                        case Analytics.Aspect analysis:
+                            // TODO: implementation
+                            break;
+                        default:
+                            break;
                     }
 
                     //debugging
                     timer.Stop();
-                    output.Add("Point cloud coloring: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
+                    output.Add("Point cloud analysis: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
                     timer.Restart(); //debugging
 
                     //keep only the desired amount of frames in the buffer
@@ -298,14 +278,26 @@ namespace SandWorm
                     output.Add("Meshing: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
                     timer.Restart(); //debugging
 
-                    // Add extra outputs (water planes; contours; etc) based on the mesh and currently enabled analysis
+                    outputGeometry = new List<Rhino.Geometry.GeometryBase>();
                     foreach (var enabledAnalysis in Analysis.AnalysisManager.GetEnabledMeshAnalytics())
                     {
-                        enabledAnalysis.GetGeometryForAnalysis(ref outputGeometry, waterLevel, contourInterval, quadMesh);
+                        switch (enabledAnalysis)
+                        {
+                            case Analytics.Contours analysis:
+                                analysis.GetGeometryForAnalysis(ref outputGeometry, contourInterval, quadMesh);
+                                break;
+                            case Analytics.WaterLevel analysis:
+                                analysis.GetGeometryForAnalysis(ref outputGeometry, waterLevel, quadMesh);
+                                break;
+                            default:
+                                break;
+                        }
                     }
 
-                    timer.Stop(); //debugging
-                    output.Add("Analysing: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
+                    //debugging
+                    timer.Stop();
+                    output.Add("Mesh analysis: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
+                    timer.Restart(); //debugging
                 }
 
                 DA.SetDataList(0, outputMesh);

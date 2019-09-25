@@ -1,20 +1,19 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
 using Rhino.Display;
 using Rhino.Geometry;
 
 namespace SandWorm.Analytics
 {
-    internal class Elevation : Analysis.MeshColorVisualisation
+    public class Elevation : Analysis.MeshColorAnalysis
     {
         public Elevation() : base("Visualise Elevation")
         {
         }
-
-        public override int GetPixelIndexForAnalysis(Point3d vertex, List<Point3d> analysisPts)
+        public void getColorCloudForAnalysis(ref Color[] vertexColors, double[] pixelArray)
         {
-            if (vertex.Z > 0)
-                return (int) vertex.Z;
-            return 0; // Usually occurs when sensor height is configured incorrectly
+
         }
 
         public override void ComputeLookupTableForAnalysis(double sensorElevation)

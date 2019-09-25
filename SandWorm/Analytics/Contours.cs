@@ -9,8 +9,7 @@ namespace SandWorm.Analytics
         {
         }
 
-        public override void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, int wl,
-            int contourInterval, Mesh mesh)
+        public override void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, int contourInterval, Mesh mesh)
         {
             var bounds = mesh.GetBoundingBox(false);
             var originStart = new Point3d(0, 0, bounds.Min.Z);

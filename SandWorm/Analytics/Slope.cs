@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Threading.Tasks;
 using Rhino.Display;
 using Rhino.Geometry;
 
@@ -34,6 +36,11 @@ namespace SandWorm.Analytics
                 ColorEnd = new ColorHSL(0.0, 1.0, 0.0) // Black
             };
             ComputeLinearRanges(slightSlopeRange, moderateSlopeRange, extremeSlopeRange);
+        }
+
+        public void getColorCloudForAnalysis(ref Color[] vertexColors, double[] pixelArray, int x, int y, double deltaX, double deltaY)
+        {
+        
         }
 
         public ushort[] CalculateSlope(double[] pixelArray, int width, int height, double deltaX, double deltaY)
@@ -100,7 +107,6 @@ namespace SandWorm.Analytics
             }
 
             // first column
-
             for (int x = width; x < (height - 1) * width; x += width)
             {
                 slope = 0.0;
@@ -112,10 +118,8 @@ namespace SandWorm.Analytics
 
                 slopeValues[x] = (ushort)(slope * 20.0); // Divide by 5 multiply by 100 => 20.0
             }
-
-
+            
             // last column
-
             for (int x = 2 * width - 1; x < height * width - 1; x += width)
             {
                 slope = 0.0;

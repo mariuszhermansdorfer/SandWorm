@@ -1,18 +1,20 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
 using Rhino.Display;
 using Rhino.Geometry;
 
 namespace SandWorm.Analytics
 {
-    public class Aspect : Analysis.MeshColorVisualisation
+    public class Aspect : Analysis.MeshColorAnalysis
     {
         public Aspect() : base("Visualise Aspect")
         {
         }
 
-        public override int GetPixelIndexForAnalysis(Point3d vertex, List<Point3d> analysisPts)
+        public void getColorCloudForAnalysis(ref Color[] vertexColors)
         {
-            return 44; // TODO: implementation
+
         }
 
         public override void ComputeLookupTableForAnalysis(double sensorElevation)

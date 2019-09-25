@@ -113,8 +113,7 @@ namespace SandWorm
 
             // Note that the use of <GeometryBase> may potentially exclude some geometric types as returnable
             // Note also the need to hard-code params useful to any of the analytics; operator overloading wont work :(
-            public abstract void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, int wl, int ci,
-                Mesh mesh);
+            public abstract void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, int control, Mesh mesh);
         }
 
         public abstract class MeshColorAnalysis : MeshAnalysis
@@ -125,9 +124,7 @@ namespace SandWorm
             public MeshColorAnalysis(string menuName) : base(menuName, true)
             {
             } // Note: is mutually exclusive
-
-            public abstract int GetPixelIndexForAnalysis(Point3d vertex, List<Point3d> analysisPts);
-
+            
             public abstract void ComputeLookupTableForAnalysis(double sensorElevation);
 
             public void ComputeLinearRanges(params VisualisationRangeWithColor[] lookUpRanges)
