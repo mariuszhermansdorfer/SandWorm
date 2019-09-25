@@ -86,7 +86,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Analysis.cs" />
-    <Compile Include="Analytics.cs" />
+    <Compile Include="Analytics\Aspect.cs" />
+    <Compile Include="Analytics\Contours.cs" />
+    <Compile Include="Analytics\Elevation.cs" />
+    <Compile Include="Analytics\None.cs" />
+    <Compile Include="Analytics\Slope.cs" />
+    <Compile Include="Analytics\WaterLevel.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="GaussianBlurProcessor.cs" />
     <Compile Include="KinectController.cs" />
@@ -98,6 +103,7 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -18,7 +18,7 @@ namespace SandWorm
             {
                 options = new List<MeshAnalysis>
                 {
-                    new Analytics.Water(), new Analytics.Contours(),
+                    new Analytics.WaterLevel(), new Analytics.Contours(),
                     new Analytics.None(),
                     new Analytics.Elevation(), new Analytics.Slope(), new Analytics.Aspect()
                 };
