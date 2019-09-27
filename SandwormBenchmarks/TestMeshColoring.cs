@@ -7,30 +7,67 @@ using SandWorm;
 
 namespace SandwormBenchmarks
 {
-    public class RunColorBenchmarks
+    public class RunColorBenchmarks : MockMesh
     {
-        public static void Main()
+        public static void Benchmarks()
         {
-            BenchmarkRunner.Run<MeshColorBenchmarks>();
+            BenchmarkRunner.Run<MeshElevationBenchmarks>();
+            MeshElevationBenchmarks.TestCurrentElevationImplementation();
+            MeshElevationBenchmarks.TestProposedElevationImplementation();
 
-            MeshColorBenchmarks.TestA();
-            MeshColorBenchmarks.TestB();
-
-            // Prevent console from auto exiting
-            Console.Write("Finished Benchmarks. Press any key to exit.");
-            Console.ReadLine();
+            BenchmarkRunner.Run<MeshSlopeBenchmarks>();
+            MeshSlopeBenchmarks.TestCurrentSlopeImplementation();
+            MeshSlopeBenchmarks.TestProposedSlopeImplementation();
         }
     }
-    public class MeshColorBenchmarks : MockMesh
+
+    public class MeshElevationBenchmarks : MockMesh
     {
-        [Benchmark(Baseline = true)]
-        public static void TestA()
+        static readonly SandWorm.Analytics.Elevation elevationAnalysis;
+        static MeshElevationBenchmarks()
         {
+            elevationAnalysis = SandWorm.Analysis.AnalysisManager.options[3] as SandWorm.Analytics.Elevation;
+            elevationAnalysis.ComputeLookupTableForAnalysis(sensorElevation);
+        }
+
+        [Benchmark(Baseline = true)]
+        public static void TestCurrentElevationImplementation()
+        {
+            var vertexColors = new Color[averagedDepthFrameData.Length];
+            elevationAnalysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData, sensorElevation);
         }
 
         [Benchmark]
-        public static void TestB()
+        public static void TestProposedElevationImplementation()
         {
+            var vertexColors = new Color[averagedDepthFrameData.Length];
+            elevationAnalysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData, sensorElevation);
+        }
+    }
+
+    public class MeshSlopeBenchmarks : MockMesh
+    {
+        static readonly SandWorm.Analytics.Slope slopeAnalysis;
+        static MeshSlopeBenchmarks()
+        {
+            slopeAnalysis = SandWorm.Analysis.AnalysisManager.options[4] as SandWorm.Analytics.Slope;
+            slopeAnalysis.ComputeLookupTableForAnalysis(sensorElevation);
+        }
+
+        [Benchmark(Baseline = true)]
+        public static void TestCurrentSlopeImplementation()
+        {
+            var vertexColors = new Color[averagedDepthFrameData.Length];
+            slopeAnalysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData, 
+                trimmedWidth, trimmedHeight, depthPixelSize.x, depthPixelSize.y);
+        }
+
+        [Benchmark]
+        public static void TestProposedSlopeImplementation()
+        {
+            var vertexColors = new Color[averagedDepthFrameData.Length];
+            slopeAnalysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData, 
+                trimmedWidth, trimmedHeight, depthPixelSize.x, depthPixelSize.y);
         }
     }
 }
