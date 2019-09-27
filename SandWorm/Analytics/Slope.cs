@@ -9,10 +9,30 @@ namespace SandWorm.Analytics
 {
     public class Slope : Analysis.MeshColorAnalysis
     {
-        private readonly int slopeCap = 500; // As measuring in % need an uppper limit on the value
+        readonly int maximumSlope = 1000; // Needs to be high to account for stray values
 
         public Slope() : base("Visualise Slope")
         {
+        }
+
+        public void GetColorCloudForAnalysis(ref Color[] vertexColors, double[] pixelArray, int x, int y, double deltaX, double deltaY)
+        {
+            if (lookupTable == null)
+            {
+                ComputeLookupTableForAnalysis(0.0);
+            }
+
+            // Get slope values for given array of pixels
+            var slopeValues = CalculateSlope(pixelArray, x, y, deltaX, deltaY);
+
+            // Lookup slope value in color table
+            vertexColors = new Color[pixelArray.Length];
+            for (int i = 0; i < pixelArray.Length; i++)
+            {
+                var slopeValue = slopeValues[i];
+                var slopeColor = lookupTable[slopeValue];
+                vertexColors[i] = slopeColor; 
+            }
         }
 
         public override void ComputeLookupTableForAnalysis(double sensorElevation)
@@ -31,18 +51,13 @@ namespace SandWorm.Analytics
             };
             var extremeSlopeRange = new Analysis.VisualisationRangeWithColor
             {
-                ValueSpan = 200,
+                ValueSpan = maximumSlope - slightSlopeRange.ValueSpan - moderateSlopeRange.ValueSpan,
                 ColorStart = new ColorHSL(0.0, 1.0, 0.5), // Red
                 ColorEnd = new ColorHSL(0.0, 1.0, 0.0) // Black
             };
             ComputeLinearRanges(slightSlopeRange, moderateSlopeRange, extremeSlopeRange);
         }
-
-        public void getColorCloudForAnalysis(ref Color[] vertexColors, double[] pixelArray, int x, int y, double deltaX, double deltaY)
-        {
         
-        }
-
         public ushort[] CalculateSlope(double[] pixelArray, int width, int height, double deltaX, double deltaY)
         {
             double deltaXY = Math.Sqrt(Math.Pow(deltaX, 2) + Math.Pow(deltaY, 2));
@@ -154,6 +169,7 @@ namespace SandWorm.Analytics
                     slopeValues[i] = (ushort)(parallelSlope * 12.5); // rather than dividing by 8 and multiplying by 100 we do it in one step
                 }
             });
+
             return slopeValues;
         }
     }

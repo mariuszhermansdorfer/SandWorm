@@ -12,9 +12,14 @@ namespace SandWorm.Analytics
         {
         }
 
-        public void getColorCloudForAnalysis(ref Color[] vertexColors)
+        public void GetColorCloudForAnalysis(ref Color[] vertexColors, double[] pixelArray)
         {
+            if (lookupTable == null)
+            {
+                ComputeLookupTableForAnalysis(0.0);
+            }
 
+            vertexColors = new Color[pixelArray.Length];
         }
 
         public override void ComputeLookupTableForAnalysis(double sensorElevation)

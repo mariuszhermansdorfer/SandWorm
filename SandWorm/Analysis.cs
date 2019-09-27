@@ -61,18 +61,12 @@ namespace SandWorm
                 else
                     selectedOption.isEnabled = !selectedOption.isEnabled; // Simple toggle for independent items
             }
-
-            public static void ComputeLookupTables(double sensorElevation)
-            {
-                GetEnabledMeshColoring().ComputeLookupTableForAnalysis(sensorElevation);
-            }
         }
 
         public class VisualisationRangeWithColor
         {
             /// <summary>Describes a numeric range (e.g. elevation or slope values) and color range to visualise it.</summary>
             public int ValueSpan { get; set; }
-
             public ColorHSL ColorStart { get; set; }
             public ColorHSL ColorEnd { get; set; }
 

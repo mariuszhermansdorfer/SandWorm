@@ -97,12 +97,10 @@ namespace SandWorm
                     Menu_AppendSeparator(menu);
             }
         }
-
-
+        
         private void SetMeshVisualisation(object sender, EventArgs e)
         {
             Analysis.AnalysisManager.SetEnabledOptions((ToolStripMenuItem)sender);
-            Analysis.AnalysisManager.ComputeLookupTables(sensorElevation);
             quadMesh.VertexColors.Clear(); // Must flush mesh colors to properly updated display
             ExpireSolution(true);
         }
@@ -240,13 +238,14 @@ namespace SandWorm
             Core.LogTiming(ref output, timer, "Point cloud generation"); // Debug Info
             
             // First type of analysis that acts on the pixel array and produces vertex colors
-            vertexColors = new Color[pointCloud.Length];
+            
             switch (Analysis.AnalysisManager.GetEnabledMeshColoring())
             {
                 case Analytics.None analysis:
+                    analysis.GetColorCloudForAnalysis(ref vertexColors);
                     break;
                 case Analytics.Elevation analysis:
-                    analysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData);
+                    analysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData, sensorElevation);
                     break;
                 case Analytics.Slope analysis:
                     analysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData,
