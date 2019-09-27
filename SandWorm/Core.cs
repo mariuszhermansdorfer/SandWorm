@@ -1,7 +1,9 @@
-﻿using Rhino.Geometry;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
-using System;
 using System.Runtime.CompilerServices;
+using Rhino.Geometry;
 
 namespace SandWorm
 {
@@ -127,6 +129,14 @@ namespace SandWorm
                     break;
             }
             return unitsMultiplier;
+        }
+
+        public static void LogTiming(ref List<string>  output, Stopwatch timer, string eventDescription)
+        {
+            var logInfo = eventDescription + ": ";
+            timer.Stop();
+            output.Add(logInfo.PadRight(28, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
+            timer.Restart();
         }
     }
 }

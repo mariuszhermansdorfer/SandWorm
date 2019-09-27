@@ -1,12 +1,13 @@
 ﻿using System;
-using System.Drawing;
 using System.Collections.Generic;
-using System.Diagnostics; //debugging
+using System.Diagnostics;
+using System.Drawing;
+using System.Linq;
+using System.Runtime.Remoting.Messaging;
+using System.Windows.Forms;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 using Microsoft.Kinect;
-using System.Windows.Forms;
-using System.Linq;
 
 
 namespace SandWorm
@@ -138,190 +139,185 @@ namespace SandWorm
             unitsMultiplier = Core.ConvertDrawingUnits(units); // Pick the correct multiplier based on the drawing units
             sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units
 
-            Stopwatch timer = Stopwatch.StartNew(); //debugging
+            Stopwatch timer = Stopwatch.StartNew(); // Setup timer used for debugging
+            output = new List<string>(); // For the debugging log lines
 
             if (this.kinectSensor == null)
             {
                 KinectController.AddRef();
                 this.kinectSensor = KinectController.sensor;
             }
-
-            if (this.kinectSensor != null)
+            if (this.kinectSensor == null)
+            { 
+                ShowComponentError("No Kinect sensor detected.");
+                return; 
+            }
+            if (KinectController.depthFrameData == null)
             {
-                if (KinectController.depthFrameData != null)
+                ShowComponentError("No depth frame data provided by the Kinect.");
+                return; 
+            }
+
+            // Initialize all arrays
+            int trimmedWidth = KinectController.depthWidth - leftColumns - rightColumns;
+            int trimmedHeight = KinectController.depthHeight - topRows - bottomRows;
+            pointCloud = new Point3d[trimmedWidth * trimmedHeight];
+            int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
+            double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
+
+            // Initialize outputs
+            outputMesh = new List<Mesh>();
+
+            Point3d tempPoint = new Point3d();
+            Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
+
+            // Trim the depth array and cast ushort values to int
+            Core.CopyAsIntArray(KinectController.depthFrameData, depthFrameDataInt, leftColumns, rightColumns, topRows, bottomRows, KinectController.depthHeight, KinectController.depthWidth);
+
+            averageFrames = averageFrames < 1 ? 1 : averageFrames; // Make sure there is at least one frame in the render buffer
+
+            // Reset everything when resizing Kinect's field of view or changing the amounts of frame to average across
+            if (renderBuffer.Count > averageFrames || quadMesh.Faces.Count != (trimmedWidth - 2) * (trimmedHeight - 2))
+            {
+                renderBuffer.Clear();
+                Array.Clear(runningSum, 0, runningSum.Length);
+                renderBuffer.AddLast(depthFrameDataInt);
+            }
+            else
+            { 
+                renderBuffer.AddLast(depthFrameDataInt);
+            }
+            Core.LogTiming(ref output, timer, "Render buffer length"); // Debug Info
+
+            // Average across multiple frames
+            for (int pixel = 0; pixel < depthFrameDataInt.Length; pixel++)
+            {
+                if (depthFrameDataInt[pixel] > 200 && depthFrameDataInt[pixel] <= lookupTable.Length) //We have a valid pixel. TODO remove reference to the lookup table
+                    runningSum[pixel] += depthFrameDataInt[pixel];
+                else
                 {
-                    int trimmedWidth = KinectController.depthWidth - leftColumns - rightColumns;
-                    int trimmedHeight = KinectController.depthHeight - topRows - bottomRows;
-
-                    // initialize all arrays
-                    pointCloud = new Point3d[trimmedWidth * trimmedHeight];
-                    int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
-                    double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
-
-                    // initialize outputs
-                    outputMesh = new List<Mesh>();
-                    output = new List<string>(); //debugging
-
-                    Point3d tempPoint = new Point3d();
-                    Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
-
-                    // trim the depth array and cast ushort values to int
-                    Core.CopyAsIntArray(KinectController.depthFrameData, depthFrameDataInt, leftColumns, rightColumns, topRows, bottomRows, KinectController.depthHeight, KinectController.depthWidth);
-
-                    averageFrames = averageFrames < 1 ? 1 : averageFrames; //make sure there is at least one frame in the render buffer
-
-                    // reset everything when resizing Kinect's field of view or changing the amounts of frame to average across
-                    if (renderBuffer.Count > averageFrames || quadMesh.Faces.Count != (trimmedWidth - 2) * (trimmedHeight - 2))
+                    if (pixel > 0) // Pixel is invalid and we have a neighbor to steal information from
                     {
-                        renderBuffer.Clear();
-                        Array.Clear(runningSum, 0, runningSum.Length);
-                        renderBuffer.AddLast(depthFrameDataInt);
+                        runningSum[pixel] += depthFrameDataInt[pixel - 1];
+                        renderBuffer.Last.Value[pixel] = depthFrameDataInt[pixel - 1]; //replace the zero value from the depth array with the one from the neighboring pixel
                     }
-                    else
-                        renderBuffer.AddLast(depthFrameDataInt);
-                    LogTiming(timer, "Render buffer length"); // Debug Info
-
-                    // average across multiple frames
-                    for (int pixel = 0; pixel < depthFrameDataInt.Length; pixel++)
+                    else // Pixel is invalid and it is the first one in the list. (No neighbor on the left hand side, so we set it to the lowest point on the table)
                     {
-                        if (depthFrameDataInt[pixel] > 200 && depthFrameDataInt[pixel] <= lookupTable.Length) //We have a valid pixel. TODO remove reference to the lookup table
-                            runningSum[pixel] += depthFrameDataInt[pixel];
-                        else
-                        {
-                            if (pixel > 0) //pixel is invalid and we have a neighbor to steal information from
-                            {
-                                runningSum[pixel] += depthFrameDataInt[pixel - 1];
-                                renderBuffer.Last.Value[pixel] = depthFrameDataInt[pixel - 1]; //replace the zero value from the depth array with the one from the neighboring pixel
-                            }
-                            else //pixel is invalid and it is the first one in the list. (No neighbor on the left hand side, so we set it to the lowest point on the table)
-                            {
-                                runningSum[pixel] += (int)sensorElevation;
-                                renderBuffer.Last.Value[pixel] = (int)sensorElevation;
-                            }
-                        }
-
-                        averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count; //calculate average values
-
-                        if (renderBuffer.Count >= averageFrames)
-                            runningSum[pixel] -= renderBuffer.First.Value[pixel]; //subtract the oldest value from the sum 
+                        runningSum[pixel] += (int)sensorElevation;
+                        renderBuffer.Last.Value[pixel] = (int)sensorElevation;
                     }
-                    LogTiming(timer, "Frames averaging"); // Debug Info
-
-                    if (blurRadius > 1) //apply gaussian blur
-                    {
-                        GaussianBlurProcessor gaussianBlurProcessor = new GaussianBlurProcessor(blurRadius, trimmedWidth, trimmedHeight);
-                        gaussianBlurProcessor.Apply(averagedDepthFrameData);
-                        LogTiming(timer, "Gaussian blurring"); // Debug Info
-                    }
-
-                    // Setup variables for per-pixel loop
-                    pointCloud = new Point3d[trimmedWidth * trimmedHeight];
-                    int arrayIndex = 0;
-                    for (int rows = 0; rows < trimmedHeight; rows++)
-                    {
-                        for (int columns = 0; columns < trimmedWidth; columns++)
-                        {
-                            depthPoint = averagedDepthFrameData[arrayIndex];
-                            tempPoint.X = columns * -unitsMultiplier * depthPixelSize.x;
-                            tempPoint.Y = rows * -unitsMultiplier * depthPixelSize.y;
-                            tempPoint.Z = (depthPoint - sensorElevation) * -unitsMultiplier;
-                            pointCloud[arrayIndex] = tempPoint; // Add new point to point cloud itself
-                            arrayIndex++;
-                        }
-                    }
-                    LogTiming(timer, "Point cloud generation"); // Debug Info
-                    
-                    // First type of analysis that acts on the pixel array and produces vertex colors
-                    vertexColors = new Color[pointCloud.Length];
-                    switch (Analysis.AnalysisManager.GetEnabledMeshColoring())
-                    {
-                        case Analytics.None analysis:
-                            break;
-                        case Analytics.Elevation analysis:
-                            analysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData);
-                            break;
-                        case Analytics.Slope analysis:
-                            analysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData,
-                                trimmedWidth, trimmedHeight, depthPixelSize.x, depthPixelSize.y);
-                            break;
-                        case Analytics.Aspect analysis:
-                            // TODO: implementation
-                            break;
-                        default:
-                            break;
-                    }
-                    LogTiming(timer, "Point cloud analysis"); // Debug Info
-                    
-                    //keep only the desired amount of frames in the buffer
-                    while (renderBuffer.Count >= averageFrames)
-                    {
-                        renderBuffer.RemoveFirst();
-                    }
-
-                    quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, trimmedWidth, trimmedHeight);
-                    outputMesh.Add(quadMesh);
-                    LogTiming(timer, "Meshing"); // Debug Info
-
-                    // Second type of analysis that acts on the mesh and produces new geometry
-                    outputGeometry = new List<Rhino.Geometry.GeometryBase>();
-                    foreach (var enabledAnalysis in Analysis.AnalysisManager.GetEnabledMeshAnalytics())
-                    {
-                        switch (enabledAnalysis)
-                        {
-                            case Analytics.Contours analysis:
-                                analysis.GetGeometryForAnalysis(ref outputGeometry, contourInterval, quadMesh);
-                                break;
-                            case Analytics.WaterLevel analysis:
-                                analysis.GetGeometryForAnalysis(ref outputGeometry, waterLevel, quadMesh);
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                    LogTiming(timer, "Mesh analysis"); // Debug Info
                 }
 
-                DA.SetDataList(0, outputMesh);
-                DA.SetDataList(1, outputGeometry);
-                DA.SetDataList(2, output); //debugging
+                averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count; // Calculate average values
+
+                if (renderBuffer.Count >= averageFrames)
+                    runningSum[pixel] -= renderBuffer.First.Value[pixel]; // Subtract the oldest value from the sum 
+            }
+            Core.LogTiming(ref output, timer, "Frames averaging"); // Debug Info
+
+            if (blurRadius > 1) // Apply gaussian blur
+            {
+                GaussianBlurProcessor gaussianBlurProcessor = new GaussianBlurProcessor(blurRadius, trimmedWidth, trimmedHeight);
+                gaussianBlurProcessor.Apply(averagedDepthFrameData);
+                Core.LogTiming(ref output, timer, "Gaussian blurring"); // Debug Info
             }
 
-            if (tickRate > 0) // Allow users to force manual recalculation
+            // Setup variables for per-pixel loop
+            pointCloud = new Point3d[trimmedWidth * trimmedHeight];
+            int arrayIndex = 0;
+            for (int rows = 0; rows < trimmedHeight; rows++)
             {
-                base.OnPingDocument().ScheduleSolution(tickRate, new GH_Document.GH_ScheduleDelegate(ScheduleDelegate));
+                for (int columns = 0; columns < trimmedWidth; columns++)
+                {
+                    depthPoint = averagedDepthFrameData[arrayIndex];
+                    tempPoint.X = columns * -unitsMultiplier * depthPixelSize.x;
+                    tempPoint.Y = rows * -unitsMultiplier * depthPixelSize.y;
+                    tempPoint.Z = (depthPoint - sensorElevation) * -unitsMultiplier;
+                    pointCloud[arrayIndex] = tempPoint; // Add new point to point cloud itself
+                    arrayIndex++;
+                }
             }
+            Core.LogTiming(ref output, timer, "Point cloud generation"); // Debug Info
+            
+            // First type of analysis that acts on the pixel array and produces vertex colors
+            vertexColors = new Color[pointCloud.Length];
+            switch (Analysis.AnalysisManager.GetEnabledMeshColoring())
+            {
+                case Analytics.None analysis:
+                    break;
+                case Analytics.Elevation analysis:
+                    analysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData);
+                    break;
+                case Analytics.Slope analysis:
+                    analysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData,
+                        trimmedWidth, trimmedHeight, depthPixelSize.x, depthPixelSize.y);
+                    break;
+                case Analytics.Aspect analysis:
+                    // TODO: implementation
+                    break;
+                default:
+                    break;
+            }
+            Core.LogTiming(ref output, timer, "Point cloud analysis"); // Debug Info
+            
+            // Keep only the desired amount of frames in the buffer
+            while (renderBuffer.Count >= averageFrames)
+            {
+                renderBuffer.RemoveFirst();
+            }
+
+            quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, trimmedWidth, trimmedHeight);
+            outputMesh.Add(quadMesh);
+            Core.LogTiming(ref output, timer, "Meshing"); // Debug Info
+
+            // Second type of analysis that acts on the mesh and produces new geometry
+            outputGeometry = new List<Rhino.Geometry.GeometryBase>();
+            foreach (var enabledAnalysis in Analysis.AnalysisManager.GetEnabledMeshAnalytics())
+            {
+                switch (enabledAnalysis)
+                {
+                    case Analytics.Contours analysis:
+                        analysis.GetGeometryForAnalysis(ref outputGeometry, contourInterval, quadMesh);
+                        break;
+                    case Analytics.WaterLevel analysis:
+                        analysis.GetGeometryForAnalysis(ref outputGeometry, waterLevel, quadMesh);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            Core.LogTiming(ref output, timer, "Mesh analysis"); // Debug Info
+
+            DA.SetDataList(0, outputMesh);
+            DA.SetDataList(1, outputGeometry);
+            DA.SetDataList(2, output); // For logging/debugging
+
+            ScheduleSolve();
+        }
+
+        private void ShowComponentError(string errorMessage)
+        {
+            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, errorMessage);
+            ScheduleSolve(); // Ensure a future solve is scheduled despite an early return to SolveInstance()
+        }
+
+        private void ScheduleSolve()
+        {
+            if (tickRate > 0) // Allow users to force manual recalculation
+                base.OnPingDocument().ScheduleSolution(tickRate, new GH_Document.GH_ScheduleDelegate(ScheduleDelegate));
         }
 
         /// <summary>
         /// Provides an Icon for every component that will be visible in the User Interface.
         /// Icons need to be 24x24 pixels.
         /// </summary>
-        protected override System.Drawing.Bitmap Icon
-        {
-            get
-            {
-                // You can add image files to your project resources and access them like this:
-                //return Resources.IconForThisComponent;
-                return null;
-            }
-        }
+        protected override System.Drawing.Bitmap Icon => null;
 
         /// <summary>
         /// Each component must have a unique Guid to identify it. 
         /// It is vital this Guid doesn't change otherwise old ghx files 
         /// that use the old ID will partially fail during loading.
         /// </summary>
-        public override Guid ComponentGuid
-        {
-            get { return new Guid("f923f24d-86a0-4b7a-9373-23c6b7d2e162"); }
-        }
-
-        private void LogTiming(Stopwatch timer, string eventDescription)
-        {
-            var logInfo = eventDescription + ": ".PadRight(30, ' ');
-            timer.Stop();
-            output.Add(logInfo + timer.ElapsedMilliseconds.ToString() + " ms");
-            timer.Restart(); 
-        }
+        public override Guid ComponentGuid => new Guid("f923f24d-86a0-4b7a-9373-23c6b7d2e162");
     }
 }
