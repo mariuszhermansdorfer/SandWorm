@@ -179,8 +179,7 @@ namespace SandWorm
                     }
                     else
                         renderBuffer.AddLast(depthFrameDataInt);
-
-                    output.Add("Render buffer length:".PadRight(30, ' ') + renderBuffer.Count + " frames"); //debugging
+                    LogTiming(timer, "Render buffer length"); // Debug Info
 
                     // average across multiple frames
                     for (int pixel = 0; pixel < depthFrameDataInt.Length; pixel++)
@@ -206,18 +205,13 @@ namespace SandWorm
                         if (renderBuffer.Count >= averageFrames)
                             runningSum[pixel] -= renderBuffer.First.Value[pixel]; //subtract the oldest value from the sum 
                     }
-
-                    timer.Stop();
-                    output.Add("Frames averaging: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
-                    timer.Restart(); //debugging
+                    LogTiming(timer, "Frames averaging"); // Debug Info
 
                     if (blurRadius > 1) //apply gaussian blur
                     {
                         GaussianBlurProcessor gaussianBlurProcessor = new GaussianBlurProcessor(blurRadius, trimmedWidth, trimmedHeight);
                         gaussianBlurProcessor.Apply(averagedDepthFrameData);
-                        timer.Stop();
-                        output.Add("Gaussian blurring: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
-                        timer.Restart(); //debugging
+                        LogTiming(timer, "Gaussian blurring"); // Debug Info
                     }
 
                     // Setup variables for per-pixel loop
@@ -235,22 +229,19 @@ namespace SandWorm
                             arrayIndex++;
                         }
                     }
-
-                    //debugging
-                    timer.Stop();
-                    output.Add("Point cloud generation: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
-                    timer.Restart(); //debugging
-
+                    LogTiming(timer, "Point cloud generation"); // Debug Info
+                    
+                    // First type of analysis that acts on the pixel array and produces vertex colors
                     vertexColors = new Color[pointCloud.Length];
                     switch (Analysis.AnalysisManager.GetEnabledMeshColoring())
                     {
                         case Analytics.None analysis:
                             break;
                         case Analytics.Elevation analysis:
-                            analysis.getColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData);
+                            analysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData);
                             break;
                         case Analytics.Slope analysis:
-                            analysis.getColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData,
+                            analysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData,
                                 trimmedWidth, trimmedHeight, depthPixelSize.x, depthPixelSize.y);
                             break;
                         case Analytics.Aspect analysis:
@@ -259,12 +250,8 @@ namespace SandWorm
                         default:
                             break;
                     }
-
-                    //debugging
-                    timer.Stop();
-                    output.Add("Point cloud analysis: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
-                    timer.Restart(); //debugging
-
+                    LogTiming(timer, "Point cloud analysis"); // Debug Info
+                    
                     //keep only the desired amount of frames in the buffer
                     while (renderBuffer.Count >= averageFrames)
                     {
@@ -273,11 +260,9 @@ namespace SandWorm
 
                     quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, trimmedWidth, trimmedHeight);
                     outputMesh.Add(quadMesh);
+                    LogTiming(timer, "Meshing"); // Debug Info
 
-                    timer.Stop(); //debugging
-                    output.Add("Meshing: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
-                    timer.Restart(); //debugging
-
+                    // Second type of analysis that acts on the mesh and produces new geometry
                     outputGeometry = new List<Rhino.Geometry.GeometryBase>();
                     foreach (var enabledAnalysis in Analysis.AnalysisManager.GetEnabledMeshAnalytics())
                     {
@@ -293,11 +278,7 @@ namespace SandWorm
                                 break;
                         }
                     }
-
-                    //debugging
-                    timer.Stop();
-                    output.Add("Mesh analysis: ".PadRight(30, ' ') + timer.ElapsedMilliseconds.ToString() + " ms");
-                    timer.Restart(); //debugging
+                    LogTiming(timer, "Mesh analysis"); // Debug Info
                 }
 
                 DA.SetDataList(0, outputMesh);
@@ -333,6 +314,14 @@ namespace SandWorm
         public override Guid ComponentGuid
         {
             get { return new Guid("f923f24d-86a0-4b7a-9373-23c6b7d2e162"); }
+        }
+
+        private void LogTiming(Stopwatch timer, string eventDescription)
+        {
+            var logInfo = eventDescription + ": ".PadRight(30, ' ');
+            timer.Stop();
+            output.Add(logInfo + timer.ElapsedMilliseconds.ToString() + " ms");
+            timer.Restart(); 
         }
     }
 }
