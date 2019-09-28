@@ -57,16 +57,14 @@ namespace SandwormBenchmarks
         [Benchmark(Baseline = true)]
         public static void TestCurrentSlopeImplementation()
         {
-            var vertexColors = new Color[averagedDepthFrameData.Length];
-            slopeAnalysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData, 
+            var vertexColors = slopeAnalysis.GetColorCloudForAnalysis(averagedDepthFrameData,
                 trimmedWidth, trimmedHeight, depthPixelSize.x, depthPixelSize.y);
         }
 
         [Benchmark]
         public static void TestProposedSlopeImplementation()
         {
-            var vertexColors = new Color[averagedDepthFrameData.Length];
-            slopeAnalysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData, 
+            var vertexColors = slopeAnalysis.GetColorCloudForAnalysis(averagedDepthFrameData, 
                 trimmedWidth, trimmedHeight, depthPixelSize.x, depthPixelSize.y);
         }
     }

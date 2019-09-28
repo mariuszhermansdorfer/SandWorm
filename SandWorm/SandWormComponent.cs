@@ -244,7 +244,7 @@ namespace SandWorm
                     analysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData, sensorElevation);
                     break;
                 case Analytics.Slope analysis:
-                    analysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData,
+                    vertexColors = analysis.GetColorCloudForAnalysis(averagedDepthFrameData,
                         trimmedWidth, trimmedHeight, depthPixelSize.x, depthPixelSize.y);
                     break;
                 case Analytics.Aspect analysis:
