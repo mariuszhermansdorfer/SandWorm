@@ -9,7 +9,7 @@ namespace SandWorm.Analytics
 {
     public class Slope : Analysis.MeshColorAnalysis
     {
-        readonly int maximumSlope = 1000; // Needs to be high to account for stray values
+        readonly ushort maximumSlope = 1000; // Needs to be some form of cutoff to keep lookup table small; this = ~84%
 
         public Slope() : base("Visualise Slope")
         {
@@ -24,14 +24,16 @@ namespace SandWorm.Analytics
 
             // Get slope values for given array of pixels
             var slopeValues = CalculateSlope(pixelArray, x, y, deltaX, deltaY);
-
+            
             // Lookup slope value in color table
             vertexColors = new Color[pixelArray.Length];
             for (int i = 0; i < pixelArray.Length; i++)
             {
                 var slopeValue = slopeValues[i];
-                var slopeColor = lookupTable[slopeValue];
-                vertexColors[i] = slopeColor; 
+                if (slopeValue > maximumSlope)
+                    vertexColors[i] = lookupTable[lookupTable.Length - 1];
+                else
+                    vertexColors[i] = lookupTable[slopeValue];
             }
         }
 
