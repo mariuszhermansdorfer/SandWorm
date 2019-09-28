@@ -9,9 +9,10 @@ namespace SandWorm.Analytics
         public None() : base("No Visualisation")
         {
         }
-        public void GetColorCloudForAnalysis(ref Color[] vertexColors)
+        public Color[] GetColorCloudForAnalysis()
         {
-            vertexColors = new Color[0]; // Send back an empty array so mesh is transparent/uncolored
+            var vertexColors = new Color[0];
+            return vertexColors; // Send back an empty array so mesh is transparent/uncolored
         }
 
         public override void ComputeLookupTableForAnalysis(double sensorElevation)

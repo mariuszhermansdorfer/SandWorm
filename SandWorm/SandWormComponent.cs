@@ -238,10 +238,10 @@ namespace SandWorm
             switch (Analysis.AnalysisManager.GetEnabledMeshColoring())
             {
                 case Analytics.None analysis:
-                    analysis.GetColorCloudForAnalysis(ref vertexColors);
+                    vertexColors = analysis.GetColorCloudForAnalysis();
                     break;
                 case Analytics.Elevation analysis:
-                    analysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData, sensorElevation);
+                    vertexColors = analysis.GetColorCloudForAnalysis(averagedDepthFrameData, sensorElevation);
                     break;
                 case Analytics.Slope analysis:
                     vertexColors = analysis.GetColorCloudForAnalysis(averagedDepthFrameData,

@@ -13,8 +13,8 @@ namespace SandWorm.Analytics
         public Elevation() : base("Visualise Elevation")
         {
         }
-        
-        public void GetColorCloudForAnalysis(ref Color[] vertexColors, double[] pixelArray, double sensorElevation)
+
+        public Color[] GetColorCloudForAnalysis(double[] pixelArray, double sensorElevation)
         {
             var sensorElevationRounded = (int)sensorElevation; // Convert once as it is done often
             if (lookupTable == null || sensorElevationRounded != _lastSensorElevation)
@@ -23,7 +23,7 @@ namespace SandWorm.Analytics
             }
 
             // Lookup elevation value in color table
-            vertexColors = new Color[pixelArray.Length];
+            var vertexColors = new Color[pixelArray.Length];
             for (int i = 0; i < pixelArray.Length; i++)
             {
                 var pixelDepthNormalised = sensorElevationRounded - (int)pixelArray[i];
@@ -34,6 +34,7 @@ namespace SandWorm.Analytics
 
                 vertexColors[i] = lookupTable[pixelDepthNormalised]; // Lookup z value in color table
             }
+            return vertexColors;
         }
 
         public override void ComputeLookupTableForAnalysis(double sensorElevation)

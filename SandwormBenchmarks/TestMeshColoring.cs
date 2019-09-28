@@ -33,15 +33,13 @@ namespace SandwormBenchmarks
         [Benchmark(Baseline = true)]
         public static void TestCurrentElevationImplementation()
         {
-            var vertexColors = new Color[averagedDepthFrameData.Length];
-            elevationAnalysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData, sensorElevation);
+            var vertexColors = elevationAnalysis.GetColorCloudForAnalysis(averagedDepthFrameData, sensorElevation);
         }
 
         [Benchmark]
         public static void TestProposedElevationImplementation()
         {
-            var vertexColors = new Color[averagedDepthFrameData.Length];
-            elevationAnalysis.GetColorCloudForAnalysis(ref vertexColors, averagedDepthFrameData, sensorElevation);
+            var vertexColors = elevationAnalysis.GetColorCloudForAnalysis(averagedDepthFrameData, sensorElevation);
         }
     }
 
