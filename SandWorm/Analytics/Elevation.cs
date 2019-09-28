@@ -8,13 +8,12 @@ namespace SandWorm.Analytics
 {
     public class Elevation : Analysis.MeshColorAnalysis
     {
-        readonly int maximumElevation = 1000; // Needs to be high to account for weird sensorElevation parameters
         private int _lastSensorElevation; // Keep track of prior values to recalculate only as needed
 
         public Elevation() : base("Visualise Elevation")
         {
         }
-
+        
         public void GetColorCloudForAnalysis(ref Color[] vertexColors, double[] pixelArray, double sensorElevation)
         {
             var sensorElevationRounded = (int)sensorElevation; // Convert once as it is done often
@@ -30,6 +29,9 @@ namespace SandWorm.Analytics
                 var pixelDepthNormalised = sensorElevationRounded - (int)pixelArray[i];
                 if (pixelDepthNormalised < 0)
                     pixelDepthNormalised = 0; // Account for negative depths
+                if (pixelDepthNormalised >= lookupTable.Length)
+                    pixelDepthNormalised = lookupTable.Length - 1; // Account for big height
+
                 vertexColors[i] = lookupTable[pixelDepthNormalised]; // Lookup z value in color table
             }
         }
@@ -60,13 +62,7 @@ namespace SandWorm.Analytics
                 ColorStart = new ColorHSL(0.10, 1, 0.6), // Orange
                 ColorEnd = new ColorHSL(0.00, 1, 0.7) // Red
             };
-            var weirdElevationRange = new Analysis.VisualisationRangeWithColor
-            {
-                ValueSpan = maximumElevation,
-                ColorStart = new ColorHSL(0.10, 1, 0.8), // Gray
-                ColorEnd = new ColorHSL(0.10, 1, 0.9) // Black
-            };
-            ComputeLinearRanges(sElevationRange, mElevationRange, lElevationRange, xlElevationRange, weirdElevationRange);
+            ComputeLinearRanges(sElevationRange, mElevationRange, lElevationRange, xlElevationRange);
             _lastSensorElevation = (int)sensorElevation;
         }
     }
