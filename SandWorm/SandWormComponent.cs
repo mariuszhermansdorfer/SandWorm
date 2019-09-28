@@ -37,7 +37,6 @@ namespace SandWorm
         public int tickRate = 33; // In ms
         public int averageFrames = 1;
         public int blurRadius = 1;
-        public static Rhino.UnitSystem units = Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem;
         public static double unitsMultiplier;
 
         // Analysis state
@@ -134,7 +133,8 @@ namespace SandWorm
                 tickRate = (int)options[5];
             }
 
-            unitsMultiplier = Core.ConvertDrawingUnits(units); // Pick the correct multiplier based on the drawing units
+            // Pick the correct multiplier based on the drawing units. Shouldn't be a class variable; gets 'stuck'.
+            unitsMultiplier = Core.ConvertDrawingUnits(Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem); 
             sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units
 
             Stopwatch timer = Stopwatch.StartNew(); // Setup timer used for debugging
@@ -180,6 +180,8 @@ namespace SandWorm
             { 
                 renderBuffer.AddLast(depthFrameDataInt);
             }
+            
+            Core.LogTiming(ref output, timer, $"Initial setup"); // Debug Info
 
             // Average across multiple frames
             for (int pixel = 0; pixel < depthFrameDataInt.Length; pixel++)
