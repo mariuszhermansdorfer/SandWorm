@@ -107,7 +107,7 @@ namespace SandWorm
 
             // Note that the use of <GeometryBase> may potentially exclude some geometric types as returnable
             // Note also the need to hard-code params useful to any of the analytics; operator overloading wont work :(
-            public abstract void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, int control, Mesh mesh);
+            public abstract void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, double controlParameter, Mesh mesh);
         }
 
         public abstract class MeshColorAnalysis : MeshAnalysis

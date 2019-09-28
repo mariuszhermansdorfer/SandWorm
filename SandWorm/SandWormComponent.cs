@@ -41,8 +41,8 @@ namespace SandWorm
         public static double unitsMultiplier;
 
         // Analysis state
-        private int waterLevel = 50;
-        private int contourInterval = 10;
+        private double waterLevel = 50;
+        private double contourInterval = 10;
 
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
@@ -63,8 +63,8 @@ namespace SandWorm
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddIntegerParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, 1000); 
-            pManager.AddIntegerParameter("ContourInterval", "CI", "The interval (if this analysis is enabled)", GH_ParamAccess.item, 1000);            
+            pManager.AddNumberParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, waterLevel); 
+            pManager.AddNumberParameter("ContourInterval", "CI", "The interval (if this analysis is enabled)", GH_ParamAccess.item, contourInterval);            
             pManager.AddIntegerParameter("AverageFrames", "AF", "Amount of depth frames to average across. This number has to be greater than zero.", GH_ParamAccess.item, averageFrames);
             pManager.AddIntegerParameter("BlurRadius", "BR", "Radius for Gaussian blur.", GH_ParamAccess.item, blurRadius);
             pManager.AddNumberParameter("SandWormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.list);
@@ -118,8 +118,8 @@ namespace SandWorm
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             options = new List<double>();
-            DA.GetData<int>(0, ref waterLevel);
-            DA.GetData<int>(1, ref contourInterval);
+            DA.GetData<double>(0, ref waterLevel);
+            DA.GetData<double>(1, ref contourInterval);
             DA.GetData<int>(2, ref averageFrames);
             DA.GetData<int>(3, ref blurRadius);
             DA.GetDataList<double>(4, options);
@@ -184,14 +184,14 @@ namespace SandWorm
             // Average across multiple frames
             for (int pixel = 0; pixel < depthFrameDataInt.Length; pixel++)
             {
-                if (depthFrameDataInt[pixel] > 200 && depthFrameDataInt[pixel] <= lookupTable.Length) //We have a valid pixel. TODO remove reference to the lookup table
+                if (depthFrameDataInt[pixel] > 200 && depthFrameDataInt[pixel] <= lookupTable.Length) // We have a valid pixel. TODO remove reference to the lookup table
                     runningSum[pixel] += depthFrameDataInt[pixel];
                 else
                 {
                     if (pixel > 0) // Pixel is invalid and we have a neighbor to steal information from
                     {
                         runningSum[pixel] += depthFrameDataInt[pixel - 1];
-                        renderBuffer.Last.Value[pixel] = depthFrameDataInt[pixel - 1]; //replace the zero value from the depth array with the one from the neighboring pixel
+                        renderBuffer.Last.Value[pixel] = depthFrameDataInt[pixel - 1]; // Replace the zero value from the depth array with the one from the neighboring pixel
                     }
                     else // Pixel is invalid and it is the first one in the list. (No neighbor on the left hand side, so we set it to the lowest point on the table)
                     {
