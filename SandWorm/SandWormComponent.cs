@@ -145,11 +145,6 @@ namespace SandWorm
                 KinectController.AddRef();
                 this.kinectSensor = KinectController.sensor;
             }
-            if (this.kinectSensor == null)
-            { 
-                ShowComponentError("No Kinect sensor detected.");
-                return; 
-            }
             if (KinectController.depthFrameData == null)
             {
                 ShowComponentError("No depth frame data provided by the Kinect.");
@@ -185,7 +180,6 @@ namespace SandWorm
             { 
                 renderBuffer.AddLast(depthFrameDataInt);
             }
-            Core.LogTiming(ref output, timer, "Render buffer length"); // Debug Info
 
             // Average across multiple frames
             for (int pixel = 0; pixel < depthFrameDataInt.Length; pixel++)

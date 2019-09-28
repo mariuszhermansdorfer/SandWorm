@@ -67,7 +67,7 @@ namespace SandWorm.Analytics
             // first pixel NW
             slope += Math.Abs(pixelArray[1] - pixelArray[0]) / deltaX; // E Pixel
             slope += Math.Abs(pixelArray[width] - pixelArray[0]) / deltaY; // S Pixel
-            slope += Math.Abs(pixelArray[width + 1] - pixelArray[0]) / deltaXY; //SE Pixel
+            slope += Math.Abs(pixelArray[width + 1] - pixelArray[0]) / deltaXY; // SE Pixel
 
             slopeValues[0] = (ushort)(slope * 33.33); // Divide by 3 multiply by 100 => 33.33
 
@@ -103,7 +103,7 @@ namespace SandWorm.Analytics
                 slope += Math.Abs(pixelArray[x + 1] - pixelArray[x]) / deltaX; // E Pixel
                 slope += Math.Abs(pixelArray[x + width - 1] - pixelArray[x]) / deltaXY; // SW Pixel
                 slope += Math.Abs(pixelArray[x + width] - pixelArray[x]) / deltaY; // S Pixel
-                slope += Math.Abs(pixelArray[x + width + 1] - pixelArray[x]) / deltaXY; // SW Pixel
+                slope += Math.Abs(pixelArray[x + width + 1] - pixelArray[x]) / deltaXY; // SE Pixel
 
                 slopeValues[x] = (ushort)(slope * 20.0); // Divide by 5 multiply by 100 => 20.0
             }
@@ -116,7 +116,7 @@ namespace SandWorm.Analytics
                 slope += Math.Abs(pixelArray[x + 1] - pixelArray[x]) / deltaX; // E Pixel
                 slope += Math.Abs(pixelArray[x - width - 1] - pixelArray[x]) / deltaXY; // NW Pixel
                 slope += Math.Abs(pixelArray[x - width] - pixelArray[x]) / deltaY; // N Pixel
-                slope += Math.Abs(pixelArray[x - width + 1] - pixelArray[x]) / deltaXY; // NW Pixel
+                slope += Math.Abs(pixelArray[x - width + 1] - pixelArray[x]) / deltaXY; // NE Pixel
 
                 slopeValues[x] = (ushort)(slope * 20.0); // Divide by 5 multiply by 100 => 20.0
             }
@@ -148,15 +148,15 @@ namespace SandWorm.Analytics
             }
 
             // rest of the array
-            Parallel.For(1, height - 1, rows =>       // Iterate over y dimension
+            Parallel.For(1, height - 1, rows =>         // Iterate over y dimension
             {
-                for (int columns = 1; columns < width - 1; columns++)       // Iterate over x dimension
+                for (int columns = 1; columns < width - 1; columns++)             // Iterate over x dimension
                 {
                     int h = (rows - 1) * width + columns;
                     int i = rows * width + columns;
                     int j = (rows + 1) * width + columns;
 
-                    double parallelSlope = 0.0;
+                    double parallelSlope = 0.0; // Declare a local variable in the parallel loop for performance reasons
                     parallelSlope += Math.Abs((pixelArray[h - 1] - pixelArray[i])) / deltaXY; // NW pixel
                     parallelSlope += Math.Abs((pixelArray[h] - pixelArray[i])) / deltaY; //N pixel
                     parallelSlope += Math.Abs((pixelArray[h + 1] - pixelArray[i])) / deltaXY; //NE pixel
@@ -166,7 +166,7 @@ namespace SandWorm.Analytics
                     parallelSlope += Math.Abs((pixelArray[j] - pixelArray[i])) / deltaY; //S pixel
                     parallelSlope += Math.Abs((pixelArray[j + 1] - pixelArray[i])) / deltaXY; //SE pixel
 
-                    slopeValues[i] = (ushort)(parallelSlope * 12.5); // rather than dividing by 8 and multiplying by 100 we do it in one step
+                    slopeValues[i] = (ushort)(parallelSlope * 12.5); // Divide by 8 multiply by 100 => 12.5
                 }
             });
 
