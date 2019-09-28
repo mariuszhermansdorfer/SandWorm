@@ -48,7 +48,7 @@ namespace SandWorm.Analytics
             slope += Math.Abs(pixelArray[2 * width - 1] - pixelArray[width - 1]) / deltaY; // S Pixel
             slope += Math.Abs(pixelArray[2 * width - 2] - pixelArray[width - 1]) / deltaXY; // SW Pixel
 
-            vertexColors[width] = getColorForSlope((ushort)(slope * 33.33)); // Divide by 3 multiply by 100 => 33.33
+            vertexColors[width - 1] = getColorForSlope((ushort)(slope * 33.33)); // Divide by 3 multiply by 100 => 33.33
 
             // first pixel SW
             slope = 0.0;
