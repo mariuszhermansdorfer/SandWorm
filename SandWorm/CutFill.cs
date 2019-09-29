@@ -78,8 +78,8 @@ namespace SandWorm
             var unitsMultiplier = Core.ConvertDrawingUnits(Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem);
             sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units
             Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
-            int trimmedWidth = (int) ((512 - leftColumns - rightColumns) * depthPixelSize.x * unitsMultiplier * scaleFactor);
-            int trimmedHeight = (int)((424 - topRows - bottomRows) * depthPixelSize.y * unitsMultiplier * scaleFactor);
+            var trimmedWidth = (512 - leftColumns - rightColumns) * depthPixelSize.x * unitsMultiplier * scaleFactor;
+            var trimmedHeight = (424 - topRows - bottomRows) * depthPixelSize.y * unitsMultiplier * scaleFactor;
 
             /*
             Point3d[] corners;
