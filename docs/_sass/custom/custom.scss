@@ -1,5 +1,8 @@
 // Variables list available at
 // https://github.com/pmarsceill/just-the-docs/blob/master/_sass/custom/custom.scss
 
-$link-color: #E9A600;
-$sidebar-color: #F7F6E5;
+$link-color: $body-text-color;
+$brand: #F36E00;
+$brand-gradient-start: #FED608;
+$brand-gradient-end: #FEF456;
+$sidebar-color: none;

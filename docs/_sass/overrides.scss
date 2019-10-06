@@ -1,0 +1,24 @@
+
+.side-bar {
+  background: linear-gradient(45deg, $brand-gradient-end, $brand-gradient-start);
+}
+
+.page-content a {
+  color: #000;
+  text-decoration: none;
+  border-bottom: 2px solid $brand-gradient-end;
+
+  &:hover {
+    text-decoration: none;
+    color: $brand;
+    background-image: none;
+  }
+}
+
+.page-content .anchor-heading {
+  border-bottom: none;
+
+  svg {
+    fill: $brand;
+  }
+}
