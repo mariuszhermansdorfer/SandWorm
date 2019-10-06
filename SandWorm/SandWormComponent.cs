@@ -35,6 +35,7 @@ namespace SandWorm
         public int topRows = 0;
         public int bottomRows = 0;
         public int tickRate = 33; // In ms
+        public int keepFrames = 1; 
         public int averageFrames = 1;
         public int blurRadius = 1;
         public static double unitsMultiplier;
@@ -131,6 +132,7 @@ namespace SandWorm
                 topRows = (int)options[3];
                 bottomRows = (int)options[4];
                 tickRate = (int)options[5];
+                keepFrames = (int)options[6];
             }
 
             // Pick the correct multiplier based on the drawing units. Shouldn't be a class variable; gets 'stuck'.
@@ -159,7 +161,8 @@ namespace SandWorm
             double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
 
             // Initialize outputs
-            outputMesh = new List<Mesh>();
+            if (keepFrames <= 1 || outputMesh == null)
+                outputMesh = new List<Mesh>(); // Don't replace prior frames (by clearing array) if using keepFrames
 
             Point3d tempPoint = new Point3d();
             Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
@@ -262,7 +265,11 @@ namespace SandWorm
             }
 
             quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, trimmedWidth, trimmedHeight);
-            outputMesh.Add(quadMesh);
+            if (keepFrames > 1)
+                outputMesh.Insert(0, quadMesh.DuplicateMesh()); // Clone and prepend if keeping frames
+            else
+                outputMesh.Add(quadMesh);
+
             Core.LogTiming(ref output, timer, "Meshing"); // Debug Info
 
             // Second type of analysis that acts on the mesh and produces new geometry
@@ -282,6 +289,13 @@ namespace SandWorm
                 }
             }
             Core.LogTiming(ref output, timer, "Mesh analysis"); // Debug Info
+
+            // Trim the outputMesh List to length specified in keepFrames
+            if (keepFrames > 1 && keepFrames < outputMesh.Count)
+            {
+                int framesToRemove = outputMesh.Count - keepFrames;
+                outputMesh.RemoveRange(keepFrames, framesToRemove > 0 ? framesToRemove : 0);
+            }
 
             DA.SetDataList(0, outputMesh);
             DA.SetDataList(1, outputGeometry);
