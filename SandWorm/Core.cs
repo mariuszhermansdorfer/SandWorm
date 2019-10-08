@@ -17,10 +17,9 @@ namespace SandWorm
 
             if (mesh.Faces.Count != (xStride - 2) * (yStride - 2))
             {
-                SandWorm.output.Add("Face remeshing");
                 mesh = new Mesh();
                 mesh.Vertices.Capacity = vertices.Length;      // Don't resize array
-                mesh.Vertices.UseDoublePrecisionVertices = true;
+                mesh.Vertices.UseDoublePrecisionVertices = false;
                 mesh.Vertices.AddVertices(vertices);       
 
                 for (int y = 1; y < yd - 1; y++)       // Iterate over y dimension
@@ -36,12 +35,8 @@ namespace SandWorm
             }
             else
             {
-                
-                
-                mesh.Vertices.UseDoublePrecisionVertices = true; 
-                //mesh.Vertices.AddVertices(vertices);       
-                
-                
+                mesh.Vertices.UseDoublePrecisionVertices = false; 
+
                 unsafe
                 {
                     using (var meshAccess = mesh.GetUnsafeLock(true))
@@ -50,22 +45,19 @@ namespace SandWorm
                         Point3f* points = meshAccess.VertexPoint3fArray(out arrayLength);
                         for (int i = 0; i < arrayLength; i++)
                         {
-                            points->X = vertices[i].X;
-                            points->Y = vertices[i].Y;
                             points->Z = vertices[i].Z;
                             points++;
                         }
                         mesh.ReleaseUnsafeLock(meshAccess);
                     }  
                 }
-                
-                
             }
 
             if (colors.Length > 0) // Colors only provided if the mesh style permits
             {
-                mesh.VertexColors.SetColors(colors); 
+                mesh.VertexColors.SetColors(colors);
             }
+
             return mesh;
         }
 
