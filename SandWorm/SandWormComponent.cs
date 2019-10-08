@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.Remoting.Messaging;
 using System.Windows.Forms;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
@@ -15,7 +14,7 @@ namespace SandWorm
     public class SandWorm : GH_Component
     {
         private KinectSensor kinectSensor = null;
-        private Point3d[] pointCloud;
+        private Point3f[] pointCloud;
         private List<Mesh> outputMesh = null;
         private List<Rhino.Geometry.GeometryBase> outputGeometry = null;
         public static List<string> output = null;//debugging
@@ -26,6 +25,7 @@ namespace SandWorm
         public static Color[] lookupTable = new Color[1500]; //to do - fix arbitrary value assuming 1500 mm as max distance from the kinect sensor
         public Color[] vertexColors;
         public Mesh quadMesh = new Mesh();
+        public PointCloud _cloud;
 
         public List<double> options; // List of options coming from the SWSetup component
 
@@ -35,7 +35,7 @@ namespace SandWorm
         public int topRows = 0;
         public int bottomRows = 0;
         public int tickRate = 33; // In ms
-        public int keepFrames = 1; 
+        public int keepFrames = 1;
         public int averageFrames = 1;
         public int blurRadius = 1;
         public static double unitsMultiplier;
@@ -63,8 +63,8 @@ namespace SandWorm
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddNumberParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, waterLevel); 
-            pManager.AddNumberParameter("ContourInterval", "CI", "The interval (if this analysis is enabled)", GH_ParamAccess.item, contourInterval);            
+            pManager.AddNumberParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, waterLevel);
+            pManager.AddNumberParameter("ContourInterval", "CI", "The interval (if this analysis is enabled)", GH_ParamAccess.item, contourInterval);
             pManager.AddIntegerParameter("AverageFrames", "AF", "Amount of depth frames to average across. This number has to be greater than zero.", GH_ParamAccess.item, averageFrames);
             pManager.AddIntegerParameter("BlurRadius", "BR", "Radius for Gaussian blur.", GH_ParamAccess.item, blurRadius);
             pManager.AddNumberParameter("SandWormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.list);
@@ -97,7 +97,7 @@ namespace SandWorm
                     Menu_AppendSeparator(menu);
             }
         }
-        
+
         private void SetMeshVisualisation(object sender, EventArgs e)
         {
             Analysis.AnalysisManager.SetEnabledOptions((ToolStripMenuItem)sender);
@@ -136,7 +136,7 @@ namespace SandWorm
             }
 
             // Pick the correct multiplier based on the drawing units. Shouldn't be a class variable; gets 'stuck'.
-            unitsMultiplier = Core.ConvertDrawingUnits(Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem); 
+            unitsMultiplier = Core.ConvertDrawingUnits(Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem);
             sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units
 
             Stopwatch timer = Stopwatch.StartNew(); // Setup timer used for debugging
@@ -150,13 +150,13 @@ namespace SandWorm
             if (KinectController.depthFrameData == null)
             {
                 ShowComponentError("No depth frame data provided by the Kinect.");
-                return; 
+                return;
             }
 
             // Initialize all arrays
             int trimmedWidth = KinectController.depthWidth - leftColumns - rightColumns;
             int trimmedHeight = KinectController.depthHeight - topRows - bottomRows;
-            pointCloud = new Point3d[trimmedWidth * trimmedHeight];
+
             int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
             double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
 
@@ -164,7 +164,7 @@ namespace SandWorm
             if (keepFrames <= 1 || outputMesh == null)
                 outputMesh = new List<Mesh>(); // Don't replace prior frames (by clearing array) if using keepFrames
 
-            Point3d tempPoint = new Point3d();
+            Point3f tempPoint = new Point3f();
             Core.PixelSize depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
 
             // Trim the depth array and cast ushort values to int
@@ -180,10 +180,10 @@ namespace SandWorm
                 renderBuffer.AddLast(depthFrameDataInt);
             }
             else
-            { 
+            {
                 renderBuffer.AddLast(depthFrameDataInt);
             }
-            
+
             Core.LogTiming(ref output, timer, $"Initial setup"); // Debug Info
 
             // Average across multiple frames
@@ -220,16 +220,16 @@ namespace SandWorm
             }
 
             // Setup variables for per-pixel loop
-            pointCloud = new Point3d[trimmedWidth * trimmedHeight];
+            pointCloud = new Point3f[trimmedWidth * trimmedHeight];
             int arrayIndex = 0;
             for (int rows = 0; rows < trimmedHeight; rows++)
             {
                 for (int columns = 0; columns < trimmedWidth; columns++)
                 {
                     depthPoint = averagedDepthFrameData[arrayIndex];
-                    tempPoint.X = columns * -unitsMultiplier * depthPixelSize.x;
-                    tempPoint.Y = rows * -unitsMultiplier * depthPixelSize.y;
-                    tempPoint.Z = (depthPoint - sensorElevation) * -unitsMultiplier;
+                    tempPoint.X = (float) (columns * -unitsMultiplier * depthPixelSize.x);
+                    tempPoint.Y = (float) (rows * -unitsMultiplier * depthPixelSize.y);
+                    tempPoint.Z = (float) ((depthPoint - sensorElevation) * -unitsMultiplier);
                     pointCloud[arrayIndex] = tempPoint; // Add new point to point cloud itself
                     arrayIndex++;
                 }
@@ -256,7 +256,7 @@ namespace SandWorm
                 default:
                     break;
             }
-            Core.LogTiming(ref output, timer, "Point cloud analysis"); // Debug Info
+    Core.LogTiming(ref output, timer, "Point cloud analysis"); // Debug Info
             
             // Keep only the desired amount of frames in the buffer
             while (renderBuffer.Count >= averageFrames)
@@ -264,7 +264,7 @@ namespace SandWorm
                 renderBuffer.RemoveFirst();
             }
 
-            quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, trimmedWidth, trimmedHeight);
+quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, trimmedWidth, trimmedHeight);
             if (keepFrames > 1)
                 outputMesh.Insert(0, quadMesh.DuplicateMesh()); // Clone and prepend if keeping frames
             else
@@ -291,10 +291,10 @@ namespace SandWorm
             Core.LogTiming(ref output, timer, "Mesh analysis"); // Debug Info
 
             // Trim the outputMesh List to length specified in keepFrames
-            if (keepFrames > 1 && keepFrames < outputMesh.Count)
+            if (keepFrames > 1 && keepFrames<outputMesh.Count)
             {
                 int framesToRemove = outputMesh.Count - keepFrames;
-                outputMesh.RemoveRange(keepFrames, framesToRemove > 0 ? framesToRemove : 0);
+outputMesh.RemoveRange(keepFrames, framesToRemove > 0 ? framesToRemove : 0);
             }
 
             DA.SetDataList(0, outputMesh);
@@ -304,29 +304,30 @@ namespace SandWorm
             ScheduleSolve();
         }
 
+
         private void ShowComponentError(string errorMessage)
-        {
-            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, errorMessage);
-            ScheduleSolve(); // Ensure a future solve is scheduled despite an early return to SolveInstance()
-        }
+{
+    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, errorMessage);
+    ScheduleSolve(); // Ensure a future solve is scheduled despite an early return to SolveInstance()
+}
 
-        private void ScheduleSolve()
-        {
-            if (tickRate > 0) // Allow users to force manual recalculation
-                base.OnPingDocument().ScheduleSolution(tickRate, new GH_Document.GH_ScheduleDelegate(ScheduleDelegate));
-        }
+private void ScheduleSolve()
+{
+    if (tickRate > 0) // Allow users to force manual recalculation
+        base.OnPingDocument().ScheduleSolution(tickRate, new GH_Document.GH_ScheduleDelegate(ScheduleDelegate));
+}
 
-        /// <summary>
-        /// Provides an Icon for every component that will be visible in the User Interface.
-        /// Icons need to be 24x24 pixels.
-        /// </summary>
-        protected override System.Drawing.Bitmap Icon => null;
+/// <summary>
+/// Provides an Icon for every component that will be visible in the User Interface.
+/// Icons need to be 24x24 pixels.
+/// </summary>
+protected override System.Drawing.Bitmap Icon => null;
 
-        /// <summary>
-        /// Each component must have a unique Guid to identify it. 
-        /// It is vital this Guid doesn't change otherwise old ghx files 
-        /// that use the old ID will partially fail during loading.
-        /// </summary>
-        public override Guid ComponentGuid => new Guid("f923f24d-86a0-4b7a-9373-23c6b7d2e162");
+/// <summary>
+/// Each component must have a unique Guid to identify it. 
+/// It is vital this Guid doesn't change otherwise old ghx files 
+/// that use the old ID will partially fail during loading.
+/// </summary>
+public override Guid ComponentGuid => new Guid("f923f24d-86a0-4b7a-9373-23c6b7d2e162");
     }
 }

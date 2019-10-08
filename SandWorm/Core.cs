@@ -9,7 +9,7 @@ namespace SandWorm
 {
     public static class Core
     {
-        public static Mesh CreateQuadMesh(Mesh mesh, Point3d[] vertices, Color[] colors, int xStride, int yStride)
+        public static Mesh CreateQuadMesh(Mesh mesh, Point3f[] vertices, Color[] colors, int xStride, int yStride)
         {
             int xd = xStride;       // The x-dimension of the data
             int yd = yStride;       // They y-dimension of the data
@@ -17,10 +17,9 @@ namespace SandWorm
 
             if (mesh.Faces.Count != (xStride - 2) * (yStride - 2))
             {
-                SandWorm.output.Add("Face remeshing");
                 mesh = new Mesh();
                 mesh.Vertices.Capacity = vertices.Length;      // Don't resize array
-                mesh.Vertices.UseDoublePrecisionVertices = true;
+                mesh.Vertices.UseDoublePrecisionVertices = false;
                 mesh.Vertices.AddVertices(vertices);       
 
                 for (int y = 1; y < yd - 1; y++)       // Iterate over y dimension
@@ -36,15 +35,29 @@ namespace SandWorm
             }
             else
             {
-                mesh.Vertices.Clear();
-                mesh.Vertices.UseDoublePrecisionVertices = true; 
-                mesh.Vertices.AddVertices(vertices);       
+                mesh.Vertices.UseDoublePrecisionVertices = false; 
+
+                unsafe
+                {
+                    using (var meshAccess = mesh.GetUnsafeLock(true))
+                    {
+                        int arrayLength;
+                        Point3f* points = meshAccess.VertexPoint3fArray(out arrayLength);
+                        for (int i = 0; i < arrayLength; i++)
+                        {
+                            points->Z = vertices[i].Z;
+                            points++;
+                        }
+                        mesh.ReleaseUnsafeLock(meshAccess);
+                    }  
+                }
             }
 
             if (colors.Length > 0) // Colors only provided if the mesh style permits
             {
-                mesh.VertexColors.SetColors(colors); 
+                mesh.VertexColors.SetColors(colors);
             }
+
             return mesh;
         }
 
