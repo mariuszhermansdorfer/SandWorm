@@ -9,7 +9,7 @@ namespace SandWorm
 {
     public static class Core
     {
-        public static Mesh CreateQuadMesh(Mesh mesh, Point3d[] vertices, Color[] colors, int xStride, int yStride)
+        public static Mesh CreateQuadMesh(Mesh mesh, Point3f[] vertices, Color[] colors, int xStride, int yStride)
         {
             int xd = xStride;       // The x-dimension of the data
             int yd = yStride;       // They y-dimension of the data
@@ -36,9 +36,30 @@ namespace SandWorm
             }
             else
             {
-                mesh.Vertices.Clear();
+                
+                
                 mesh.Vertices.UseDoublePrecisionVertices = true; 
-                mesh.Vertices.AddVertices(vertices);       
+                //mesh.Vertices.AddVertices(vertices);       
+                
+                
+                unsafe
+                {
+                    using (var meshAccess = mesh.GetUnsafeLock(true))
+                    {
+                        int arrayLength;
+                        Point3f* points = meshAccess.VertexPoint3fArray(out arrayLength);
+                        for (int i = 0; i < arrayLength; i++)
+                        {
+                            points->X = vertices[i].X;
+                            points->Y = vertices[i].Y;
+                            points->Z = vertices[i].Z;
+                            points++;
+                        }
+                        mesh.ReleaseUnsafeLock(meshAccess);
+                    }  
+                }
+                
+                
             }
 
             if (colors.Length > 0) // Colors only provided if the mesh style permits

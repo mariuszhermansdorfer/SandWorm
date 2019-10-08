@@ -32,6 +32,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -142,6 +143,7 @@
     <StartArguments>
     </StartArguments>
     <StartAction>Program</StartAction>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <Import Project="packages\RhinoCommon.6.13.19058.371\build\net45\RhinoCommon.targets" Condition="Exists('packages\RhinoCommon.6.13.19058.371\build\net45\RhinoCommon.targets')" />
   <Import Project="..\packages\RhinoCommon.6.17.19235.15041\build\net45\RhinoCommon.targets" Condition="Exists('..\packages\RhinoCommon.6.17.19235.15041\build\net45\RhinoCommon.targets')" />
