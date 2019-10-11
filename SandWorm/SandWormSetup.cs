@@ -41,6 +41,7 @@ namespace SandWorm
             pManager.AddIntegerParameter("TopRows", "TR", "Number of rows to trim from the top", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("BottomRows", "BR", "Number of rows to trim from the bottom", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("TickRate", "TR", "The time interval, in milliseconds, to update geometry from the Kinect. Set as 0 to disable automatic updates.", GH_ParamAccess.item, tickRate);
+            pManager.AddIntegerParameter("KeepFrames", "KF", "Output a running list of a frame updates rather than just the current frame. Set to 1 or 0 to disable.", GH_ParamAccess.item, keepFrames);
             pManager[0].Optional = true;
             pManager[1].Optional = true;
             pManager[2].Optional = true;
@@ -73,15 +74,16 @@ namespace SandWorm
             DA.GetData<int>(6, ref keepFrames);
 
 
-            var options = new SetupOptions();
-            options.sensorElevation = sensorElevation;
-            options.leftColumns = leftColumns;
-            options.rightColumns = rightColumns;
-            options.topRows = topRows;
-            options.bottomRows = bottomRows;
-            options.tickRate = tickRate;
-            options.tickRate = keepFrames;
-
+            var options = new SetupOptions
+            {
+                sensorElevation = sensorElevation,
+                leftColumns = leftColumns,
+                rightColumns = rightColumns,
+                topRows = topRows,
+                bottomRows = bottomRows,
+                tickRate = tickRate,
+                keepFrames = keepFrames
+            };
 
             DA.SetData(0, options);
         }
