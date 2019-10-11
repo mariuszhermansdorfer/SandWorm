@@ -16,8 +16,8 @@ namespace SandWorm
         public int topRows = 0;
         public int bottomRows = 0;
         public int tickRate = 33; // In ms
+        public int keepFrames = 1;
 
-        //public double[] options = new double[6];
 
 
         /// <summary>
@@ -47,6 +47,7 @@ namespace SandWorm
             pManager[3].Optional = true;
             pManager[4].Optional = true;
             pManager[5].Optional = true;
+            pManager[6].Optional = true;
         }
 
         /// <summary>
@@ -69,6 +70,7 @@ namespace SandWorm
             DA.GetData<int>(3, ref topRows);
             DA.GetData<int>(4, ref bottomRows);
             DA.GetData<int>(5, ref tickRate);
+            DA.GetData<int>(6, ref keepFrames);
 
 
             var options = new SetupOptions();
@@ -78,6 +80,7 @@ namespace SandWorm
             options.topRows = topRows;
             options.bottomRows = bottomRows;
             options.tickRate = tickRate;
+            options.tickRate = keepFrames;
 
 
             DA.SetData(0, options);

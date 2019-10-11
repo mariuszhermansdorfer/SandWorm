@@ -19,6 +19,7 @@ namespace SandWorm
         private int _topRows;
         private int _bottomRows;
         private int _tickRate;
+        private int _keepFrames;
 
         public double sensorElevation
         {
@@ -53,6 +54,12 @@ namespace SandWorm
         {
             get { return _tickRate; }
             set { _tickRate = value; }
+        }
+
+        public int keepFrames
+        {
+            get { return _keepFrames; }
+            set { _keepFrames = value; }
         }
     }
 }
