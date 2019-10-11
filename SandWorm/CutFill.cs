@@ -16,7 +16,6 @@ namespace SandWorm
         public int rightColumns = 0;
         public int topRows = 0;
         public int bottomRows = 0;
-        public int tickRate = 33; // In ms
         public SetupOptions options; // List of options coming from the SWSetup component
         public List<string> output;
         public Mesh inputMesh;
@@ -73,7 +72,6 @@ namespace SandWorm
             if (options.rightColumns != 0) rightColumns = options.rightColumns;
             if (options.topRows != 0) topRows = options.topRows;
             if (options.bottomRows != 0) bottomRows = options.bottomRows;
-            if (options.tickRate != 0) tickRate = options.tickRate;
      
 
             // Shared variables
