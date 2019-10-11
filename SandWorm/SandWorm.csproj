@@ -101,6 +101,7 @@
     <Compile Include="Analytics\None.cs" />
     <Compile Include="Analytics\Slope.cs" />
     <Compile Include="Analytics\WaterLevel.cs" />
+    <Compile Include="SetupOptions.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="GaussianBlurProcessor.cs" />
     <Compile Include="KinectController.cs" />

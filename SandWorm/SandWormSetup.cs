@@ -5,6 +5,7 @@ using Grasshopper.Kernel;
 using Rhino.Geometry;
 
 namespace SandWorm
+
 {
     public class SandWormSetup : GH_Component
     {
@@ -15,9 +16,9 @@ namespace SandWorm
         public int topRows = 0;
         public int bottomRows = 0;
         public int tickRate = 33; // In ms
-        public int keepFrames = 1; // In ms
 
-        public double[] options = new double[7];
+        //public double[] options = new double[6];
+
 
         /// <summary>
         /// Initializes a new instance of the MyComponent1 class.
@@ -40,14 +41,12 @@ namespace SandWorm
             pManager.AddIntegerParameter("TopRows", "TR", "Number of rows to trim from the top", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("BottomRows", "BR", "Number of rows to trim from the bottom", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("TickRate", "TR", "The time interval, in milliseconds, to update geometry from the Kinect. Set as 0 to disable automatic updates.", GH_ParamAccess.item, tickRate);
-            pManager.AddIntegerParameter("KeepFrames", "KF", "Output a running list of a frame updates rather than just the current frame. Set to 1 or 0 to disable.", GH_ParamAccess.item, keepFrames);
             pManager[0].Optional = true;
             pManager[1].Optional = true;
             pManager[2].Optional = true;
             pManager[3].Optional = true;
             pManager[4].Optional = true;
             pManager[5].Optional = true;
-            pManager[6].Optional = true;
         }
 
         /// <summary>
@@ -55,7 +54,7 @@ namespace SandWorm
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter ("Options", "O", "SandWorm oOptions", GH_ParamAccess.list); //debugging
+            pManager.AddGenericParameter("Options", "O", "SandWorm oOptions", GH_ParamAccess.item); //debugging
         }
 
         /// <summary>
@@ -70,17 +69,18 @@ namespace SandWorm
             DA.GetData<int>(3, ref topRows);
             DA.GetData<int>(4, ref bottomRows);
             DA.GetData<int>(5, ref tickRate);
-            DA.GetData<int>(6, ref keepFrames);
 
-            options[0] = sensorElevation;
-            options[1] = leftColumns;
-            options[2] = rightColumns;
-            options[3] = topRows;
-            options[4] = bottomRows;
-            options[5] = tickRate;
-            options[6] = keepFrames;
 
-            DA.SetDataList(0, options);
+            var options = new SetupOptions();
+            options.sensorElevation = sensorElevation;
+            options.leftColumns = leftColumns;
+            options.rightColumns = rightColumns;
+            options.topRows = topRows;
+            options.bottomRows = bottomRows;
+            options.tickRate = tickRate;
+
+
+            DA.SetData(0, options);
         }
 
         /// <summary>
