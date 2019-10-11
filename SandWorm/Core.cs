@@ -21,7 +21,7 @@ namespace SandWorm
                 mesh = new Mesh();
                 mesh.Vertices.Capacity = vertices.Length;      // Don't resize array
                 mesh.Vertices.UseDoublePrecisionVertices = true;
-                mesh.Vertices.AddVertices(vertices);       
+                mesh.Vertices.AddVertices(vertices);
 
                 for (int y = 1; y < yd - 1; y++)       // Iterate over y dimension
                 {
@@ -37,13 +37,13 @@ namespace SandWorm
             else
             {
                 mesh.Vertices.Clear();
-                mesh.Vertices.UseDoublePrecisionVertices = true; 
-                mesh.Vertices.AddVertices(vertices);       
+                mesh.Vertices.UseDoublePrecisionVertices = true;
+                mesh.Vertices.AddVertices(vertices);
             }
 
             if (colors.Length > 0) // Colors only provided if the mesh style permits
             {
-                mesh.VertexColors.SetColors(colors); 
+                mesh.VertexColors.SetColors(colors);
             }
             return mesh;
         }
@@ -56,7 +56,7 @@ namespace SandWorm
 
         public static PixelSize GetDepthPixelSpacing(double sensorHeight)
         {
-            double kinect2FOVForX = 70.6; 
+            double kinect2FOVForX = 70.6;
             double kinect2FOVForY = 60.0;
             double kinect2ResolutionForX = 512;
             double kinect2ResolutionForY = 424;
@@ -91,10 +91,10 @@ namespace SandWorm
                     j++;
                 }
             }
-                
+
         }
 
-        public static double ConvertDrawingUnits (Rhino.UnitSystem units)
+        public static double ConvertDrawingUnits(Rhino.UnitSystem units)
         {
             double unitsMultiplier = 1.0;
 
@@ -131,7 +131,7 @@ namespace SandWorm
             return unitsMultiplier;
         }
 
-        public static void LogTiming(ref List<string>  output, Stopwatch timer, string eventDescription)
+        public static void LogTiming(ref List<string> output, Stopwatch timer, string eventDescription)
         {
             var logInfo = eventDescription + ": ";
             timer.Stop();

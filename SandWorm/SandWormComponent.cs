@@ -27,7 +27,7 @@ namespace SandWorm
         public Color[] vertexColors;
         public Mesh quadMesh = new Mesh();
 
-        public List<double> options; // List of options coming from the SWSetup component
+        public SetupOptions options; // List of options coming from the SWSetup component
 
         public double sensorElevation = 1000; // Arbitrary default value (must be >0)
         public int leftColumns = 0;
@@ -66,7 +66,7 @@ namespace SandWorm
             pManager.AddNumberParameter("ContourInterval", "CI", "The interval (if this analysis is enabled)", GH_ParamAccess.item, contourInterval);            
             pManager.AddIntegerParameter("AverageFrames", "AF", "Amount of depth frames to average across. This number has to be greater than zero.", GH_ParamAccess.item, averageFrames);
             pManager.AddIntegerParameter("BlurRadius", "BR", "Radius for Gaussian blur.", GH_ParamAccess.item, blurRadius);
-            pManager.AddNumberParameter("SandWormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.list);
+            pManager.AddGenericParameter("SandWormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.item);
             pManager[0].Optional = true;
             pManager[1].Optional = true;
             pManager[2].Optional = true;
@@ -116,22 +116,19 @@ namespace SandWorm
         /// to store data in output parameters.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            options = new List<double>();
+            options = new SetupOptions();
             DA.GetData<double>(0, ref waterLevel);
             DA.GetData<double>(1, ref contourInterval);
             DA.GetData<int>(2, ref averageFrames);
             DA.GetData<int>(3, ref blurRadius);
-            DA.GetDataList<double>(4, options);
+            DA.GetData<SetupOptions>(4, ref options);
 
-            if (options.Count != 0) // TODO add more robust checking whether all the options have been provided by the user
-            {
-                sensorElevation = options[0];
-                leftColumns = (int)options[1];
-                rightColumns = (int)options[2];
-                topRows = (int)options[3];
-                bottomRows = (int)options[4];
-                tickRate = (int)options[5];
-            }
+            if (options.sensorElevation != 0) sensorElevation = options.sensorElevation;
+            if (options.leftColumns != 0) leftColumns = options.leftColumns;
+            if (options.rightColumns != 0) rightColumns = options.rightColumns;
+            if (options.topRows != 0) topRows = options.topRows;
+            if (options.bottomRows != 0) bottomRows = options.bottomRows;
+            if (options.tickRate != 0) tickRate = options.tickRate;
 
             // Pick the correct multiplier based on the drawing units. Shouldn't be a class variable; gets 'stuck'.
             unitsMultiplier = Core.ConvertDrawingUnits(Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem); 
