@@ -18,8 +18,6 @@ namespace SandWorm
         public int tickRate = 33; // In ms
         public int keepFrames = 1; // In ms
 
-        public double[] options = new double[6];
-
         /// <summary>
         /// Initializes a new instance of the MyComponent1 class.
         /// </summary>
@@ -73,14 +71,18 @@ namespace SandWorm
             DA.GetData<int>(5, ref tickRate);
             DA.GetData<int>(6, ref keepFrames);
 
-            options[0] = sensorElevation;
-            options[1] = leftColumns;
-            options[2] = rightColumns;
-            options[3] = topRows;
-            options[4] = bottomRows;
-            options[5] = tickRate;
-            
-            DA.SetDataList(0, options);
+            var options = new SetupOptions
+            {
+                sensorElevation = sensorElevation,
+                leftColumns = leftColumns,
+                rightColumns = rightColumns,
+                topRows = topRows,
+                bottomRows = bottomRows,
+                tickRate = tickRate,
+                keepFrames = keepFrames
+            };
+
+            DA.SetData(0, options);
         }
 
         /// <summary>
