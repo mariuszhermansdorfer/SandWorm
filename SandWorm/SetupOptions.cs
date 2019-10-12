@@ -20,6 +20,7 @@ namespace SandWorm
         private int _bottomRows;
         private int _tickRate;
         private int _keepFrames;
+        private int[] _elevationArray; // Store all deltas between desired and measured distance values from the sensor to the table for each pixel.
 
         public double sensorElevation
         {
@@ -61,5 +62,11 @@ namespace SandWorm
             get { return _keepFrames; }
             set { _keepFrames = value; }
         }
+        public int[] elevationArray
+        {
+            get { return _elevationArray; }
+            set { _elevationArray = value; }
+        }
+
     }
 }

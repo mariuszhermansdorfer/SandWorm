@@ -6,6 +6,21 @@ using Rhino.Geometry;
 
 namespace SandWorm
 {
+
+    public class CutFillResults
+    {
+        public CutFillResults()
+        {
+        }
+
+        private double[] _meshElevationPoints;
+        public double[] meshElevationPoints
+        {
+            get { return _meshElevationPoints; }
+            set { _meshElevationPoints = value; }
+        }
+
+    }
     public class CutFill : GH_Component
     {
         public List<GeometryBase> outputSurface;
@@ -17,9 +32,9 @@ namespace SandWorm
         public int topRows = 0;
         public int bottomRows = 0;
         public SetupOptions options; // List of options coming from the SWSetup component
+        public CutFillResults results; // Array of resulting elevation points 
         public List<string> output;
         public Mesh inputMesh;
-        public double[] meshElevationPoints;
 
         public CutFill()
           : base("CutFill", "CutFill",
@@ -50,7 +65,7 @@ namespace SandWorm
         {
             pManager.AddGeometryParameter("Surface", "S", "Sandbox surface in real-world scale", GH_ParamAccess.list);
             pManager.AddPointParameter("Points", "P", "Additional mesh analysis", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Elevation Points", "E", "Resulting array of elevation points", GH_ParamAccess.list);
+            pManager.AddGenericParameter("Elevation Points", "E", "Resulting array of elevation points", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -60,6 +75,7 @@ namespace SandWorm
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             options = new SetupOptions();
+            results = new CutFillResults();
             
             DA.GetData<Curve>(0, ref inputRectangle);
             DA.GetData<Mesh>(1, ref inputMesh);
@@ -84,7 +100,7 @@ namespace SandWorm
             // Initialize all the outputs
             output = new List<string>();
             outputSurface = new List<GeometryBase>();
-            meshElevationPoints = new double[(512 - leftColumns - rightColumns) * (424 - topRows - bottomRows)];
+            results.meshElevationPoints = new double[(512 - leftColumns - rightColumns) * (424 - topRows - bottomRows)];
             var inputMeshes = new List<Mesh>();
             inputMeshes.Add(inputMesh);
 
@@ -114,16 +130,16 @@ namespace SandWorm
             var projectedPoints = Intersection.ProjectPointsToMeshes(inputMeshes, points, new Vector3d(0, 0, -1), 0.000001); // Need to use very high accuraccy, otherwise the function generates duplicate points
 
             // Populate the mesh elevation array
-            for (int i = 0; i < meshElevationPoints.Length; i++)
+            for (int i = 0; i < results.meshElevationPoints.Length; i++)
             {
-                meshElevationPoints[i] = (projectedPoints[i].Z / scaleFactor);
+                results.meshElevationPoints[i] = (projectedPoints[i].Z / scaleFactor);
             }
 
 
             // Output data
             DA.SetDataList(0, outputSurface);
             DA.SetDataList(1, projectedPoints);
-            DA.SetDataList(2, meshElevationPoints);
+            DA.SetData(2, results);
         }
 
         /// <summary>

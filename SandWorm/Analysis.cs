@@ -20,7 +20,7 @@ namespace SandWorm
                 {
                     new Analytics.WaterLevel(), new Analytics.Contours(),
                     new Analytics.None(),
-                    new Analytics.Elevation(), new Analytics.Slope(), new Analytics.Aspect()
+                    new Analytics.Elevation(), new Analytics.Slope(), new Analytics.Aspect(), new Analytics.CutFill()
                 };
                 // Default to showing elevation analysis
                 options[3].isEnabled = true;
