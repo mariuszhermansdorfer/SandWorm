@@ -28,6 +28,7 @@ namespace SandWorm
         public Mesh quadMesh = new Mesh();
 
         public SetupOptions options; // List of options coming from the SWSetup component
+        public CutFillResults referenceMeshElevations;
 
         public double sensorElevation = 1000; // Arbitrary default value (must be >0)
         public int leftColumns = 0;
@@ -67,11 +68,13 @@ namespace SandWorm
             pManager.AddIntegerParameter("AverageFrames", "AF", "Amount of depth frames to average across. This number has to be greater than zero.", GH_ParamAccess.item, averageFrames);
             pManager.AddIntegerParameter("BlurRadius", "BR", "Radius for Gaussian blur.", GH_ParamAccess.item, blurRadius);
             pManager.AddGenericParameter("SandWormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.item);
+            pManager.AddGenericParameter("CutFillOptions", "CFO", "Cut & Fill options", GH_ParamAccess.item);
             pManager[0].Optional = true;
             pManager[1].Optional = true;
             pManager[2].Optional = true;
             pManager[3].Optional = true;
             pManager[4].Optional = true;
+            pManager[5].Optional = true;
         }
 
         /// <summary>
@@ -117,11 +120,14 @@ namespace SandWorm
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             options = new SetupOptions();
+            referenceMeshElevations = new CutFillResults();
+            
             DA.GetData<double>(0, ref waterLevel);
             DA.GetData<double>(1, ref contourInterval);
             DA.GetData<int>(2, ref averageFrames);
             DA.GetData<int>(3, ref blurRadius);
             DA.GetData<SetupOptions>(4, ref options);
+            DA.GetData<CutFillResults>(5, ref referenceMeshElevations);
 
             if (options.sensorElevation != 0) sensorElevation = options.sensorElevation;
             if (options.leftColumns != 0) leftColumns = options.leftColumns;
@@ -245,6 +251,9 @@ namespace SandWorm
                         trimmedWidth, trimmedHeight, depthPixelSize.x, depthPixelSize.y);
                     break;
                 case Analytics.Aspect analysis:
+                    // TODO: implementation
+                    break;
+                case Analytics.CutFill analysis:
                     // TODO: implementation
                     break;
                 default:
