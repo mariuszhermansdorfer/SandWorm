@@ -7,7 +7,7 @@ using Rhino.Geometry;
 namespace SandWorm
 
 {
-    public class SandWormSetup : GH_Component
+    public class SandWormSetupComponent : GH_Component
     {
 
         public double sensorElevation = 1000; // Arbitrary default value (must be >0)
@@ -21,7 +21,7 @@ namespace SandWorm
         /// <summary>
         /// Initializes a new instance of the MyComponent1 class.
         /// </summary>
-        public SandWormSetup()
+        public SandWormSetupComponent()
           : base("SandWormSetup", "SWSetup",
               "This component takes care of all the setup & calibration of your sandbox.",
               "Sandworm", "Sandbox")

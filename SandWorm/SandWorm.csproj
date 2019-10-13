@@ -106,8 +106,8 @@
     <Compile Include="Core.cs" />
     <Compile Include="GaussianBlurProcessor.cs" />
     <Compile Include="KinectController.cs" />
-    <Compile Include="CutFill.cs" />
-    <Compile Include="SandWormSetup.cs" />
+    <Compile Include="MeshCompare.cs" />
+    <Compile Include="SandWormSetupComponent.cs" />
     <Compile Include="SandWormComponent.cs" />
     <Compile Include="SandWormInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

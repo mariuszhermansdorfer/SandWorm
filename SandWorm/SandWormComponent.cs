@@ -28,7 +28,7 @@ namespace SandWorm
         public PointCloud _cloud;
 
         public SetupOptions options; // List of options coming from the SWSetup component
-        public CutFillResults referenceMeshElevations;
+        public CompareMeshes referenceMeshElevations;
 
         public double sensorElevation = 1000; // Arbitrary default value (must be >0)
         public int leftColumns = 0;
@@ -121,14 +121,14 @@ namespace SandWorm
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             options = new SetupOptions();
-            referenceMeshElevations = new CutFillResults();
+            referenceMeshElevations = new CompareMeshes();
 
             DA.GetData<double>(0, ref waterLevel);
             DA.GetData<double>(1, ref contourInterval);
             DA.GetData<int>(2, ref averageFrames);
             DA.GetData<int>(3, ref blurRadius);
             DA.GetData<SetupOptions>(4, ref options);
-            DA.GetData<CutFillResults>(5, ref referenceMeshElevations);
+            DA.GetData<CompareMeshes>(5, ref referenceMeshElevations);
 
             if (options.sensorElevation != 0) sensorElevation = options.sensorElevation;
             if (options.leftColumns != 0) leftColumns = options.leftColumns;
@@ -257,7 +257,7 @@ namespace SandWorm
                     // TODO: implementation
                     break;
                 case Analytics.CutFill analysis:
-                    // TODO: implementation
+                    vertexColors = analysis.GetColorCloudForAnalysis(averagedDepthFrameData, referenceMeshElevations);
                     break;
                 default:
                     break;

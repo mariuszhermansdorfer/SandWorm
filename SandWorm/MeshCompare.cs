@@ -7,13 +7,14 @@ using Rhino.Geometry;
 namespace SandWorm
 {
 
-    public class CutFillResults
+    public class CompareMeshes
     {
-        public CutFillResults()
+        public CompareMeshes()
         {
         }
 
         private double[] _meshElevationPoints;
+
         public double[] meshElevationPoints
         {
             get { return _meshElevationPoints; }
@@ -21,7 +22,7 @@ namespace SandWorm
         }
 
     }
-    public class CutFill : GH_Component
+    public class MeshCompare : GH_Component
     {
         public List<GeometryBase> outputSurface;
         private Curve inputRectangle;
@@ -32,12 +33,12 @@ namespace SandWorm
         public int topRows = 0;
         public int bottomRows = 0;
         public SetupOptions options; // List of options coming from the SWSetup component
-        public CutFillResults results; // Array of resulting elevation points 
+        public CompareMeshes results; // Array of resulting elevation points 
         public List<string> output;
         public Mesh inputMesh;
 
-        public CutFill()
-          : base("CutFill", "CutFill",
+        public MeshCompare()
+          : base("MeshCompare", "MeshCompare",
               "Visualizes elevation differences between meshes.",
               "Sandworm", "Sandbox")
         {
@@ -75,20 +76,20 @@ namespace SandWorm
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             options = new SetupOptions();
-            results = new CutFillResults();
-            
+            results = new CompareMeshes();
+
             DA.GetData<Curve>(0, ref inputRectangle);
             DA.GetData<Mesh>(1, ref inputMesh);
             DA.GetData<double>(2, ref scaleFactor);
             DA.GetData<SetupOptions>(3, ref options);
 
-            
+
             if (options.sensorElevation != 0) sensorElevation = options.sensorElevation;
             if (options.leftColumns != 0) leftColumns = options.leftColumns;
             if (options.rightColumns != 0) rightColumns = options.rightColumns;
             if (options.topRows != 0) topRows = options.topRows;
             if (options.bottomRows != 0) bottomRows = options.bottomRows;
-     
+
 
             // Shared variables
             var unitsMultiplier = Core.ConvertDrawingUnits(Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem);
@@ -129,15 +130,25 @@ namespace SandWorm
             // Project all points onto the underlying mesh            
             var projectedPoints = Intersection.ProjectPointsToMeshes(inputMeshes, points, new Vector3d(0, 0, -1), 0.000001); // Need to use very high accuraccy, otherwise the function generates duplicate points
 
-            // Populate the mesh elevation array
+            double min = (projectedPoints[0].Z / scaleFactor) / unitsMultiplier;
+
+            // Populate the mesh elevations array
             for (int i = 0; i < results.meshElevationPoints.Length; i++)
             {
-                results.meshElevationPoints[i] = (projectedPoints[i].Z / scaleFactor);
+                results.meshElevationPoints[i] = (projectedPoints[i].Z / scaleFactor) / unitsMultiplier;
+                if (results.meshElevationPoints[i] < min)
+                    min = results.meshElevationPoints[i];
             }
 
+            // Convert to Kinect's sensor coordinate system
+            int bottomMargin = 10; // Set the lowest point of the mesh slightly above the table so that users still have some sand to play with
+            for (int i = 0; i < results.meshElevationPoints.Length; i++)
+            {
+                results.meshElevationPoints[i] = sensorElevation - bottomMargin - results.meshElevationPoints[i] + min;
+            }
 
             // Output data
-            DA.SetDataList(0, outputSurface);
+            DA.SetData(0, surface);
             DA.SetDataList(1, projectedPoints);
             DA.SetData(2, results);
         }

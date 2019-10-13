@@ -8,41 +8,48 @@ namespace SandWorm.Analytics
 {
     public class CutFill : Analysis.MeshColorAnalysis
     {
-        readonly ushort maximumCutFill = 200;
+        readonly ushort maximumCutFill = 100; // Limit the range to allow for better visualization of differences
         public CutFill() : base("Visualise difference between meshes")
         {
         }
         private Color getColorForCutFill(int cutFillValue)
         {
-            if (cutFillValue > maximumCutFill)
+            if (cutFillValue < 0)
+                return lookupTable[0];
+            else if (cutFillValue > maximumCutFill)
                 return lookupTable[lookupTable.Length - 1];
-            else
+            else 
                 return lookupTable[cutFillValue];
+
         }
 
-        public void GetColorCloudForAnalysis(ref Color[] vertexColors, double[] pixelArray, CutFillResults referenceMeshElevations)
+        public Color[] GetColorCloudForAnalysis(double[] pixelArray, CompareMeshes referenceMeshElevations)
         {
             if (lookupTable == null)
             {
                 ComputeLookupTableForAnalysis(0.0);
             }
 
-            vertexColors = new Color[pixelArray.Length];
+            var vertexColors = new Color[pixelArray.Length];
 
-
+            for (int i = 0; i < referenceMeshElevations.meshElevationPoints.Length; i++)
+            {
+                vertexColors[i] = getColorForCutFill((int)(pixelArray[i] - referenceMeshElevations.meshElevationPoints[i]) + maximumCutFill); 
+            }
+            return vertexColors;
         }
 
         public override void ComputeLookupTableForAnalysis(double sensorElevation)
         {
             var cut = new Analysis.VisualisationRangeWithColor
             {
-                ValueSpan = 100,
+                ValueSpan = maximumCutFill,
                 ColorStart = new ColorHSL(1.0, 1.0, 0.3), // Dark Red
                 ColorEnd = new ColorHSL(1.0, 1.0, 1.0) // White
             };
             var fill = new Analysis.VisualisationRangeWithColor
             {
-                ValueSpan = 100, 
+                ValueSpan = maximumCutFill, 
                 ColorStart = new ColorHSL(1.0, 1.0, 1.0), // White
                 ColorEnd = new ColorHSL(0.3, 1.0, 0.3) // Dark Green
             };
