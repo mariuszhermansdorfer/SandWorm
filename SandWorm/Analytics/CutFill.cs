@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
+﻿using System.Drawing;
 using Rhino.Display;
-using Rhino.Geometry;
+
 
 namespace SandWorm.Analytics
 {
@@ -12,7 +10,7 @@ namespace SandWorm.Analytics
         public CutFill() : base("Visualise difference between meshes")
         {
         }
-        private Color getColorForCutFill(int cutFillValue)
+        private Color GetColorForCutFill(int cutFillValue)
         {
             if (cutFillValue < 0)
                 return lookupTable[0];
@@ -32,9 +30,9 @@ namespace SandWorm.Analytics
 
             var vertexColors = new Color[pixelArray.Length];
 
-            for (int i = 0; i < referenceMeshElevations.meshElevationPoints.Length; i++)
+            for (int i = 0; i < referenceMeshElevations.MeshElevationPoints.Length; i++)
             {
-                vertexColors[i] = getColorForCutFill((int)(pixelArray[i] - referenceMeshElevations.meshElevationPoints[i]) + maximumCutFill); 
+                vertexColors[i] = GetColorForCutFill((int)(pixelArray[i] - referenceMeshElevations.MeshElevationPoints[i]) + maximumCutFill); 
             }
             return vertexColors;
         }

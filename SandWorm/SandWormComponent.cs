@@ -40,6 +40,7 @@ namespace SandWorm
         public int averageFrames = 1;
         public int blurRadius = 1;
         public static double unitsMultiplier;
+        public double[] elevationArray;
 
         // Analysis state
         private double waterLevel = 50;
@@ -130,13 +131,14 @@ namespace SandWorm
             DA.GetData<SetupOptions>(4, ref options);
             DA.GetData<CompareMeshes>(5, ref referenceMeshElevations);
 
-            if (options.sensorElevation != 0) sensorElevation = options.sensorElevation;
-            if (options.leftColumns != 0) leftColumns = options.leftColumns;
-            if (options.rightColumns != 0) rightColumns = options.rightColumns;
-            if (options.topRows != 0) topRows = options.topRows;
-            if (options.bottomRows != 0) bottomRows = options.bottomRows;
-            if (options.tickRate != 0) tickRate = options.tickRate;
-            if (options.keepFrames != 0) keepFrames = options.keepFrames;
+            if (options.SensorElevation != 0) sensorElevation = options.SensorElevation;
+            if (options.LeftColumns != 0) leftColumns = options.LeftColumns;
+            if (options.RightColumns != 0) rightColumns = options.RightColumns;
+            if (options.TopRows != 0) topRows = options.TopRows;
+            if (options.BottomRows != 0) bottomRows = options.BottomRows;
+            if (options.TickRate != 0) tickRate = options.TickRate;
+            if (options.KeepFrames != 0) keepFrames = options.KeepFrames;
+            if (options.ElevationArray != null) elevationArray = options.ElevationArray;
 
             // Pick the correct multiplier based on the drawing units. Shouldn't be a class variable; gets 'stuck'.
             unitsMultiplier = Core.ConvertDrawingUnits(Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem);
@@ -192,7 +194,7 @@ namespace SandWorm
             // Average across multiple frames
             for (int pixel = 0; pixel < depthFrameDataInt.Length; pixel++)
             {
-                if (depthFrameDataInt[pixel] > 200 && depthFrameDataInt[pixel] <= lookupTable.Length) // We have a valid pixel. TODO remove reference to the lookup table
+                if (depthFrameDataInt[pixel] > 200) // We have a valid pixel.
                     runningSum[pixel] += depthFrameDataInt[pixel];
                 else
                 {
@@ -209,6 +211,7 @@ namespace SandWorm
                 }
 
                 averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count; // Calculate average values
+                if (elevationArray != null) averagedDepthFrameData[pixel] += elevationArray[pixel]; // Correct for Kinect's inacurracies using input from the calibration component
 
                 if (renderBuffer.Count >= averageFrames)
                     runningSum[pixel] -= renderBuffer.First.Value[pixel]; // Subtract the oldest value from the sum 

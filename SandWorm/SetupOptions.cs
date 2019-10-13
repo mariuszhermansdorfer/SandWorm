@@ -1,16 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace SandWorm
 {
     public class SetupOptions
     {
         public SetupOptions()
         {
-
         }
 
         private double _sensorElevation;
@@ -20,49 +14,49 @@ namespace SandWorm
         private int _bottomRows;
         private int _tickRate;
         private int _keepFrames;
-        private int[] _elevationArray; // Store all deltas between desired and measured distance values from the sensor to the table for each pixel.
+        private double[] _elevationArray; // Store all deltas between desired and measured distance values from the sensor to the table for each pixel.
 
-        public double sensorElevation
+        public double SensorElevation
         {
             get { return _sensorElevation; }
             set { _sensorElevation = value; }
         }
-        public int leftColumns
+        public int LeftColumns
         {
             get { return _leftColumns; }
             set { _leftColumns = value; }
         }
 
-        public int rightColumns
+        public int RightColumns
         {
             get { return _rightColumns; }
             set { _rightColumns = value; }
         }
 
-        public int topRows
+        public int TopRows
         {
             get { return _topRows; }
             set { _topRows = value; }
         }
 
-        public int bottomRows
+        public int BottomRows
         {
             get { return _bottomRows; }
             set { _bottomRows = value; }
         }
 
-        public int tickRate
+        public int TickRate
         {
             get { return _tickRate; }
             set { _tickRate = value; }
         }
 
-        public int keepFrames
+        public int KeepFrames
         {
             get { return _keepFrames; }
             set { _keepFrames = value; }
         }
-        public int[] elevationArray
+        public double[] ElevationArray
         {
             get { return _elevationArray; }
             set { _elevationArray = value; }

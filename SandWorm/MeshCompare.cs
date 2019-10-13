@@ -15,7 +15,7 @@ namespace SandWorm
 
         private double[] _meshElevationPoints;
 
-        public double[] meshElevationPoints
+        public double[] MeshElevationPoints
         {
             get { return _meshElevationPoints; }
             set { _meshElevationPoints = value; }
@@ -84,11 +84,11 @@ namespace SandWorm
             DA.GetData<SetupOptions>(3, ref options);
 
 
-            if (options.sensorElevation != 0) sensorElevation = options.sensorElevation;
-            if (options.leftColumns != 0) leftColumns = options.leftColumns;
-            if (options.rightColumns != 0) rightColumns = options.rightColumns;
-            if (options.topRows != 0) topRows = options.topRows;
-            if (options.bottomRows != 0) bottomRows = options.bottomRows;
+            if (options.SensorElevation != 0) sensorElevation = options.SensorElevation;
+            if (options.LeftColumns != 0) leftColumns = options.LeftColumns;
+            if (options.RightColumns != 0) rightColumns = options.RightColumns;
+            if (options.TopRows != 0) topRows = options.TopRows;
+            if (options.BottomRows != 0) bottomRows = options.BottomRows;
 
 
             // Shared variables
@@ -101,8 +101,8 @@ namespace SandWorm
             // Initialize all the outputs
             output = new List<string>();
             outputSurface = new List<GeometryBase>();
-            results.meshElevationPoints = new double[(512 - leftColumns - rightColumns) * (424 - topRows - bottomRows)];
-            var inputMeshes = new List<Mesh>();
+            results.MeshElevationPoints = new double[(512 - leftColumns - rightColumns) * (424 - topRows - bottomRows)];
+            List<Mesh> inputMeshes = new List<Mesh>();
             inputMeshes.Add(inputMesh);
 
 
@@ -133,18 +133,18 @@ namespace SandWorm
             double min = (projectedPoints[0].Z / scaleFactor) / unitsMultiplier;
 
             // Populate the mesh elevations array
-            for (int i = 0; i < results.meshElevationPoints.Length; i++)
+            for (int i = 0; i < results.MeshElevationPoints.Length; i++)
             {
-                results.meshElevationPoints[i] = (projectedPoints[i].Z / scaleFactor) / unitsMultiplier;
-                if (results.meshElevationPoints[i] < min)
-                    min = results.meshElevationPoints[i];
+                results.MeshElevationPoints[i] = (projectedPoints[i].Z / scaleFactor) / unitsMultiplier;
+                if (results.MeshElevationPoints[i] < min)
+                    min = results.MeshElevationPoints[i];
             }
 
             // Convert to Kinect's sensor coordinate system
             int bottomMargin = 10; // Set the lowest point of the mesh slightly above the table so that users still have some sand to play with
-            for (int i = 0; i < results.meshElevationPoints.Length; i++)
+            for (int i = 0; i < results.MeshElevationPoints.Length; i++)
             {
-                results.meshElevationPoints[i] = sensorElevation - bottomMargin - results.meshElevationPoints[i] + min;
+                results.MeshElevationPoints[i] = sensorElevation - bottomMargin - results.MeshElevationPoints[i] + min;
             }
 
             // Output data
