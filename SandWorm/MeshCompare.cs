@@ -141,7 +141,7 @@ namespace SandWorm
             }
 
             // Convert to Kinect's sensor coordinate system
-            int bottomMargin = 10; // Set the lowest point of the mesh slightly above the table so that users still have some sand to play with
+            int bottomMargin = 0; // Set the lowest point of the mesh slightly above the table so that users still have some sand to play with
             for (int i = 0; i < results.MeshElevationPoints.Length; i++)
             {
                 results.MeshElevationPoints[i] = sensorElevation - bottomMargin - results.MeshElevationPoints[i] + min;

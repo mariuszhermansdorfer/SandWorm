@@ -93,7 +93,7 @@ namespace SandWorm
 
             double averagedSensorElevation = sensorElevation;
             var unitsMultiplier = Core.ConvertDrawingUnits(Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem);
-
+            /*
             if (calibrateSandworm) frameCount = 60; // Start calibration 
 
             if (frameCount > 1) // Iterate a pre-set number of times
@@ -150,10 +150,10 @@ namespace SandWorm
                     elevationArray[i] = averagedDepthFrameData[i] - averagedSensorElevation;
                 }
             }
-
+            */
             var options = new SetupOptions
             {
-                SensorElevation = averagedSensorElevation * unitsMultiplier,
+                SensorElevation = averagedSensorElevation,// * unitsMultiplier,
                 LeftColumns = leftColumns,
                 RightColumns = rightColumns,
                 TopRows = topRows,

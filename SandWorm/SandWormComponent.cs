@@ -211,7 +211,7 @@ namespace SandWorm
                 }
 
                 averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count; // Calculate average values
-                if (elevationArray != null) averagedDepthFrameData[pixel] += elevationArray[pixel]; // Correct for Kinect's inacurracies using input from the calibration component
+                //if (elevationArray != null) averagedDepthFrameData[pixel] += elevationArray[pixel]; // Correct for Kinect's inacurracies using input from the calibration component
 
                 if (renderBuffer.Count >= averageFrames)
                     runningSum[pixel] -= renderBuffer.First.Value[pixel]; // Subtract the oldest value from the sum 

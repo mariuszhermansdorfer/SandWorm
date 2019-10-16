@@ -14,7 +14,7 @@ namespace SandWorm.Analytics
         {
             if (cutFillValue < 0)
                 return lookupTable[0];
-            else if (cutFillValue > maximumCutFill)
+            else if (cutFillValue > 2 * maximumCutFill)
                 return lookupTable[lookupTable.Length - 1];
             else 
                 return lookupTable[cutFillValue];
@@ -48,7 +48,7 @@ namespace SandWorm.Analytics
             var fill = new Analysis.VisualisationRangeWithColor
             {
                 ValueSpan = maximumCutFill, 
-                ColorStart = new ColorHSL(1.0, 1.0, 1.0), // White
+                ColorStart = new ColorHSL(0.3, 1.0, 1.0), // White
                 ColorEnd = new ColorHSL(0.3, 1.0, 0.3) // Dark Green
             };
             ComputeLinearRanges(cut, fill);
