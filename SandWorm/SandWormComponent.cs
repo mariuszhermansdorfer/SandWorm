@@ -251,12 +251,13 @@ namespace SandWorm
                         trimmedWidth, trimmedHeight, depthPixelSize.x, depthPixelSize.y);
                     break;
                 case Analytics.Aspect analysis:
-                    // TODO: implementation
+                    vertexColors = analysis.GetColorCloudForAnalysis(averagedDepthFrameData,
+                        trimmedWidth, trimmedHeight);
                     break;
                 default:
                     break;
             }
-    Core.LogTiming(ref output, timer, "Point cloud analysis"); // Debug Info
+            Core.LogTiming(ref output, timer, "Point cloud analysis"); // Debug Info
             
             // Keep only the desired amount of frames in the buffer
             while (renderBuffer.Count >= averageFrames)
@@ -264,7 +265,7 @@ namespace SandWorm
                 renderBuffer.RemoveFirst();
             }
 
-quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, trimmedWidth, trimmedHeight);
+            quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, trimmedWidth, trimmedHeight);
             if (keepFrames > 1)
                 outputMesh.Insert(0, quadMesh.DuplicateMesh()); // Clone and prepend if keeping frames
             else
@@ -294,7 +295,7 @@ quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, trimmedWidth,
             if (keepFrames > 1 && keepFrames<outputMesh.Count)
             {
                 int framesToRemove = outputMesh.Count - keepFrames;
-outputMesh.RemoveRange(keepFrames, framesToRemove > 0 ? framesToRemove : 0);
+                outputMesh.RemoveRange(keepFrames, framesToRemove > 0 ? framesToRemove : 0);
             }
 
             DA.SetDataList(0, outputMesh);
