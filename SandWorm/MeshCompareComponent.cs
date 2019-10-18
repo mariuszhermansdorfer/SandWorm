@@ -22,7 +22,7 @@ namespace SandWorm
         }
 
     }
-    public class MeshCompare : GH_Component
+    public class MeshCompareComponent : GH_Component
     {
         public List<GeometryBase> outputSurface;
         private Curve inputRectangle;
@@ -37,7 +37,7 @@ namespace SandWorm
         public List<string> output;
         public Mesh inputMesh;
 
-        public MeshCompare()
+        public MeshCompareComponent()
           : base("MeshCompare", "MeshCompare",
               "Visualizes elevation differences between meshes.",
               "Sandworm", "Sandbox")

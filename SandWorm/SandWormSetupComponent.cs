@@ -61,7 +61,8 @@ namespace SandWorm
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("Options", "O", "SandWorm oOptions", GH_ParamAccess.item); //debugging
+            pManager.AddGenericParameter("Options", "O", "SandWorm Options", GH_ParamAccess.item); 
+            pManager.AddTextParameter("Info", "I", "Component info", GH_ParamAccess.list); //debugging
         }
 
         private void ScheduleDelegate(GH_Document doc)
@@ -93,13 +94,13 @@ namespace SandWorm
 
             double averagedSensorElevation = sensorElevation;
             var unitsMultiplier = Core.ConvertDrawingUnits(Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem);
-            /*
+            string info = "";
+
             if (calibrateSandworm) frameCount = 60; // Start calibration 
 
             if (frameCount > 1) // Iterate a pre-set number of times
             {
-
-
+                info += "Reading frame: " + frameCount.ToString();
                 // Trim the depth array and cast ushort values to int
                 Core.CopyAsIntArray(KinectController.depthFrameData, depthFrameDataInt, leftColumns, rightColumns, topRows, bottomRows, KinectController.depthHeight, KinectController.depthWidth);
 
@@ -107,7 +108,9 @@ namespace SandWorm
                 for (int pixel = 0; pixel < depthFrameDataInt.Length; pixel++)
                 {
                     if (depthFrameDataInt[pixel] > 200) // We have a valid pixel. 
+                    {
                         runningSum[pixel] += depthFrameDataInt[pixel];
+                    }
                     else
                     {
                         if (pixel > 0) // Pixel is invalid and we have a neighbor to steal information from
@@ -124,36 +127,46 @@ namespace SandWorm
                     averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count; // Calculate average values
                 }
                 frameCount--;
-                ScheduleSolve(); // Schedule another solution to get more data from Kinect
-            }
 
-            if (frameCount == 0) // All frames have been collected, we can save the results
-            {
-                // Measure sensor elevation by averaging over a grid of 20x20 pixels in the center of the table
-                int counter = 0;
-                for (int y = (trimmedHeight / 2) - 10; y < (trimmedHeight / 2) + 10; y++)       // Iterate over y dimension
+                if (frameCount == 1) // All frames have been collected, we can save the results
                 {
-                    for (int x = (trimmedWidth / 2) - 10; x < (trimmedWidth / 2) + 10; x++)       // Iterate over x dimension
+                    // Measure sensor elevation by averaging over a grid of 20x20 pixels in the center of the table
+                    int counter = 0;
+                    averagedSensorElevation = 0;
+
+                    for (int y = (trimmedHeight / 2) - 10; y < (trimmedHeight / 2) + 10; y++)       // Iterate over y dimension
                     {
-                        int i = y * trimmedHeight + x;
+                        for (int x = (trimmedWidth / 2) - 10; x < (trimmedWidth / 2) + 10; x++)       // Iterate over x dimension
+                        {
+                            int i = y * trimmedWidth + x;
 
-                        averagedSensorElevation += averagedDepthFrameData[i];
-                        counter++;
+                            averagedSensorElevation += averagedDepthFrameData[i];
+                            
+                            counter++;
+                        }
                     }
-                }
-                averagedSensorElevation /= counter;
+                    averagedSensorElevation /= counter;
+                    
 
+                    // Counter for Kinect inaccuracies and potential hardware misalignment by storing differences between the averaged sensor elevation and individual pixels.
+                    for (int i = 0; i < averagedDepthFrameData.Length; i++)
+                    {
+                        elevationArray[i] = averagedDepthFrameData[i] - averagedSensorElevation;
+                    }
 
-                // Counter for Kinect inaccuracies and potential hardware misalignment by storing differences between the averaged sensor elevation and individual pixels.
-                for (int i = 0; i < averagedDepthFrameData.Length; i++)
-                {
-                    elevationArray[i] = averagedDepthFrameData[i] - averagedSensorElevation;
+                    averagedSensorElevation *= unitsMultiplier;
+
+                    renderBuffer.Clear();
+                    Array.Clear(runningSum, 0, runningSum.Length);
                 }
+                if (frameCount > 1) ScheduleSolve(); // Schedule another solution to get more data from Kinect
             }
-            */
+ 
+            info += " Sensor Elevation: " + averagedSensorElevation.ToString();
+     
             var options = new SetupOptions
             {
-                SensorElevation = averagedSensorElevation,// * unitsMultiplier,
+                SensorElevation = averagedSensorElevation,
                 LeftColumns = leftColumns,
                 RightColumns = rightColumns,
                 TopRows = topRows,
@@ -164,6 +177,7 @@ namespace SandWorm
             };
 
             DA.SetData(0, options);
+            DA.SetData(1, info);
         }
 
         private void ScheduleSolve()

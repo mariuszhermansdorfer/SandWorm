@@ -69,8 +69,8 @@ namespace SandWorm
             pManager.AddNumberParameter("ContourInterval", "CI", "The interval (if this analysis is enabled)", GH_ParamAccess.item, contourInterval);
             pManager.AddIntegerParameter("AverageFrames", "AF", "Amount of depth frames to average across. This number has to be greater than zero.", GH_ParamAccess.item, averageFrames);
             pManager.AddIntegerParameter("BlurRadius", "BR", "Radius for Gaussian blur.", GH_ParamAccess.item, blurRadius);
-            pManager.AddGenericParameter("SandWormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.item);
-            pManager.AddGenericParameter("CutFillOptions", "CFO", "Cut & Fill options", GH_ParamAccess.item);
+            pManager.AddGenericParameter("SandWormOptions", "SWO", "Setup & Calibration options.", GH_ParamAccess.item);
+            pManager.AddGenericParameter("MeshCompareOptions", "MCO", "Options for the MeshCompare component.", GH_ParamAccess.item);
             pManager[0].Optional = true;
             pManager[1].Optional = true;
             pManager[2].Optional = true;
@@ -211,7 +211,7 @@ namespace SandWorm
                 }
 
                 averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count; // Calculate average values
-                //if (elevationArray != null) averagedDepthFrameData[pixel] += elevationArray[pixel]; // Correct for Kinect's inacurracies using input from the calibration component
+                if (elevationArray != null) averagedDepthFrameData[pixel] -= elevationArray[pixel]; // Correct for Kinect's inacurracies using input from the calibration component
 
                 if (renderBuffer.Count >= averageFrames)
                     runningSum[pixel] -= renderBuffer.First.Value[pixel]; // Subtract the oldest value from the sum 
