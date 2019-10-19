@@ -84,7 +84,8 @@ namespace SandWorm
             DA.GetData<SetupOptions>(3, ref options);
 
 
-            if (options.SensorElevation != 0) sensorElevation = options.SensorElevation;
+            if (scaleFactor <= 0)
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Scale Factor must be greater than 0.");
             if (options.LeftColumns != 0) leftColumns = options.LeftColumns;
             if (options.RightColumns != 0) rightColumns = options.RightColumns;
             if (options.TopRows != 0) topRows = options.TopRows;
