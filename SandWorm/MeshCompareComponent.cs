@@ -26,7 +26,7 @@ namespace SandWorm
     {
         public List<GeometryBase> outputSurface;
         private Curve inputRectangle;
-        private double scaleFactor;
+        private double scaleFactor = 1;
         private double sensorElevation;
         public int leftColumns = 0;
         public int rightColumns = 0;
@@ -51,10 +51,10 @@ namespace SandWorm
         {
             pManager.AddCurveParameter("Rectangle", "RC", "Rectangle", GH_ParamAccess.item);
             pManager.AddMeshParameter("Mesh", "M", "Mesh to be sampled", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Scale Factor. 1 : ", "SF", "Scale factor for the referenced terrain.", GH_ParamAccess.item);
+            pManager.AddNumberParameter("Scale Factor. 1 : ", "SF", "Scale factor for the referenced terrain.", GH_ParamAccess.item, scaleFactor);
             pManager.AddGenericParameter("SandWormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.item);
             pManager[0].Optional = true;
-            pManager[1].Optional = true;
+            pManager[1].Optional = false;
             pManager[2].Optional = true;
             pManager[3].Optional = true;
         }
