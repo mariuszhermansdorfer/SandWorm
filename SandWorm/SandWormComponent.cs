@@ -260,7 +260,11 @@ namespace SandWorm
                     // TODO: implementation
                     break;
                 case Analytics.CutFill analysis:
-                    vertexColors = analysis.GetColorCloudForAnalysis(averagedDepthFrameData, referenceMeshElevations);
+                    if (referenceMeshElevations.MeshElevationPoints == null)
+                        ShowComponentError("No valid MeshCompareOptions provided. Either disable the cut/fill " +
+                                           "visualisation or setup a valid set of MeshCompare options in that component.");
+                    else
+                        vertexColors = analysis.GetColorCloudForAnalysis(averagedDepthFrameData, referenceMeshElevations);
                     break;
                 default:
                     break;
