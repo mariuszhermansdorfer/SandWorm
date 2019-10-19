@@ -50,7 +50,7 @@ namespace SandWorm
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddCurveParameter("Rectangle", "RC", "Rectangle", GH_ParamAccess.item);
-            pManager.AddMeshParameter("Mesh", "M", "Mesh to be sampled", GH_ParamAccess.item);
+            pManager.AddMeshParameter("Mesh", "M", "Mesh to be compared to the Kinect's scan", GH_ParamAccess.item);
             pManager.AddNumberParameter("Scale Factor. 1 : ", "SF", "Scale factor for the referenced terrain.", GH_ParamAccess.item, scaleFactor);
             pManager.AddGenericParameter("SandWormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.item);
             pManager[0].Optional = true;

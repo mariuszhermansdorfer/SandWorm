@@ -159,11 +159,22 @@ namespace SandWorm
                     renderBuffer.Clear();
                     Array.Clear(runningSum, 0, runningSum.Length);
                 }
-                if (frameCount > 1) ScheduleSolve(); // Schedule another solution to get more data from Kinect
+
+                if (frameCount > 1)
+                {
+                    ScheduleSolve(); // Schedule another solution to get more data from Kinect
+                }
+                else
+                {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "Calibration measurement finished; sensor elevation measured and set as " + averagedSensorElevation.ToString());
+                    info = ""; // Reset the frame-measuring messages (otherwise it looks like its stuck/paused?)
+                }
             }
- 
-            info += " Sensor Elevation: " + averagedSensorElevation.ToString();
-     
+            
+            info += "\nParameter-Provided Sensor Elevation: " + sensorElevation.ToString();
+            info += "\nMeasured-Average Sensor Elevation: " + averagedSensorElevation.ToString();
+            info += "\nOutput Sensor Elevation: " + averagedSensorElevation.ToString();
+
             var options = new SetupOptions
             {
                 SensorElevation = averagedSensorElevation,
