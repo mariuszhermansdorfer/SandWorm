@@ -25,9 +25,9 @@ namespace SandWorm
         public static Color[] lookupTable = new Color[1500]; //to do - fix arbitrary value assuming 1500 mm as max distance from the kinect sensor
         public Color[] vertexColors;
         public Mesh quadMesh = new Mesh();
-        public PointCloud _cloud;
 
-        public List<double> options; // List of options coming from the SWSetup component
+        public SetupOptions options; // List of options coming from the SWSetup component
+        public CompareMeshes referenceMeshElevations;
 
         public double sensorElevation = 1000; // Arbitrary default value (must be >0)
         public int leftColumns = 0;
@@ -39,6 +39,7 @@ namespace SandWorm
         public int averageFrames = 1;
         public int blurRadius = 1;
         public static double unitsMultiplier;
+        public double[] elevationArray;
 
         // Analysis state
         private double waterLevel = 50;
@@ -67,12 +68,14 @@ namespace SandWorm
             pManager.AddNumberParameter("ContourInterval", "CI", "The interval (if this analysis is enabled)", GH_ParamAccess.item, contourInterval);
             pManager.AddIntegerParameter("AverageFrames", "AF", "Amount of depth frames to average across. This number has to be greater than zero.", GH_ParamAccess.item, averageFrames);
             pManager.AddIntegerParameter("BlurRadius", "BR", "Radius for Gaussian blur.", GH_ParamAccess.item, blurRadius);
-            pManager.AddNumberParameter("SandWormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.list);
+            pManager.AddGenericParameter("SandWormOptions", "SWO", "Setup & Calibration options.", GH_ParamAccess.item);
+            pManager.AddGenericParameter("MeshCompareOptions", "MCO", "Options for the MeshCompare component.", GH_ParamAccess.item);
             pManager[0].Optional = true;
             pManager[1].Optional = true;
             pManager[2].Optional = true;
             pManager[3].Optional = true;
             pManager[4].Optional = true;
+            pManager[5].Optional = true;
         }
 
         /// <summary>
@@ -117,23 +120,24 @@ namespace SandWorm
         /// to store data in output parameters.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            options = new List<double>();
+            options = new SetupOptions();
+            referenceMeshElevations = new CompareMeshes();
+
             DA.GetData<double>(0, ref waterLevel);
             DA.GetData<double>(1, ref contourInterval);
             DA.GetData<int>(2, ref averageFrames);
             DA.GetData<int>(3, ref blurRadius);
-            DA.GetDataList<double>(4, options);
+            DA.GetData<SetupOptions>(4, ref options);
+            DA.GetData<CompareMeshes>(5, ref referenceMeshElevations);
 
-            if (options.Count != 0) // TODO add more robust checking whether all the options have been provided by the user
-            {
-                sensorElevation = options[0];
-                leftColumns = (int)options[1];
-                rightColumns = (int)options[2];
-                topRows = (int)options[3];
-                bottomRows = (int)options[4];
-                tickRate = (int)options[5];
-                keepFrames = (int)options[6];
-            }
+            if (options.SensorElevation != 0) sensorElevation = options.SensorElevation;
+            if (options.LeftColumns != 0) leftColumns = options.LeftColumns;
+            if (options.RightColumns != 0) rightColumns = options.RightColumns;
+            if (options.TopRows != 0) topRows = options.TopRows;
+            if (options.BottomRows != 0) bottomRows = options.BottomRows;
+            if (options.TickRate != 0) tickRate = options.TickRate;
+            if (options.KeepFrames != 0) keepFrames = options.KeepFrames;
+            if (options.ElevationArray != null) elevationArray = options.ElevationArray;
 
             // Pick the correct multiplier based on the drawing units. Shouldn't be a class variable; gets 'stuck'.
             unitsMultiplier = Core.ConvertDrawingUnits(Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem);
@@ -189,7 +193,7 @@ namespace SandWorm
             // Average across multiple frames
             for (int pixel = 0; pixel < depthFrameDataInt.Length; pixel++)
             {
-                if (depthFrameDataInt[pixel] > 200 && depthFrameDataInt[pixel] <= lookupTable.Length) // We have a valid pixel. TODO remove reference to the lookup table
+                if (depthFrameDataInt[pixel] > 200) // We have a valid pixel.
                     runningSum[pixel] += depthFrameDataInt[pixel];
                 else
                 {
@@ -206,6 +210,7 @@ namespace SandWorm
                 }
 
                 averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count; // Calculate average values
+                if (elevationArray != null) averagedDepthFrameData[pixel] -= elevationArray[pixel]; // Correct for Kinect's inacurracies using input from the calibration component
 
                 if (renderBuffer.Count >= averageFrames)
                     runningSum[pixel] -= renderBuffer.First.Value[pixel]; // Subtract the oldest value from the sum 
@@ -253,6 +258,13 @@ namespace SandWorm
                 case Analytics.Aspect analysis:
                     vertexColors = analysis.GetColorCloudForAnalysis(averagedDepthFrameData,
                         trimmedWidth, trimmedHeight);
+                    break;
+                case Analytics.CutFill analysis:
+                    if (referenceMeshElevations.MeshElevationPoints == null)
+                        ShowComponentError("No valid MeshCompareOptions provided. Either disable the cut/fill " +
+                                           "visualisation or setup a valid set of MeshCompare options in that component.");
+                    else
+                        vertexColors = analysis.GetColorCloudForAnalysis(averagedDepthFrameData, referenceMeshElevations);
                     break;
                 default:
                     break;
