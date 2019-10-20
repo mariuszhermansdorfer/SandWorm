@@ -6,7 +6,6 @@ using Rhino.Geometry;
 
 namespace SandWorm
 {
-
     public class CompareMeshes
     {
         public CompareMeshes()
@@ -20,7 +19,6 @@ namespace SandWorm
             get { return _meshElevationPoints; }
             set { _meshElevationPoints = value; }
         }
-
     }
     public class MeshCompareComponent : GH_Component
     {
@@ -83,7 +81,7 @@ namespace SandWorm
             DA.GetData<double>(2, ref scaleFactor);
             DA.GetData<SetupOptions>(3, ref options);
 
-
+            if (options.SensorElevation != 0) sensorElevation = options.SensorElevation; 
             if (scaleFactor <= 0)
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Scale Factor must be greater than 0.");
             if (options.LeftColumns != 0) leftColumns = options.LeftColumns;
@@ -103,11 +101,7 @@ namespace SandWorm
             output = new List<string>();
             outputSurface = new List<GeometryBase>();
             results.MeshElevationPoints = new double[(512 - leftColumns - rightColumns) * (424 - topRows - bottomRows)];
-            List<Mesh> inputMeshes = new List<Mesh>
-            {
-                inputMesh
-            };
-
+            List<Mesh> inputMeshes = new List<Mesh>{ inputMesh };
 
             // Convert the input curve to polyline and construct a surface based on its segments
             var polyCurve = inputRectangle.ToPolyline(Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance, Rhino.RhinoDoc.ActiveDoc.ModelAngleToleranceDegrees, 0.01, 100000);
