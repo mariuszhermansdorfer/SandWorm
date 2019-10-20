@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Microsoft.Kinect;
 using Grasshopper.Kernel;
 using System.Linq;
 
@@ -19,9 +18,10 @@ namespace SandWorm
         public int keepFrames = 1; // In ms
 
         public int frameCount; // Number of frames to average the calibration across
-
-        private LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
+        public double averagedSensorElevation;
+        public double[] elevationArray = Enumerable.Range(1, 217088).Select(i => new double()).ToArray();
         public int[] runningSum = Enumerable.Range(1, 217088).Select(i => new int()).ToArray();
+        private LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
 
         /// <summary>
         /// Initializes a new instance of the MyComponent1 class.
@@ -84,15 +84,18 @@ namespace SandWorm
             DA.GetData<int>(5, ref bottomRows);
             DA.GetData<int>(6, ref tickRate);
             DA.GetData<int>(7, ref keepFrames);
+
+            
             // Initialize all arrays
             int trimmedWidth = KinectController.depthWidth - leftColumns - rightColumns;
             int trimmedHeight = KinectController.depthHeight - topRows - bottomRows;
 
             int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
             double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
-            double[] elevationArray = new double[trimmedWidth * trimmedHeight];
+            if (elevationArray.Length != trimmedWidth * trimmedHeight) // Only create a new elevation array when user resizes the mesh
+                elevationArray = new double[trimmedWidth * trimmedHeight];
 
-            double averagedSensorElevation = sensorElevation;
+            averagedSensorElevation = sensorElevation;
             var unitsMultiplier = Core.ConvertDrawingUnits(Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem);
             string info = "";
 
@@ -139,16 +142,14 @@ namespace SandWorm
                         for (int x = (trimmedWidth / 2) - 10; x < (trimmedWidth / 2) + 10; x++)       // Iterate over x dimension
                         {
                             int i = y * trimmedWidth + x;
-
                             averagedSensorElevation += averagedDepthFrameData[i];
-                            
                             counter++;
                         }
                     }
                     averagedSensorElevation /= counter;
-                    
 
                     // Counter for Kinect inaccuracies and potential hardware misalignment by storing differences between the averaged sensor elevation and individual pixels.
+                    
                     for (int i = 0; i < averagedDepthFrameData.Length; i++)
                     {
                         elevationArray[i] = averagedDepthFrameData[i] - averagedSensorElevation;
@@ -166,7 +167,7 @@ namespace SandWorm
                 }
                 else
                 {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "Calibration measurement finished; sensor elevation measured and set as " + averagedSensorElevation.ToString());
+                    base.OnPingDocument().ScheduleSolution(5, ManipulateSlider);
                     info = ""; // Reset the frame-measuring messages (otherwise it looks like its stuck/paused?)
                 }
             }
@@ -194,6 +195,24 @@ namespace SandWorm
         private void ScheduleSolve()
         {
             base.OnPingDocument().ScheduleSolution(33, new GH_Document.GH_ScheduleDelegate(ScheduleDelegate));
+        }
+        private void ManipulateSlider(GH_Document doc)
+        {
+            var input = Params.Input[1].Sources[0]; // Get the first thing connected to the second input of this component
+            var slider = input as Grasshopper.Kernel.Special.GH_NumberSlider; // Try to cast that thing as a slider
+
+            // Set the slider value to represent the newly measured sensor elevation
+            if (slider != null)
+            {
+                slider.Slider.RaiseEvents = false;
+                slider.Slider.DecimalPlaces = 4;
+                slider.SetSliderValue((decimal) averagedSensorElevation);
+                slider.ExpireSolution(false);
+                slider.Slider.RaiseEvents = true;
+
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "Calibration measurement finished; sensor elevation measured and set as " + averagedSensorElevation.ToString());
+            }
+
         }
         /// <summary>
         /// Provides an Icon for the component.
