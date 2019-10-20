@@ -64,7 +64,7 @@ namespace SandWorm
         {
             pManager.AddGeometryParameter("Surface", "S", "Sandbox surface in real-world scale", GH_ParamAccess.list);
             pManager.AddPointParameter("Points", "P", "Additional mesh analysis", GH_ParamAccess.list);
-            pManager.AddGenericParameter("Elevation Points", "E", "Resulting array of elevation points", GH_ParamAccess.item);
+            pManager.AddGenericParameter("MeshCompareOptions", "MCO", "Resulting array of elevation points", GH_ParamAccess.item);
         }
 
         /// <summary>

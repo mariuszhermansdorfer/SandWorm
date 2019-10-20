@@ -25,7 +25,6 @@ namespace SandWorm
         public static Color[] lookupTable = new Color[1500]; //to do - fix arbitrary value assuming 1500 mm as max distance from the kinect sensor
         public Color[] vertexColors;
         public Mesh quadMesh = new Mesh();
-        public PointCloud _cloud;
 
         public SetupOptions options; // List of options coming from the SWSetup component
         public CompareMeshes referenceMeshElevations;
