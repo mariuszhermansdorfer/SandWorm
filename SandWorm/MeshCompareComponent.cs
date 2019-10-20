@@ -103,8 +103,10 @@ namespace SandWorm
             output = new List<string>();
             outputSurface = new List<GeometryBase>();
             results.MeshElevationPoints = new double[(512 - leftColumns - rightColumns) * (424 - topRows - bottomRows)];
-            List<Mesh> inputMeshes = new List<Mesh>();
-            inputMeshes.Add(inputMesh);
+            List<Mesh> inputMeshes = new List<Mesh>
+            {
+                inputMesh
+            };
 
 
             // Convert the input curve to polyline and construct a surface based on its segments

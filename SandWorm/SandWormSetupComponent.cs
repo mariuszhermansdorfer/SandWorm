@@ -199,20 +199,16 @@ namespace SandWorm
         private void ManipulateSlider(GH_Document doc)
         {
             var input = Params.Input[1].Sources[0]; // Get the first thing connected to the second input of this component
-            var slider = input as Grasshopper.Kernel.Special.GH_NumberSlider; // Try to cast that thing as a slider
-
-            // Set the slider value to represent the newly measured sensor elevation
-            if (slider != null)
+            if (input is Grasshopper.Kernel.Special.GH_NumberSlider slider)
             {
                 slider.Slider.RaiseEvents = false;
                 slider.Slider.DecimalPlaces = 4;
-                slider.SetSliderValue((decimal) averagedSensorElevation);
+                slider.SetSliderValue((decimal)averagedSensorElevation);
                 slider.ExpireSolution(false);
                 slider.Slider.RaiseEvents = true;
 
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "Calibration measurement finished; sensor elevation measured and set as " + averagedSensorElevation.ToString());
             }
-
         }
         /// <summary>
         /// Provides an Icon for the component.
