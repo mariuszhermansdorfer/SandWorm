@@ -137,7 +137,8 @@ namespace SandWorm
             if (options.BottomRows != 0) bottomRows = options.BottomRows;
             if (options.TickRate != 0) tickRate = options.TickRate;
             if (options.KeepFrames != 0) keepFrames = options.KeepFrames;
-            if (options.ElevationArray != null) elevationArray = options.ElevationArray;
+            if (options.ElevationArray.Length != 0) elevationArray = options.ElevationArray;
+            else elevationArray = new double[0];
 
             // Pick the correct multiplier based on the drawing units. Shouldn't be a class variable; gets 'stuck'.
             unitsMultiplier = Core.ConvertDrawingUnits(Rhino.RhinoDoc.ActiveDoc.ModelUnitSystem);
@@ -210,7 +211,7 @@ namespace SandWorm
                 }
 
                 averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count; // Calculate average values
-                if (elevationArray != null) averagedDepthFrameData[pixel] -= elevationArray[pixel]; // Correct for Kinect's inacurracies using input from the calibration component
+                if (elevationArray.Length > 0) averagedDepthFrameData[pixel] -= elevationArray[pixel]; // Correct for Kinect's inacurracies using input from the calibration component
 
                 if (renderBuffer.Count >= averageFrames)
                     runningSum[pixel] -= renderBuffer.First.Value[pixel]; // Subtract the oldest value from the sum 
@@ -232,17 +233,17 @@ namespace SandWorm
                 for (int columns = 0; columns < trimmedWidth; columns++)
                 {
                     depthPoint = averagedDepthFrameData[arrayIndex];
-                    tempPoint.X = (float) (columns * -unitsMultiplier * depthPixelSize.x);
-                    tempPoint.Y = (float) (rows * -unitsMultiplier * depthPixelSize.y);
-                    tempPoint.Z = (float) ((depthPoint - sensorElevation) * -unitsMultiplier);
+                    tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x);
+                    tempPoint.Y = (float)(rows * -unitsMultiplier * depthPixelSize.y);
+                    tempPoint.Z = (float)((depthPoint - sensorElevation) * -unitsMultiplier);
                     pointCloud[arrayIndex] = tempPoint; // Add new point to point cloud itself
                     arrayIndex++;
                 }
             }
             Core.LogTiming(ref output, timer, "Point cloud generation"); // Debug Info
-            
+
             // First type of analysis that acts on the pixel array and produces vertex colors
-            
+
             switch (Analysis.AnalysisManager.GetEnabledMeshColoring())
             {
                 case Analytics.None analysis:
@@ -268,15 +269,15 @@ namespace SandWorm
                 default:
                     break;
             }
-    Core.LogTiming(ref output, timer, "Point cloud analysis"); // Debug Info
-            
+            Core.LogTiming(ref output, timer, "Point cloud analysis"); // Debug Info
+
             // Keep only the desired amount of frames in the buffer
             while (renderBuffer.Count >= averageFrames)
             {
                 renderBuffer.RemoveFirst();
             }
 
-quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, trimmedWidth, trimmedHeight);
+            quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, trimmedWidth, trimmedHeight);
             if (keepFrames > 1)
                 outputMesh.Insert(0, quadMesh.DuplicateMesh()); // Clone and prepend if keeping frames
             else
@@ -303,10 +304,10 @@ quadMesh = Core.CreateQuadMesh(quadMesh, pointCloud, vertexColors, trimmedWidth,
             Core.LogTiming(ref output, timer, "Mesh analysis"); // Debug Info
 
             // Trim the outputMesh List to length specified in keepFrames
-            if (keepFrames > 1 && keepFrames<outputMesh.Count)
+            if (keepFrames > 1 && keepFrames < outputMesh.Count)
             {
                 int framesToRemove = outputMesh.Count - keepFrames;
-outputMesh.RemoveRange(keepFrames, framesToRemove > 0 ? framesToRemove : 0);
+                outputMesh.RemoveRange(keepFrames, framesToRemove > 0 ? framesToRemove : 0);
             }
 
             DA.SetDataList(0, outputMesh);
@@ -318,28 +319,28 @@ outputMesh.RemoveRange(keepFrames, framesToRemove > 0 ? framesToRemove : 0);
 
 
         private void ShowComponentError(string errorMessage)
-{
-    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, errorMessage);
-    ScheduleSolve(); // Ensure a future solve is scheduled despite an early return to SolveInstance()
-}
+        {
+            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, errorMessage);
+            ScheduleSolve(); // Ensure a future solve is scheduled despite an early return to SolveInstance()
+        }
 
-private void ScheduleSolve()
-{
-    if (tickRate > 0) // Allow users to force manual recalculation
-        base.OnPingDocument().ScheduleSolution(tickRate, new GH_Document.GH_ScheduleDelegate(ScheduleDelegate));
-}
+        private void ScheduleSolve()
+        {
+            if (tickRate > 0) // Allow users to force manual recalculation
+                base.OnPingDocument().ScheduleSolution(tickRate, new GH_Document.GH_ScheduleDelegate(ScheduleDelegate));
+        }
 
-/// <summary>
-/// Provides an Icon for every component that will be visible in the User Interface.
-/// Icons need to be 24x24 pixels.
-/// </summary>
-protected override System.Drawing.Bitmap Icon => null;
+        /// <summary>
+        /// Provides an Icon for every component that will be visible in the User Interface.
+        /// Icons need to be 24x24 pixels.
+        /// </summary>
+        protected override System.Drawing.Bitmap Icon => null;
 
-/// <summary>
-/// Each component must have a unique Guid to identify it. 
-/// It is vital this Guid doesn't change otherwise old ghx files 
-/// that use the old ID will partially fail during loading.
-/// </summary>
-public override Guid ComponentGuid => new Guid("f923f24d-86a0-4b7a-9373-23c6b7d2e162");
+        /// <summary>
+        /// Each component must have a unique Guid to identify it. 
+        /// It is vital this Guid doesn't change otherwise old ghx files 
+        /// that use the old ID will partially fail during loading.
+        /// </summary>
+        public override Guid ComponentGuid => new Guid("f923f24d-86a0-4b7a-9373-23c6b7d2e162");
     }
 }
