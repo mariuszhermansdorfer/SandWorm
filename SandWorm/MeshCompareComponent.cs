@@ -103,18 +103,19 @@ namespace SandWorm
             results.MeshElevationPoints = new double[(512 - leftColumns - rightColumns) * (424 - topRows - bottomRows)];
             List<Mesh> inputMeshes = new List<Mesh>{ inputMesh };
 
-            // Convert the input curve to polyline and construct a surface based on its segments
-            var polyCurve = inputRectangle.ToPolyline(Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance, Rhino.RhinoDoc.ActiveDoc.ModelAngleToleranceDegrees, 0.01, 100000);
-            var polyLine = polyCurve.ToPolyline();
-            var segments = polyLine.GetSegments();
-            var plane = new Plane(segments[0].PointAt(0), segments[0].PointAt(1), segments[3].PointAt(0));
-            var surface = new PlaneSurface(plane, new Interval(0, trimmedWidth), new Interval(0, trimmedHeight));
-
+            PlaneSurface surface; // Used to create the point grid that matches the vertex grid of the live mesh
+            if (inputRectangle == default(Curve))
+            {
+                surface = createPlaneFromMesh(inputMeshes, trimmedWidth, trimmedHeight);
+            }
+            else
+            {
+                surface = createPlaneFromCrop(inputRectangle, trimmedWidth, trimmedHeight);
+            }
             outputSurface.Add(surface);
 
             // Place a point at a grid, corresponding to Kinect's depth map
             var points = new List<Point3d>();
-
             for (int i = 0; i < 424 - topRows - bottomRows; i++)
             {
                 for (int j = 0; j < 512 - leftColumns - rightColumns; j++)
@@ -124,7 +125,7 @@ namespace SandWorm
                 }
             }
 
-            // Project all points onto the underlying mesh            
+            // Project all points onto the underlying mesh     
             var projectedPoints = Intersection.ProjectPointsToMeshes(inputMeshes, points, new Vector3d(0, 0, -1), 0.000001); // Need to use very high accuraccy, otherwise the function generates duplicate points
             if (projectedPoints.Length == 0) // Projection fails if there is no overlap
             {
@@ -167,6 +168,30 @@ namespace SandWorm
             DA.SetData(0, surface);
             DA.SetDataList(1, projectedPoints);
             DA.SetData(2, results);
+        }
+        
+        private PlaneSurface createPlaneFromCrop(Curve inputRectangle, double trimmedWidth, double trimmedHeight) 
+        {
+            // Convert the input curve to polyline and construct a surface based on its segments
+            var polyCurve = inputRectangle.ToPolyline(Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance, Rhino.RhinoDoc.ActiveDoc.ModelAngleToleranceDegrees, 0.01, 100000);
+            var polyLine = polyCurve.ToPolyline();
+            var segments = polyLine.GetSegments();
+            var plane = new Plane(segments[0].PointAt(0), segments[0].PointAt(1), segments[3].PointAt(0));
+            return new PlaneSurface(plane, new Interval(0, trimmedWidth), new Interval(0, trimmedHeight));
+        }
+
+        private PlaneSurface createPlaneFromMesh(List<Mesh> inputMeshes, double trimmedWidth, double trimmedHeight)
+        {
+            var boundsPts = new List<Point3d>();
+            // Getting the BoundingBox for the whole mesh is inaccurate; use its vertices instead
+            foreach (Mesh mesh in inputMeshes)
+            {
+                boundsPts.AddRange(mesh.Vertices.ToPoint3dArray());
+            }
+            
+            var boxPoints = new BoundingBox(boundsPts).GetCorners(); // Use top corners of the box for the surface plane
+            var plane = new Plane(boxPoints[4], boxPoints[5], boxPoints[6]);
+            return new PlaneSurface(plane, new Interval(0, trimmedWidth), new Interval(0, trimmedHeight));
         }
 
         /// <summary>
