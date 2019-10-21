@@ -11,7 +11,7 @@ using Microsoft.Kinect;
 
 namespace SandWorm
 {
-    public class SandWorm : GH_Component
+    public class MeshComponent : Components.BaseKinectComponent
     {
         private KinectSensor kinectSensor = null;
         private Point3f[] pointCloud;
@@ -34,7 +34,6 @@ namespace SandWorm
         public int rightColumns = 0;
         public int topRows = 0;
         public int bottomRows = 0;
-        public int tickRate = 33; // In ms
         public int keepFrames = 1;
         public int averageFrames = 1;
         public int blurRadius = 1;
@@ -44,23 +43,8 @@ namespace SandWorm
         private double waterLevel = 50;
         private double contourInterval = 10;
 
-        /// <summary>
-        /// Each implementation of GH_Component must provide a public 
-        /// constructor without any arguments.
-        /// Category represents the Tab in which the component will appear, 
-        /// Subcategory the panel. If you use non-existing tab or panel names, 
-        /// new tabs/panels will automatically be created.
-        /// </summary>
-        public SandWorm()
-          : base("SandWorm", "SandWorm",
-              "Kinect v2 Augmented Reality Sandbox",
-              "Sandworm", "Sandbox")
-        {
-        }
+        public MeshComponent() : base("Sandworm Mesh", "SW Mesh", "Visualise live data from the Kinect as a Mesh") { }
 
-        /// <summary>
-        /// Registers all the input parameters for this component.
-        /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddNumberParameter("WaterLevel", "WL", "WaterLevel", GH_ParamAccess.item, waterLevel);
@@ -75,9 +59,6 @@ namespace SandWorm
             pManager[4].Optional = true;
         }
 
-        /// <summary>
-        /// Registers all the output parameters for this component.
-        /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddMeshParameter("Mesh", "M", "Resulting mesh", GH_ParamAccess.list);
@@ -105,17 +86,7 @@ namespace SandWorm
             ExpireSolution(true);
         }
 
-        private void ScheduleDelegate(GH_Document doc)
-        {
-            ExpireSolution(false);
-        }
-
-        /// <summary>
-        /// This is the method that actually does the work.
-        /// </summary>
-        /// <param name="DA">The DA object can be used to retrieve data from input parameters and 
-        /// to store data in output parameters.</param>
-        protected override void SolveInstance(IGH_DataAccess DA)
+        protected override void SandwormSolveInstance(IGH_DataAccess DA)
         {
             options = new List<double>();
             DA.GetData<double>(0, ref waterLevel);
@@ -304,31 +275,9 @@ namespace SandWorm
 
             ScheduleSolve();
         }
+        
+        protected override System.Drawing.Bitmap Icon => null;
 
-
-        private void ShowComponentError(string errorMessage)
-{
-    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, errorMessage);
-    ScheduleSolve(); // Ensure a future solve is scheduled despite an early return to SolveInstance()
-}
-
-private void ScheduleSolve()
-{
-    if (tickRate > 0) // Allow users to force manual recalculation
-        base.OnPingDocument().ScheduleSolution(tickRate, new GH_Document.GH_ScheduleDelegate(ScheduleDelegate));
-}
-
-/// <summary>
-/// Provides an Icon for every component that will be visible in the User Interface.
-/// Icons need to be 24x24 pixels.
-/// </summary>
-protected override System.Drawing.Bitmap Icon => null;
-
-/// <summary>
-/// Each component must have a unique Guid to identify it. 
-/// It is vital this Guid doesn't change otherwise old ghx files 
-/// that use the old ID will partially fail during loading.
-/// </summary>
-public override Guid ComponentGuid => new Guid("f923f24d-86a0-4b7a-9373-23c6b7d2e162");
+        public override Guid ComponentGuid => new Guid("f923f24d-86a0-4b7a-9373-23c6b7d2e162");
     }
 }
