@@ -126,11 +126,30 @@ namespace SandWorm
 
             // Project all points onto the underlying mesh            
             var projectedPoints = Intersection.ProjectPointsToMeshes(inputMeshes, points, new Vector3d(0, 0, -1), 0.000001); // Need to use very high accuraccy, otherwise the function generates duplicate points
+            if (projectedPoints.Length == 0) // Projection fails if there is no overlap
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "No overlap between your cropping rectangle and comparison mesh found. " +
+                                                                "Ensure that the rectangle is positioned above the comparison mesh.");
+                return;
+            }
 
             double min = (projectedPoints[0].Z / scaleFactor) / unitsMultiplier;
 
+            // Prevent accessing projectedPoint indices that don't exist (e.g. when rectangle area is cropped small)
+            int viablePixels;
+            if (results.MeshElevationPoints.Length > projectedPoints.Length)
+            {
+                viablePixels = projectedPoints.Length;
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "There were fewer projected pixels than mesh points and " +
+                    "the results of the cut/fill analysis may be truncated or appear streaky.");
+            }
+            else
+            {
+                viablePixels = results.MeshElevationPoints.Length;
+            }
+
             // Populate the mesh elevations array
-            for (int i = 0; i < results.MeshElevationPoints.Length; i++)
+            for (int i = 0; i < viablePixels; i++)
             {
                 results.MeshElevationPoints[i] = (projectedPoints[i].Z / scaleFactor) / unitsMultiplier;
                 if (results.MeshElevationPoints[i] < min)
