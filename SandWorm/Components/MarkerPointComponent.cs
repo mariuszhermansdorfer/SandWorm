@@ -7,12 +7,14 @@ using Grasshopper.Kernel.Types;
 using Microsoft.Kinect;
 using Rhino.Geometry;
 using SandWorm.Components;
+using OpenCvSharp;
+using Point3d = Rhino.Geometry.Point3d;
 
 namespace SandWorm
 {
     public class MarkerPointComponent : BaseMarkerComponent
     {
-
+        private List<Point3d> markerPoints;
         public MarkerPointComponent() : base("Sandworm Point Markers", "SW Markers",
             "Track color markers from the Kinect camera stream and output them as points")
         {
@@ -37,9 +39,39 @@ namespace SandWorm
             GetSandwormOptions(DA, 2, 0, 0);
             SetupKinect();
 
-            GenerateColorImage();
+            var binaryImage = GenerateColorImage();
+            if (binaryImage != null)
+            {
+                // Search image for the color and identify/classify
+                var keyPoints = new List<KeyPoint>();
+                var detectorParameters = new SimpleBlobDetector.Params();
+                detectorParameters.FilterByArea = true;
+                detectorParameters.FilterByColor = true; // If it doesn't work; pre-filter the image
+                detectorParameters.MinDistBetweenBlobs = 1;
+                detectorParameters.MinArea = 10;
+                detectorParameters.MaxArea = 20;
 
-            // Search image for the color and identify/classify
+                foreach (Color markerColor in markerColors)
+                {
+                    var blobDetector = SimpleBlobDetector.Create(detectorParameters);
+                    keyPoints.AddRange(blobDetector.Detect(binaryImage));
+                }
+
+                // Translate identified points back into
+                markerPoints = new List<Point3d>();
+                foreach (KeyPoint keyPoint in keyPoints)
+                {
+                    var x = keyPoint.Pt.X;
+                    var y = keyPoint.Pt.Y;
+                    markerPoints.Add(new Point3d(x, y, 0));
+                }
+            }
+            else
+            {
+                // TODO: add warning?
+            }
+
+
 
             ScheduleSolve();
         }

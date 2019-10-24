@@ -6,6 +6,7 @@ using Grasshopper.Kernel;
 using Microsoft.Kinect;
 using Rhino;
 using Rhino.Geometry;
+using OpenCvSharp;
 
 namespace SandWorm.Components
 {
@@ -21,21 +22,20 @@ namespace SandWorm.Components
         {
         }
 
-        protected void GenerateColorImage()
+        protected Mat GenerateColorImage()
         {
             if (KinectController.colorFrameData == null)
             {
                 ShowComponentError("No color frame data provided by the Kinect.");
-                return;
+                return null;
             }
 
-            allPixels = new Color[trimmedWidth * trimmedHeight];
-            var colorFrameData = KinectController.colorFrameData;
-            var bytesForPixelColor = KinectController.colorFrameDescription.BytesPerPixel;
-
-            // Create and return an image that EMGU CV will like
-
+            // Convert the kinect pixel byte array to a opencv mat file for processing
+            var height = KinectController.colorHeight;
+            var width = KinectController.colorWidth;
+            var mat = new Mat(height, width, MatType.CV_8UC4, KinectController.colorFrameData);
             Core.LogTiming(ref output, timer, "Color image generation"); // Debug Info
+            return mat;
         }
 
         protected override void RegisterInputParams(GH_InputParamManager pManager)
