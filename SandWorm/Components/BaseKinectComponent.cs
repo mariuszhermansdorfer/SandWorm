@@ -1,16 +1,176 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Grasshopper.Kernel;
+using Microsoft.Kinect;
+using Rhino;
+using Rhino.Geometry;
 
 namespace SandWorm.Components
 {
     // Provides common functions across the components that read from the Kinect stream
     public abstract class BaseKinectComponent : BaseComponent
     {
+        // Common Input Parameters
+        public int averageFrames = 1;
+        public int blurRadius = 1;
+        public int keepFrames = 1;
+        // Sandworm Options
+        public List<double> options; // List of options coming from the SWSetup component
+        public int rightColumns;
+        public int bottomRows;
+        public int leftColumns;
+        public double sensorElevation = 1000; // Arbitrary default value (must be >0)
         public int tickRate = 33; // In ms
+        public int topRows;
+        // Derived
+        protected Core.PixelSize depthPixelSize;
+        public static double unitsMultiplier;
+        protected KinectSensor kinectSensor;
+        protected Point3f[] allPoints;
+        protected int trimmedHeight;
+        protected int trimmedWidth;
+        protected readonly LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
+        public int[] runningSum = Enumerable.Range(1, 217088).Select(i => new int()).ToArray();
 
-        public BaseKinectComponent(string name, string nickname, string description) 
+        public BaseKinectComponent(string name, string nickname, string description)
             : base(name, nickname, description, "Kinect Visualisation")
-        { }
+        {
+        }
+
+        protected void GetSandwormOptions(IGH_DataAccess DA, int optionsIndex, int framesIndex, int blurIndex)
+        {
+            // Loads standard options provided by the setup component
+            options = new List<double>();
+            DA.GetDataList(optionsIndex, options);
+            // Technically not provided by setup; but common to all Kinect-accessing components
+            DA.GetData(framesIndex, ref averageFrames);
+            DA.GetData(blurIndex, ref blurRadius);
+
+            if (options.Count != 0
+            ) // TODO add more robust checking whether all the options have been provided by the user
+            {
+                sensorElevation = options[0];
+                leftColumns = (int) options[1];
+                rightColumns = (int) options[2];
+                topRows = (int) options[3];
+                bottomRows = (int) options[4];
+                tickRate = (int) options[5];
+                keepFrames = (int) options[6];
+            }
+
+            // Pick the correct multiplier based on the drawing units. Shouldn't be a class variable; gets 'stuck'.
+            unitsMultiplier = Core.ConvertDrawingUnits(RhinoDoc.ActiveDoc.ModelUnitSystem);
+            sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units
+
+            // Make sure there is at least one frame in the render buffer
+            averageFrames = averageFrames < 1 ? 1 : averageFrames;
+
+            depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
+        }
+
+        protected void SetupKinect()
+        {
+            if (kinectSensor == null)
+            {
+                KinectController.AddRef();
+                kinectSensor = KinectController.sensor;
+            }
+
+            if (KinectController.depthFrameData == null)
+            {
+                ShowComponentError("No depth frame data provided by the Kinect.");
+                return;
+            }
+
+            // Initialize all arrays
+            trimmedWidth = KinectController.depthWidth - leftColumns - rightColumns;
+            trimmedHeight = KinectController.depthHeight - topRows - bottomRows;
+        }
+
+        protected void SetupRenderBuffer(int[] depthFrameDataInt, Mesh quadMesh)
+        {
+            // Trim the depth array and cast ushort values to int
+            Core.CopyAsIntArray(KinectController.depthFrameData, depthFrameDataInt,
+                leftColumns, rightColumns, topRows, bottomRows,
+                KinectController.depthHeight, KinectController.depthWidth);
+
+            // Reset everything when resizing Kinect's field of view or changing the amounts of frame to average across
+            if (renderBuffer.Count > averageFrames || (quadMesh != null && quadMesh.Faces.Count != (trimmedWidth - 2) * (trimmedHeight - 2)))
+            {
+                renderBuffer.Clear();
+                Array.Clear(runningSum, 0, runningSum.Length);
+                renderBuffer.AddLast(depthFrameDataInt);
+            }
+            else
+            {
+                renderBuffer.AddLast(depthFrameDataInt);
+            }
+        }
+
+        protected void AverageAndBlurPixels(int[] depthFrameDataInt, ref double[] averagedDepthFrameData)
+        {
+            // Average across multiple frames
+            for (var pixel = 0; pixel < depthFrameDataInt.Length; pixel++)
+            {
+                if (depthFrameDataInt[pixel] > 200) // We have a valid pixel. 
+                {
+                    runningSum[pixel] += depthFrameDataInt[pixel];
+                }
+                else
+                {
+                    if (pixel > 0) // Pixel is invalid and we have a neighbor to steal information from
+                    {
+                        runningSum[pixel] += depthFrameDataInt[pixel - 1];
+                        // Replace the zero value from the depth array with the one from the neighboring pixel
+                        renderBuffer.Last.Value[pixel] = depthFrameDataInt[pixel - 1]; 
+                    }
+                    else // Pixel is invalid and it is the first one in the list. (No neighbor on the left hand side, so we set it to the lowest point on the table)
+                    {
+                        runningSum[pixel] += (int)sensorElevation;
+                        renderBuffer.Last.Value[pixel] = (int)sensorElevation;
+                    }
+                }
+
+                averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count; // Calculate average values
+
+                if (renderBuffer.Count >= averageFrames)
+                    runningSum[pixel] -= renderBuffer.First.Value[pixel]; // Subtract the oldest value from the sum 
+            }
+
+            Core.LogTiming(ref output, timer, "Frames averaging"); // Debug Info
+
+            if (blurRadius > 1) // Apply gaussian blur
+            {
+                var gaussianBlurProcessor = new GaussianBlurProcessor(blurRadius, trimmedWidth, trimmedHeight);
+                gaussianBlurProcessor.Apply(averagedDepthFrameData);
+                Core.LogTiming(ref output, timer, "Gaussian blurring"); // Debug Info
+            }
+        }
+
+        protected void GeneratePointCloud(double[] averagedDepthFrameData)
+        {
+            double depthPoint; 
+            // Setup variables for per-pixel loop
+            allPoints = new Point3f[trimmedWidth * trimmedHeight];
+            var tempPoint = new Point3f();
+            var arrayIndex = 0;
+            for (var rows = 0; rows < trimmedHeight; rows++)
+            for (var columns = 0; columns < trimmedWidth; columns++)
+            {
+                depthPoint = averagedDepthFrameData[arrayIndex];
+                tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x);
+                tempPoint.Y = (float)(rows * -unitsMultiplier * depthPixelSize.y);
+                tempPoint.Z = (float)((depthPoint - sensorElevation) * -unitsMultiplier);
+                allPoints[arrayIndex] = tempPoint; // Add new point to point cloud itself
+                arrayIndex++;
+            }
+
+            // Keep only the desired amount of frames in the buffer
+            while (renderBuffer.Count >= averageFrames) renderBuffer.RemoveFirst();
+
+            Core.LogTiming(ref output, timer, "Point cloud generation"); // Debug Info
+        }
 
         protected void ShowComponentError(string errorMessage)
         {
@@ -26,8 +186,7 @@ namespace SandWorm.Components
         protected void ScheduleSolve()
         {
             if (tickRate > 0) // Allow users to force manual recalculation
-                base.OnPingDocument().ScheduleSolution(tickRate, new GH_Document.GH_ScheduleDelegate(ScheduleDelegate));
+                OnPingDocument().ScheduleSolution(tickRate, ScheduleDelegate);
         }
-
     }
 }
