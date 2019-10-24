@@ -43,12 +43,9 @@ namespace SandWorm.Components
             // Loads standard options provided by the setup component
             options = new List<double>();
             DA.GetDataList(optionsIndex, options);
-            // Technically not provided by setup; but common to all Kinect-accessing components
-            DA.GetData(framesIndex, ref averageFrames);
-            DA.GetData(blurIndex, ref blurRadius);
 
-            if (options.Count != 0
-            ) // TODO add more robust checking whether all the options have been provided by the user
+            // TODO add more robust checking whether all the options have been provided by the user
+            if (options.Count != 0) 
             {
                 sensorElevation = options[0];
                 leftColumns = (int) options[1];
@@ -63,8 +60,15 @@ namespace SandWorm.Components
             unitsMultiplier = Core.ConvertDrawingUnits(RhinoDoc.ActiveDoc.ModelUnitSystem);
             sensorElevation /= unitsMultiplier; // Standardise to mm to match sensor units
 
-            // Make sure there is at least one frame in the render buffer
-            averageFrames = averageFrames < 1 ? 1 : averageFrames;
+            // Technically not provided by setup; but common to all Kinect-accessing components
+            if (framesIndex > 0)
+            {
+                DA.GetData(framesIndex, ref averageFrames);
+                // Make sure there is at least one frame in the render buffer
+                averageFrames = averageFrames < 1 ? 1 : averageFrames;
+            }
+            if (blurIndex > 0)
+                DA.GetData(blurIndex, ref blurRadius);
 
             depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
         }

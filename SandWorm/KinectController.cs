@@ -44,9 +44,8 @@ namespace SandWorm
         public static void Initialize()
         {
             sensor = KinectSensor.GetDefault();
-
-
-            multiFrameReader = sensor.OpenMultiSourceFrameReader(FrameSourceTypes.Depth);
+            // TODO: switch based on component type?
+            multiFrameReader = sensor.OpenMultiSourceFrameReader(FrameSourceTypes.Depth | FrameSourceTypes.Color);
             multiFrameReader.MultiSourceFrameArrived += new EventHandler<MultiSourceFrameArrivedEventArgs>(KinectController.Reader_FrameArrived);
 
             sensor.Open();
@@ -93,7 +92,8 @@ namespace SandWorm
                                     colorFrameDescription = colorFrame.FrameDescription;
                                     colorWidth = colorFrameDescription.Width;
                                     colorHeight = colorFrameDescription.Height;
-                                    colorFrameData = new byte[colorWidth * colorHeight * 4]; // 4 == bytes per color
+                                    var bytesForPixelColor = KinectController.colorFrameDescription.BytesPerPixel;
+                                    colorFrameData = new byte[colorWidth * colorHeight * bytesForPixelColor]; // 4 == bytes per color
                                     colorFrame.CopyConvertedFrameDataToArray(colorFrameData, ColorImageFormat.Rgba);
                                 }
                             }

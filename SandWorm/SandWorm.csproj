@@ -102,8 +102,11 @@
     <Compile Include="Analytics\Slope.cs" />
     <Compile Include="Analytics\WaterLevel.cs" />
     <Compile Include="Components\BaseComponent.cs" />
+    <Compile Include="Components\BaseMarkerComponent.cs" />
     <Compile Include="Components\BaseKinectComponent.cs" />
+    <Compile Include="Components\MarkerCurveComponent.cs" />
     <Compile Include="Components\MeshComponent.cs" />
+    <Compile Include="Components\MarkerPointComponent.cs" />
     <Compile Include="Components\PointCloudComponent.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="GaussianBlurProcessor.cs" />
