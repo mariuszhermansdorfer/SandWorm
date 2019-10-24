@@ -91,6 +91,11 @@ namespace SandWorm
 
         public static void CopyAsIntArray(ushort[] source, int[] destination, int leftColumns, int rightColumns, int topRows, int bottomRows, int height, int width)
         {
+            if (source == null)
+            {
+                return; // Triggers on initial setup
+            }
+
             ref ushort ru0 = ref source[0];
             ref int ri0 = ref destination[0];
             int j = 0;

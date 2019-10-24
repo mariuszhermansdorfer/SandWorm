@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Linq;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
+using Microsoft.Kinect;
 using Rhino.Geometry;
 using SandWorm.Components;
 
@@ -13,7 +14,7 @@ namespace SandWorm
     {
         private bool _showPixelColor = true;
         private bool _writeOutPoints = false;
-        private float _pixelSize = 1.0f;
+        private double _pixelSize = 1.0;
         // Outputs
         private PointCloud _pointCloud;
         private List<Point3d> _outputPoints;
@@ -59,6 +60,8 @@ namespace SandWorm
         protected override void SandwormSolveInstance(IGH_DataAccess DA)
         {
             SetupLogging();
+            DA.GetData(0, ref _showPixelColor);
+            DA.GetData(1, ref _writeOutPoints);
             DA.GetData(2, ref _pixelSize);
             GetSandwormOptions(DA, 5, 3, 4);
             SetupKinect();
@@ -80,13 +83,31 @@ namespace SandWorm
 
             GeneratePointCloud(averagedDepthFrameData);
 
+            // Assign colors and pixels to the point cloud
+            _pointCloud = new PointCloud(); // TODO intelligently manipulate the point cloud
+            // TODO: actually color pixels by their RGB values and/or using analytic methods
+            if (allPoints.Length > 0)
+            {
+                for (int i = 0; i < allPoints.Length; i++) // allPoints.Length
+                {
+                    if (_showPixelColor)
+                    {
+                        _pointCloud.Add(allPoints[i], Color.Aqua);
+                    }
+                    else
+                    {
+                        _pointCloud.Add(allPoints[i]);
+                    }
+                }
+                Core.LogTiming(ref output, timer, "Point cloud construction"); // Debug Info
+            }
+
             //DA.SetDataList(0, ); // TODO: pointcloud output
             if (_writeOutPoints)
             {
                 // Cast to GH_Point for performance reasons
                 DA.SetDataList(1, allPoints.Select(x => new GH_Point(x)));
             }
-
             DA.SetDataList(2, output); // For logging/debugging
             ScheduleSolve();
         }
@@ -96,10 +117,8 @@ namespace SandWorm
         {
             if (_pointCloud == null)
                 return;
-            else if (_showPixelColor)
-                args.Display.DrawPointCloud(_pointCloud, _pixelSize); // TODO add color
             else
-                args.Display.DrawPointCloud(_pointCloud, _pixelSize);
+                args.Display.DrawPointCloud(_pointCloud, (float)_pixelSize);
         }
     }
 }
