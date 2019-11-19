@@ -12,6 +12,7 @@ namespace SandWorm
 {
     public class MarkerAreaComponent : BaseMarkerComponent
     {
+        private List<Curve> markerAreas;
         public MarkerAreaComponent() : base("Sandworm Area Markers", "SW PMarks",
             "Track color markers from the Kinect camera stream and output them as areas")
         {
@@ -23,7 +24,7 @@ namespace SandWorm
         
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
-            pManager.AddPointParameter("Marker Areas", "A", "The areas of different color; as a Grasshopper curve", GH_ParamAccess.list);
+            pManager.AddCurveParameter("Marker Areas", "A", "The areas of different color; as a Grasshopper curve", GH_ParamAccess.list);
             pManager.AddTextParameter("Output", "O", "Output", GH_ParamAccess.list); //debugging
         }
 
@@ -35,9 +36,28 @@ namespace SandWorm
             DA.GetData(1, ref colorFuzz);
             GetSandwormOptions(DA, 2, 0, 0);
             SetupKinect();
+            Core.LogTiming(ref output, timer, "Initial setup"); // Debug Info
 
-            GenerateColorImage();
-            
+            var binaryImage = GenerateColorImage();
+            Core.LogTiming(ref output, timer, "Image generation"); // Debug Info
+            if (binaryImage != null)
+            {
+
+                // Translate identified areas back into Grasshopper geometry
+                markerAreas = new List<Curve>();
+
+                // TODO: translation
+
+                DA.SetDataList(0, markerAreas);
+            }
+            else
+            {
+                // TODO: add warning?
+            }
+            binaryImage.Dispose();
+
+            Core.LogTiming(ref output, timer, "Image processing"); // Debug Info
+            DA.SetDataList(1, output); // For logging/debugging
             ScheduleSolve();
         }
     }

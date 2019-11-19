@@ -19,8 +19,8 @@ namespace SandWorm
         private PointCloud _pointCloud;
         private List<Point3d> _outputPoints;
 
-        public PointCloudComponent() : base("Sandworm Points", "SW Points",
-            "Visualise live data from the Kinect as Points")
+        public PointCloudComponent() : base("Sandworm Point Cloud", "SW PCloud",
+            "Visualise live data from the Kinect as a point cloud")
         {
         }
 
@@ -106,9 +106,9 @@ namespace SandWorm
             if (_writeOutPoints)
             {
                 // Cast to GH_Point for performance reasons
-                DA.SetDataList(1, allPoints.Select(x => new GH_Point(x)));
+                DA.SetDataList(0, allPoints.Select(x => new GH_Point(x)));
             }
-            DA.SetDataList(2, output); // For logging/debugging
+            DA.SetDataList(1, output); // For logging/debugging
             ScheduleSolve();
         }
 

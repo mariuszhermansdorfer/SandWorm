@@ -38,26 +38,33 @@ namespace SandWorm
             DA.GetData(1, ref colorFuzz);
             GetSandwormOptions(DA, 2, 0, 0);
             SetupKinect();
+            Core.LogTiming(ref output, timer, "Initial setup"); // Debug Info
 
             var binaryImage = GenerateColorImage();
+            Core.LogTiming(ref output, timer, "Image generation"); // Debug Info
             if (binaryImage != null)
             {
                 // Search image for the color and identify/classify
                 var keyPoints = new List<KeyPoint>();
-                var detectorParameters = new SimpleBlobDetector.Params();
-                detectorParameters.FilterByArea = true;
-                detectorParameters.FilterByColor = true; // If it doesn't work; pre-filter the image
-                detectorParameters.MinDistBetweenBlobs = 1;
-                detectorParameters.MinArea = 10;
-                detectorParameters.MaxArea = 20;
+                var detectorParameters = new SimpleBlobDetector.Params
+                {
+                    FilterByArea = true,
+                    FilterByColor = true, // If it doesn't work; pre-filter the image
+                    MinDistBetweenBlobs = 1,
+                    MinArea = 10,
+                    MaxArea = 20
+                };
+                Core.LogTiming(ref output, timer, "Detector setup"); // Debug Info
 
                 foreach (Color markerColor in markerColors)
                 {
                     var blobDetector = SimpleBlobDetector.Create(detectorParameters);
                     keyPoints.AddRange(blobDetector.Detect(binaryImage));
+                    blobDetector.Dispose();
                 }
+                Core.LogTiming(ref output, timer, "Image blob detection"); // Debug Info
 
-                // Translate identified points back into
+                // Translate identified points back into Grasshopper geometry
                 markerPoints = new List<Point3d>();
                 foreach (KeyPoint keyPoint in keyPoints)
                 {
@@ -65,14 +72,16 @@ namespace SandWorm
                     var y = keyPoint.Pt.Y;
                     markerPoints.Add(new Point3d(x, y, 0));
                 }
+                DA.SetDataList(0, markerPoints);
+                Core.LogTiming(ref output, timer, "Blob output"); // Debug Info
             }
             else
             {
                 // TODO: add warning?
             }
+            binaryImage.Dispose();
 
-
-
+            DA.SetDataList(1, output); // For logging/debugging
             ScheduleSolve();
         }
     }

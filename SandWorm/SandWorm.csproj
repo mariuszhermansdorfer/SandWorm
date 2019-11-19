@@ -117,7 +117,7 @@
     <Compile Include="Components\BaseComponent.cs" />
     <Compile Include="Components\BaseMarkerComponent.cs" />
     <Compile Include="Components\BaseKinectComponent.cs" />
-    <Compile Include="Components\MarkerCurveComponent.cs" />
+    <Compile Include="Components\MarkerAreaComponent.cs" />
     <Compile Include="Components\MeshComponent.cs" />
     <Compile Include="Components\MarkerPointComponent.cs" />
     <Compile Include="Components\PointCloudComponent.cs" />

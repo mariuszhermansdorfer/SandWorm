@@ -1,4 +1,5 @@
 using System;
+using System.Windows.Media;
 using Microsoft.Kinect;
 
 
@@ -17,6 +18,7 @@ namespace SandWorm
         public static int refc = 0;
         public static ushort[] depthFrameData = null;
         public static byte[] colorFrameData = null;
+        public static int bytesForPixelColor = (PixelFormats.Bgr32.BitsPerPixel + 7) / 8;
 
         public static void AddRef()
         {
@@ -87,14 +89,21 @@ namespace SandWorm
                         {
                             if (colorFrame != null)
                             {
+                                colorFrameDescription = colorFrame.FrameDescription;
+                                colorWidth = colorFrameDescription.Width;
+                                colorHeight = colorFrameDescription.Height;
+                                colorFrameData = new byte[colorWidth * colorHeight * bytesForPixelColor]; // 4 == bytes per color
+
                                 using (KinectBuffer buffer = colorFrame.LockRawImageBuffer())
                                 {
-                                    colorFrameDescription = colorFrame.FrameDescription;
-                                    colorWidth = colorFrameDescription.Width;
-                                    colorHeight = colorFrameDescription.Height;
-                                    var bytesForPixelColor = KinectController.colorFrameDescription.BytesPerPixel;
-                                    colorFrameData = new byte[colorWidth * colorHeight * bytesForPixelColor]; // 4 == bytes per color
-                                    colorFrame.CopyConvertedFrameDataToArray(colorFrameData, ColorImageFormat.Rgba);
+                                    if (colorFrame.RawColorImageFormat == ColorImageFormat.Bgra)
+                                    {
+                                        colorFrame.CopyRawFrameDataToArray(colorFrameData);
+                                    }
+                                    else
+                                    {
+                                        colorFrame.CopyConvertedFrameDataToArray(colorFrameData, ColorImageFormat.Bgra);
+                                    }
                                 }
                             }
                         }

@@ -12,8 +12,6 @@ namespace SandWorm
 {
     public class MeshComponent : BaseKinectComponent
     {
-        // TODO - fix arbitrary value assuming 1500 mm as max distance from the kinect sensor
-        private static Color[] _lookupTable = new Color[1500];
         private Color[] _vertexColors;
         private Mesh _quadMesh = new Mesh();
         // Input Parameters
