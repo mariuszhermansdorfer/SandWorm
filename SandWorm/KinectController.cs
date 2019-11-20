@@ -1,4 +1,5 @@
 using System;
+using System.Windows.Media;
 using Microsoft.Kinect;
 
 
@@ -9,10 +10,15 @@ namespace SandWorm
         public static KinectSensor sensor = null;
         public static int depthHeight = 0;
         public static int depthWidth = 0;
+        public static int colorHeight = 0;
+        public static int colorWidth = 0;
         public static MultiSourceFrameReader multiFrameReader = null;
         public static FrameDescription depthFrameDescription = null;
+        public static FrameDescription colorFrameDescription = null;
         public static int refc = 0;
         public static ushort[] depthFrameData = null;
+        public static byte[] colorFrameData = null;
+        public static int bytesForPixelColor = (PixelFormats.Bgr32.BitsPerPixel + 7) / 8;
 
         public static void AddRef()
         {
@@ -40,9 +46,8 @@ namespace SandWorm
         public static void Initialize()
         {
             sensor = KinectSensor.GetDefault();
-
-
-            multiFrameReader = sensor.OpenMultiSourceFrameReader(FrameSourceTypes.Depth);
+            // TODO: switch based on component type?
+            multiFrameReader = sensor.OpenMultiSourceFrameReader(FrameSourceTypes.Depth | FrameSourceTypes.Color);
             multiFrameReader.MultiSourceFrameArrived += new EventHandler<MultiSourceFrameArrivedEventArgs>(KinectController.Reader_FrameArrived);
 
             sensor.Open();
@@ -53,12 +58,12 @@ namespace SandWorm
             if (e.FrameReference != null)
             {
                 MultiSourceFrame multiFrame = e.FrameReference.AcquireFrame();
+
                 if (multiFrame.DepthFrameReference != null)
                 {
                     try
                     {
                         using (DepthFrame depthFrame = multiFrame.DepthFrameReference.AcquireFrame())
-
                         {
                             if (depthFrame != null)
                             {
@@ -69,6 +74,36 @@ namespace SandWorm
                                     depthHeight = depthFrameDescription.Height;
                                     depthFrameData = new ushort[depthWidth * depthHeight];
                                     depthFrame.CopyFrameDataToArray(depthFrameData);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception) { return; }
+                }
+
+                if (multiFrame.ColorFrameReference != null)
+                {
+                    try
+                    {
+                        using (ColorFrame colorFrame = multiFrame.ColorFrameReference.AcquireFrame())
+                        {
+                            if (colorFrame != null)
+                            {
+                                colorFrameDescription = colorFrame.FrameDescription;
+                                colorWidth = colorFrameDescription.Width;
+                                colorHeight = colorFrameDescription.Height;
+                                colorFrameData = new byte[colorWidth * colorHeight * bytesForPixelColor]; // 4 == bytes per color
+
+                                using (KinectBuffer buffer = colorFrame.LockRawImageBuffer())
+                                {
+                                    if (colorFrame.RawColorImageFormat == ColorImageFormat.Bgra)
+                                    {
+                                        colorFrame.CopyRawFrameDataToArray(colorFrameData);
+                                    }
+                                    else
+                                    {
+                                        colorFrame.CopyConvertedFrameDataToArray(colorFrameData, ColorImageFormat.Bgra);
+                                    }
                                 }
                             }
                         }

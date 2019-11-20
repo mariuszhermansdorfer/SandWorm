@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\OpenCvSharp4.runtime.win.4.1.1.20191021\build\net\OpenCvSharp4.runtime.win.props" Condition="Exists('..\packages\OpenCvSharp4.runtime.win.4.1.1.20191021\build\net\OpenCvSharp4.runtime.win.props')" />
   <Import Project="..\packages\Costura.Fody.3.3.3\build\Costura.Fody.props" Condition="Exists('..\packages\Costura.Fody.3.3.3\build\Costura.Fody.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -73,6 +74,18 @@
       <HintPath>..\packages\Microsoft.Kinect.2.0.1410.19000\lib\net45\Microsoft.Kinect.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="OpenCvSharp, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6adad1e807fea099, processorArchitecture=MSIL">
+      <HintPath>..\packages\OpenCvSharp4.4.1.1.20191021\lib\net40\OpenCvSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenCvSharp.Blob, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6adad1e807fea099, processorArchitecture=MSIL">
+      <HintPath>..\packages\OpenCvSharp4.4.1.1.20191021\lib\net40\OpenCvSharp.Blob.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenCvSharp.Extensions, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6adad1e807fea099, processorArchitecture=MSIL">
+      <HintPath>..\packages\OpenCvSharp4.4.1.1.20191021\lib\net40\OpenCvSharp.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenCvSharp.UserInterface, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6adad1e807fea099, processorArchitecture=MSIL">
+      <HintPath>..\packages\OpenCvSharp4.4.1.1.20191021\lib\net40\OpenCvSharp.UserInterface.dll</HintPath>
+    </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="Rhino.UI, Version=6.17.19235.15040, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
       <HintPath>..\packages\RhinoCommon.6.17.19235.15041\lib\net45\Rhino.UI.dll</HintPath>
@@ -101,13 +114,20 @@
     <Compile Include="Analytics\None.cs" />
     <Compile Include="Analytics\Slope.cs" />
     <Compile Include="Analytics\WaterLevel.cs" />
+    <Compile Include="Components\BaseComponent.cs" />
+    <Compile Include="Components\BaseMarkerComponent.cs" />
+    <Compile Include="Components\BaseKinectComponent.cs" />
+    <Compile Include="Components\MarkerAreaComponent.cs" />
+    <Compile Include="Components\MeshComponent.cs" />
+    <Compile Include="Components\MarkerPointComponent.cs" />
+    <Compile Include="Components\PointCloudComponent.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="GaussianBlurProcessor.cs" />
     <Compile Include="KinectController.cs" />
-    <Compile Include="SandWormSetup.cs" />
-    <Compile Include="SandWormComponent.cs" />
+    <Compile Include="Components\SetupComponent.cs" />
     <Compile Include="SandWormInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SetupOptions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -115,6 +135,7 @@
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
@@ -136,6 +157,7 @@
     <PostBuildEvent>
       Copy "$(TargetPath)" "$(TargetDir)$(ProjectName).gha"
       Erase "$(TargetPath)"
+      Copy "$(TargetDir)\dll\x64\OpenCvSharpExtern.dll" "$(TargetDir)OpenCvSharpExtern.dll"
     </PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition="Exists('C:\Program Files\') AND '$(Configuration)' != 'Debug'">
@@ -168,12 +190,13 @@
     <Error Condition="!Exists('..\packages\Grasshopper.6.17.19235.15041\build\net45\Grasshopper.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Grasshopper.6.17.19235.15041\build\net45\Grasshopper.targets'))" />
     <Error Condition="!Exists('..\packages\Fody.4.2.1\build\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Fody.4.2.1\build\Fody.targets'))" />
     <Error Condition="!Exists('..\packages\Costura.Fody.3.3.3\build\Costura.Fody.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Costura.Fody.3.3.3\build\Costura.Fody.props'))" />
+    <Error Condition="!Exists('..\packages\OpenCvSharp4.runtime.win.4.1.1.20191021\build\net\OpenCvSharp4.runtime.win.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenCvSharp4.runtime.win.4.1.1.20191021\build\net\OpenCvSharp4.runtime.win.props'))" />
   </Target>
   <Import Project="..\packages\Grasshopper.6.17.19235.15041\build\net45\Grasshopper.targets" Condition="Exists('..\packages\Grasshopper.6.17.19235.15041\build\net45\Grasshopper.targets')" />
   <PropertyGroup>
     <PostBuildEvent>
-      Copy "$(TargetPath)" "$(TargetDir)$(ProjectName).gha"
-    
+      Copy "$(TargetPath)" "$(TargetDir)$(ProjectName).gha"    
+      Copy "$(TargetDir)\dll\x64\OpenCvSharpExtern.dll" "$(TargetDir)OpenCvSharpExtern.dll"
 </PostBuildEvent>
   </PropertyGroup>
   <Import Project="..\packages\Fody.4.2.1\build\Fody.targets" Condition="Exists('..\packages\Fody.4.2.1\build\Fody.targets')" />
