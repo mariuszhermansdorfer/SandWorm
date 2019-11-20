@@ -187,6 +187,7 @@
     <Error Condition="!Exists('..\packages\RhinoCommon.6.20.19322.20361\build\net45\RhinoCommon.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\RhinoCommon.6.20.19322.20361\build\net45\RhinoCommon.targets'))" />
     <Error Condition="!Exists('..\packages\Grasshopper.6.20.19322.20361\build\net45\Grasshopper.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Grasshopper.6.20.19322.20361\build\net45\Grasshopper.targets'))" />
     <Error Condition="!Exists('..\packages\OpenCvSharp4.runtime.win.4.1.1.20191110\build\net\OpenCvSharp4.runtime.win.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenCvSharp4.runtime.win.4.1.1.20191110\build\net\OpenCvSharp4.runtime.win.props'))" />
+    <Error Condition="!Exists('..\packages\K4AdotNet.1.3.0\build\k4adotnet.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\K4AdotNet.1.3.0\build\k4adotnet.targets'))" />
   </Target>
   <PropertyGroup>
     <PostBuildEvent>
@@ -197,4 +198,5 @@
   <Import Project="..\packages\Fody.6.0.5\build\Fody.targets" Condition="Exists('..\packages\Fody.6.0.5\build\Fody.targets')" />
   <Import Project="..\packages\RhinoCommon.6.20.19322.20361\build\net45\RhinoCommon.targets" Condition="Exists('..\packages\RhinoCommon.6.20.19322.20361\build\net45\RhinoCommon.targets')" />
   <Import Project="..\packages\Grasshopper.6.20.19322.20361\build\net45\Grasshopper.targets" Condition="Exists('..\packages\Grasshopper.6.20.19322.20361\build\net45\Grasshopper.targets')" />
+  <Import Project="..\packages\K4AdotNet.1.3.0\build\k4adotnet.targets" Condition="Exists('..\packages\K4AdotNet.1.3.0\build\k4adotnet.targets')" />
 </Project>
