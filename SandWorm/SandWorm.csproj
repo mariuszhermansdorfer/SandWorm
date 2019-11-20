@@ -127,6 +127,7 @@
     <Compile Include="Components\SetupComponent.cs" />
     <Compile Include="SandWormInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SetupOptions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
