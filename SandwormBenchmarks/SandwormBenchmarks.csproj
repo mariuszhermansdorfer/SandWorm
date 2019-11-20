@@ -42,7 +42,7 @@
       <HintPath>..\packages\CommandLineParser.2.6.0\lib\net45\CommandLine.dll</HintPath>
     </Reference>
     <Reference Include="Grasshopper">
-      <HintPath>..\packages\Grasshopper.6.17.19235.15041\lib\net45\Grasshopper.dll</HintPath>
+      <HintPath>..\packages\Grasshopper.6.20.19322.20361\lib\net45\Grasshopper.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CodeAnalysis, Version=2.9.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.CodeAnalysis.Common.2.9.0\lib\netstandard1.3\Microsoft.CodeAnalysis.dll</HintPath>
@@ -57,10 +57,10 @@
       <HintPath>..\packages\Microsoft.Win32.Registry.4.6.0\lib\net46\Microsoft.Win32.Registry.dll</HintPath>
     </Reference>
     <Reference Include="Rhino.UI">
-      <HintPath>..\packages\RhinoCommon.6.17.19235.15041\lib\net45\Rhino.UI.dll</HintPath>
+      <HintPath>..\packages\RhinoCommon.6.20.19322.20361\lib\net45\Rhino.UI.dll</HintPath>
     </Reference>
     <Reference Include="RhinoCommon">
-      <HintPath>..\packages\RhinoCommon.6.17.19235.15041\lib\net45\RhinoCommon.dll</HintPath>
+      <HintPath>..\packages\RhinoCommon.6.20.19322.20361\lib\net45\RhinoCommon.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.AppContext, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
