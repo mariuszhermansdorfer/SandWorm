@@ -73,6 +73,36 @@ namespace SandWorm
             public double y;
         }
 
+        public static int GetDepthPixelXResolution(KinectTypes type)
+        {
+            switch (type)
+            {
+                case KinectTypes.KinectForWindows:
+                    return KinectController.kinect2ResolutionForX;
+                case KinectTypes.KinectForAzureNear:
+                    return K4AController.K4ANResolutionForX;
+                case KinectTypes.KinectForAzureWide:
+                    return K4AController.K4AWResolutionForX;
+                default:
+                    throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
+            }
+        }
+
+        public static int GetDepthPixelYResolution(KinectTypes type)
+        {
+            switch (type)
+            {
+                case KinectTypes.KinectForWindows:
+                    return KinectController.kinect2ResolutionForY;
+                case KinectTypes.KinectForAzureNear:
+                    return K4AController.K4ANResolutionForY;
+                case KinectTypes.KinectForAzureWide:
+                    return K4AController.K4AWResolutionForY;
+                default:
+                    throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
+            }
+        }
+
         public static PixelSize GetDepthPixelSpacing(double sensorHeight)
         {
             PixelSize pixelsForHeight = new PixelSize

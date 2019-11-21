@@ -5,29 +5,20 @@ using Microsoft.Kinect;
 
 namespace SandWorm
 {
-    static class KinectController
+    static class KinectController : BaseController
     {
         public static KinectSensor sensor = null;
-        public static int depthHeight = 0;
-        public static int depthWidth = 0;
-        public static int colorHeight = 0;
-        public static int colorWidth = 0;
         public static MultiSourceFrameReader multiFrameReader = null;
         public static FrameDescription depthFrameDescription = null;
         public static FrameDescription colorFrameDescription = null;
         public static int refc = 0;
-        public static ushort[] depthFrameData = null;
-        public static byte[] colorFrameData = null;
         public static int bytesForPixelColor = (PixelFormats.Bgr32.BitsPerPixel + 7) / 8;
 
-        // Kinect2 Details
+        // Kinect for Windows Details
         public static double kinect2FOVForX = 70.6;
         public static double kinect2FOVForY = 60.0;
-        public static double kinect2ResolutionForX = 512;
-        public static double kinect2ResolutionForY = 424;
-
-        // Used in controllers and setup
-        public static Core.KinectTypes kinectType = Core.KinectTypes.KinectForWindows;
+        public static int kinect2ResolutionForX = 512;
+        public static int kinect2ResolutionForY = 424;
 
         public static void AddRef()
         {

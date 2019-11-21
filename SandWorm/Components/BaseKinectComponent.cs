@@ -77,27 +77,39 @@ namespace SandWorm.Components
 
         protected void SetupKinect()
         {
-            if (kinectSensor == null)
+            if (kinectType == Core.KinectTypes.KinectForWindows)
             {
-                KinectController.AddRef();
-                kinectSensor = KinectController.sensor;
+                if (kinectSensor == null)
+                {
+                    KinectController.AddRef();
+                    kinectSensor = KinectController.sensor;
+                }
+                if (KinectController.depthFrameData == null)
+                {
+                    ShowComponentError("No depth frame data provided by the Kinect.");
+                    return;
+                }
             }
-
-            if (KinectController.depthFrameData == null)
+            else
             {
-                ShowComponentError("No depth frame data provided by the Kinect.");
-                return;
+                // TODO: K4A setup
             }
 
             // Initialize all arrays
-            trimmedWidth = KinectController.depthWidth - leftColumns - rightColumns;
-            trimmedHeight = KinectController.depthHeight - topRows - bottomRows;
+            trimmedWidth = Core.GetDepthPixelXResolution(kinectType) - leftColumns - rightColumns;
+            trimmedHeight = Core.GetDepthPixelYResolution(kinectType) - topRows - bottomRows;
         }
 
         protected void SetupRenderBuffer(int[] depthFrameDataInt, Mesh quadMesh)
         {
+            ushort[] depthFrameData;
+            if (kinectType == Core.KinectTypes.KinectForWindows)
+                depthFrameData = KinectController.depthFrameData;
+            else
+                depthFrameData = K4AController.depthFrameData;
+
             // Trim the depth array and cast ushort values to int
-            Core.CopyAsIntArray(KinectController.depthFrameData, depthFrameDataInt,
+            Core.CopyAsIntArray(depthFrameData, depthFrameDataInt,
                 leftColumns, rightColumns, topRows, bottomRows,
                 KinectController.depthHeight, KinectController.depthWidth);
 
