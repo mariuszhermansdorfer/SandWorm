@@ -5,8 +5,16 @@ using Microsoft.Kinect;
 
 namespace SandWorm
 {
-    static class KinectController : BaseController
+    static class KinectController
     {
+        // Shared in K4Azure Controller
+        public static int depthHeight = 0;
+        public static int depthWidth = 0;
+        public static int colorHeight = 0;
+        public static int colorWidth = 0;
+        public static ushort[] depthFrameData = null;
+        public static byte[] colorFrameData = null;
+        // Kinect for Windows specific
         public static KinectSensor sensor = null;
         public static MultiSourceFrameReader multiFrameReader = null;
         public static FrameDescription depthFrameDescription = null;

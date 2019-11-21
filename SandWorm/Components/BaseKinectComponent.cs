@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Grasshopper.Kernel;
+using K4AdotNet.Sensor;
 using Microsoft.Kinect;
 using Rhino;
 using Rhino.Geometry;
@@ -25,11 +26,13 @@ namespace SandWorm.Components
         public double[] elevationArray;
         public int tickRate = 33; // In ms
         protected Core.KinectTypes kinectType = Core.KinectTypes.KinectForWindows;
+        // Sensor Specific
+        protected KinectSensor kinectSensor;
+        protected Device k4aSensor;
 
         // Derived
         protected Core.PixelSize depthPixelSize;
         public static double unitsMultiplier;
-        protected KinectSensor kinectSensor;
         protected Point3f[] allPoints;
         protected int trimmedHeight;
         protected int trimmedWidth;
@@ -77,6 +80,7 @@ namespace SandWorm.Components
 
         protected void SetupKinect()
         {
+            // TODO: shift to a method in the relevant controllers 
             if (kinectType == Core.KinectTypes.KinectForWindows)
             {
                 if (kinectSensor == null)
@@ -92,7 +96,17 @@ namespace SandWorm.Components
             }
             else
             {
-                // TODO: K4A setup
+                if (k4aSensor == null)
+                {
+                    try
+                    {
+                        k4aSensor = Device.Open();
+                    }
+                    catch (Exception exc)
+                    {
+                        ShowComponentError(exc.Message);
+                    }
+                }
             }
 
             // Initialize all arrays

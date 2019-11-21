@@ -84,6 +84,7 @@ namespace SandWorm
         protected override void SandwormSolveInstance(IGH_DataAccess DA)
         {
             SetupLogging();
+            int tempKinectType = 0; // Can't cast to the enum within GetData ref
 
             DA.GetData(0, ref calibrateSandworm);
             DA.GetData(1, ref sensorElevation);
@@ -93,6 +94,9 @@ namespace SandWorm
             DA.GetData(5, ref bottomRows);
             DA.GetData(6, ref tickRate);
             DA.GetData(7, ref keepFrames);
+            DA.GetData(8, ref tempKinectType);
+
+            kinectType = (Core.KinectTypes)tempKinectType;
 
             // Initialize all arrays
             var trimmedWidth = KinectController.depthWidth - leftColumns - rightColumns;
@@ -100,8 +104,8 @@ namespace SandWorm
 
             var depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
             var averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
-            if (elevationArray.Length != trimmedWidth * trimmedHeight
-            ) // Only create a new elevation array when user resizes the mesh
+            // Only create a new elevation array when user resizes the mesh
+            if (elevationArray.Length != trimmedWidth * trimmedHeight) 
                 elevationArray = new double[trimmedWidth * trimmedHeight];
 
             averagedSensorElevation = sensorElevation;
@@ -187,7 +191,8 @@ namespace SandWorm
                 BottomRows = bottomRows,
                 TickRate = tickRate,
                 KeepFrames = keepFrames,
-                ElevationArray = elevationArray
+                ElevationArray = elevationArray,
+                KinectType = kinectType,
             };
 
             Core.LogTiming(ref output, timer, "Setup completion"); // Debug Info
