@@ -16,13 +16,14 @@ namespace SandWorm.Components
         public int blurRadius = 1;
         public int keepFrames = 1;
         // Sandworm Options
-        public List<double> options; // List of options coming from the SWSetup component
-        public int rightColumns;
-        public int bottomRows;
-        public int leftColumns;
+        public SetupOptions options; // List of options coming from the SetupComponent
+        public int topRows = 0;
+        public int rightColumns = 0;
+        public int bottomRows = 0;
+        public int leftColumns = 0;
         public double sensorElevation = 1000; // Arbitrary default value (must be >0)
+        public double[] elevationArray;
         public int tickRate = 33; // In ms
-        public int topRows;
         // Derived
         protected Core.PixelSize depthPixelSize;
         public static double unitsMultiplier;
@@ -41,20 +42,18 @@ namespace SandWorm.Components
         protected void GetSandwormOptions(IGH_DataAccess DA, int optionsIndex, int framesIndex, int blurIndex)
         {
             // Loads standard options provided by the setup component
-            options = new List<double>();
-            DA.GetDataList(optionsIndex, options);
+            options = new SetupOptions();
+            DA.GetData<SetupOptions>(optionsIndex, ref options);
 
-            // TODO add more robust checking whether all the options have been provided by the user
-            if (options.Count != 0) 
-            {
-                sensorElevation = options[0];
-                leftColumns = (int) options[1];
-                rightColumns = (int) options[2];
-                topRows = (int) options[3];
-                bottomRows = (int) options[4];
-                tickRate = (int) options[5];
-                keepFrames = (int) options[6];
-            }
+            if (options.SensorElevation != 0) sensorElevation = options.SensorElevation;
+            if (options.LeftColumns != 0) leftColumns = options.LeftColumns;
+            if (options.RightColumns != 0) rightColumns = options.RightColumns;
+            if (options.TopRows != 0) topRows = options.TopRows;
+            if (options.BottomRows != 0) bottomRows = options.BottomRows;
+            if (options.TickRate != 0) tickRate = options.TickRate;
+            if (options.KeepFrames != 0) keepFrames = options.KeepFrames;
+            if (options.ElevationArray.Length != 0) elevationArray = options.ElevationArray;
+            else elevationArray = new double[0];
 
             // Pick the correct multiplier based on the drawing units. Shouldn't be a class variable; gets 'stuck'.
             unitsMultiplier = Core.ConvertDrawingUnits(RhinoDoc.ActiveDoc.ModelUnitSystem);
@@ -137,6 +136,7 @@ namespace SandWorm.Components
                 }
 
                 averagedDepthFrameData[pixel] = runningSum[pixel] / renderBuffer.Count; // Calculate average values
+                if (elevationArray.Length > 0) averagedDepthFrameData[pixel] -= elevationArray[pixel]; // Correct for Kinect's inacurracies using input from the calibration component
 
                 if (renderBuffer.Count >= averageFrames)
                     runningSum[pixel] -= renderBuffer.First.Value[pixel]; // Subtract the oldest value from the sum 

@@ -43,7 +43,7 @@ namespace SandWorm.Components
             pManager.AddColourParameter("MarkerColor", "Color", "The color, or colors, of the markers this component should track", GH_ParamAccess.list);
             pManager.AddNumberParameter("ColorFuzz", "Fuzz", "The amount of leeway to use when matching the color. A higher value will identify more similar colors",
                 GH_ParamAccess.item);
-            pManager.AddNumberParameter("SandwormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.list);
+            pManager.AddGenericParameter("SandwormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.item);
             pManager[0].Optional = false;
             pManager[1].Optional = true;
             pManager[2].Optional = true;

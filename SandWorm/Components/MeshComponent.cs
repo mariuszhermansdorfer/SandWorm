@@ -39,7 +39,7 @@ namespace SandWorm
                 GH_ParamAccess.item, averageFrames);
             pManager.AddIntegerParameter("BlurRadius", "BR", "Radius for Gaussian blur.", GH_ParamAccess.item,
                 blurRadius);
-            pManager.AddNumberParameter("SandwormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.list);
+            pManager.AddGenericParameter("SandwormOptions", "SWO", "Setup & Calibration options", GH_ParamAccess.item);
             pManager[0].Optional = true;
             pManager[1].Optional = true;
             pManager[2].Optional = true;
