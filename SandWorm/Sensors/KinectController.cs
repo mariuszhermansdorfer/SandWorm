@@ -20,6 +20,12 @@ namespace SandWorm
         public static byte[] colorFrameData = null;
         public static int bytesForPixelColor = (PixelFormats.Bgr32.BitsPerPixel + 7) / 8;
 
+        // Kinect2 Details
+        public static double kinect2FOVForX = 70.6;
+        public static double kinect2FOVForY = 60.0;
+        public static double kinect2ResolutionForX = 512;
+        public static double kinect2ResolutionForY = 424;
+
         public static void AddRef()
         {
             if (sensor == null)

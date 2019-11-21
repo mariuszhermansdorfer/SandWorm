@@ -114,6 +114,7 @@
     <Compile Include="Analytics\None.cs" />
     <Compile Include="Analytics\Slope.cs" />
     <Compile Include="Analytics\WaterLevel.cs" />
+    <Compile Include="Sensors\K4AController.cs" />
     <Compile Include="Components\BaseComponent.cs" />
     <Compile Include="Components\BaseMarkerComponent.cs" />
     <Compile Include="Components\BaseKinectComponent.cs" />
@@ -121,9 +122,9 @@
     <Compile Include="Components\MeshComponent.cs" />
     <Compile Include="Components\MarkerPointComponent.cs" />
     <Compile Include="Components\PointCloudComponent.cs" />
-    <Compile Include="Core.cs" />
+    <Compile Include="Sensors\Core.cs" />
     <Compile Include="GaussianBlurProcessor.cs" />
-    <Compile Include="KinectController.cs" />
+    <Compile Include="Sensors\KinectController.cs" />
     <Compile Include="Components\SetupComponent.cs" />
     <Compile Include="SandWormInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -133,6 +134,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
+    <Content Include="Sensors\K4AInterop.c" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

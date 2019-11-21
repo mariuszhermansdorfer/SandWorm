@@ -14,7 +14,6 @@ namespace SandWorm
             int xd = xStride;       // The x-dimension of the data
             int yd = yStride;       // They y-dimension of the data
 
-
             if (mesh.Faces.Count != (xStride - 2) * (yStride - 2))
             {
                 mesh = new Mesh();
@@ -69,15 +68,10 @@ namespace SandWorm
 
         public static PixelSize GetDepthPixelSpacing(double sensorHeight)
         {
-            double kinect2FOVForX = 70.6; 
-            double kinect2FOVForY = 60.0;
-            double kinect2ResolutionForX = 512;
-            double kinect2ResolutionForY = 424;
-
             PixelSize pixelsForHeight = new PixelSize
             {
-                x = GetDepthPixelSizeInDimension(kinect2FOVForX, kinect2ResolutionForX, sensorHeight),
-                y = GetDepthPixelSizeInDimension(kinect2FOVForY, kinect2ResolutionForY, sensorHeight)
+                x = GetDepthPixelSizeInDimension(KinectController.kinect2FOVForX, KinectController.kinect2ResolutionForX, sensorHeight),
+                y = GetDepthPixelSizeInDimension(KinectController.kinect2FOVForY, KinectController.kinect2ResolutionForY, sensorHeight)
             };
             return pixelsForHeight;
         }
