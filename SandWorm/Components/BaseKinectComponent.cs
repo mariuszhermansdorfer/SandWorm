@@ -24,6 +24,8 @@ namespace SandWorm.Components
         public double sensorElevation = 1000; // Arbitrary default value (must be >0)
         public double[] elevationArray;
         public int tickRate = 33; // In ms
+        protected Core.KinectTypes kinectType = Core.KinectTypes.KinectForWindows;
+
         // Derived
         protected Core.PixelSize depthPixelSize;
         public static double unitsMultiplier;
@@ -54,6 +56,7 @@ namespace SandWorm.Components
             if (options.KeepFrames != 0) keepFrames = options.KeepFrames;
             if (options.ElevationArray.Length != 0) elevationArray = options.ElevationArray;
             else elevationArray = new double[0];
+            if ((int)options.KinectType <= 2) kinectType = options.KinectType;
 
             // Pick the correct multiplier based on the drawing units. Shouldn't be a class variable; gets 'stuck'.
             unitsMultiplier = Core.ConvertDrawingUnits(RhinoDoc.ActiveDoc.ModelUnitSystem);

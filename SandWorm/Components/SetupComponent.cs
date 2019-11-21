@@ -45,6 +45,9 @@ namespace SandWorm
             pManager.AddIntegerParameter("KeepFrames", "KF",
                 "Output a running list of frame updates rather than just the current frame. Set to 1 or 0 to disable.",
                 GH_ParamAccess.item, keepFrames);
+            pManager.AddIntegerParameter("Kinect Type", "KT",
+                "Leave as 0 for Kinect for Windows; set 1 for Kinect for Azure in Near-FOV; set 2 for Kinect for Azure in Wide-FOV.",
+                GH_ParamAccess.item, (int)kinectType);
             pManager[0].Optional = true;
             pManager[1].Optional = true;
             pManager[2].Optional = true;
@@ -53,6 +56,7 @@ namespace SandWorm
             pManager[5].Optional = true;
             pManager[6].Optional = true;
             pManager[7].Optional = true;
+            pManager[8].Optional = true;
         }
 
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)

@@ -11,7 +11,7 @@ namespace SandWorm
         public SetupOptions()
         {
         }
-
+        
         private double _sensorElevation;
         private int _leftColumns;
         private int _rightColumns;
@@ -20,6 +20,7 @@ namespace SandWorm
         private int _tickRate;
         private int _keepFrames;
         private double[] _elevationArray; // Store all deltas between desired and measured distance values from the sensor to the table for each pixel.
+        private Core.KinectTypes _kinectType;
 
         public double SensorElevation
         {
@@ -61,11 +62,17 @@ namespace SandWorm
             get { return _keepFrames; }
             set { _keepFrames = value; }
         }
+
         public double[] ElevationArray
         {
             get { return _elevationArray; }
             set { _elevationArray = value; }
         }
-
+        
+        public Core.KinectTypes KinectType
+        {
+            get { return _kinectType; }
+            set { _kinectType = value; }
+        }
     }
 }

@@ -60,6 +60,13 @@ namespace SandWorm
             return mesh;
         }
 
+        public enum KinectTypes
+        {
+            KinectForWindows, 
+            KinectForAzureNear,
+            KinectForAzureWide,
+        }
+
         public struct PixelSize // Unfortunately no nice tuples in this version of C# :(
         {
             public double x;

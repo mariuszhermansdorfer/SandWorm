@@ -26,6 +26,9 @@ namespace SandWorm
         public static double kinect2ResolutionForX = 512;
         public static double kinect2ResolutionForY = 424;
 
+        // Used in controllers and setup
+        public static Core.KinectTypes kinectType = Core.KinectTypes.KinectForWindows;
+
         public static void AddRef()
         {
             if (sensor == null)
