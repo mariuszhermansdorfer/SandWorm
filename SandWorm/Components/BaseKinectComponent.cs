@@ -34,8 +34,8 @@ namespace SandWorm.Components
         protected readonly LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
         public int[] runningSum = Enumerable.Range(1, 217088).Select(i => new int()).ToArray();
 
-        public BaseKinectComponent(string name, string nickname, string description)
-            : base(name, nickname, description, "Kinect Visualisation")
+        public BaseKinectComponent(string name, string nickname, string description, string subCategory)
+            : base(name, nickname, description, subCategory)
         {
         }
 

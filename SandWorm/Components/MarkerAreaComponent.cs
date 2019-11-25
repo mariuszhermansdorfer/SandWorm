@@ -7,6 +7,7 @@ using Grasshopper.Kernel.Types;
 using Microsoft.Kinect;
 using Rhino.Geometry;
 using SandWorm.Components;
+using SandWorm.Properties;
 
 namespace SandWorm
 {
@@ -14,11 +15,11 @@ namespace SandWorm
     {
         private List<Curve> markerAreas;
         public MarkerAreaComponent() : base("Sandworm Area Markers", "SW PMarks",
-            "Track color markers from the Kinect camera stream and output them as areas")
+            "Track color markers from the Kinect's' camera and output as areas")
         {
         }
 
-        protected override Bitmap Icon => null;
+        protected override Bitmap Icon => Resources.icons_marker_areas;
 
         public override Guid ComponentGuid => new Guid("41b279b6-643e-4d22-bc45-b47efa264ffb");
         
