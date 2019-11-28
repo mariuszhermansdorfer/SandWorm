@@ -122,15 +122,32 @@
     <Compile Include="GaussianBlurProcessor.cs" />
     <Compile Include="Sensors\KinectController.cs" />
     <Compile Include="Components\SetupComponent.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="SandWormInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SetupOptions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
+    <None Include="Properties\icons_setup.png" />
+    <None Include="Properties\icons_points.png" />
+    <None Include="Properties\icons_mesh.png" />
+    <None Include="Properties\icons_marker_points.png" />
+    <None Include="Properties\icons_marker_areas.png" />
+    <None Include="Properties\icons_icon_setup.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.

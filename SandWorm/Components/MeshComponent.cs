@@ -7,6 +7,7 @@ using Grasshopper.Kernel;
 using Rhino.Geometry;
 using SandWorm.Analytics;
 using SandWorm.Components;
+using SandWorm.Properties;
 
 namespace SandWorm
 {
@@ -21,11 +22,12 @@ namespace SandWorm
         private List<GeometryBase> _outputGeometry;
         private List<Mesh> outputMesh;
 
-        public MeshComponent() : base("Sandworm Mesh", "SW Mesh", "Visualise live data from the Kinect as a Mesh")
+        public MeshComponent() : base("Sandworm Mesh", "SW Mesh", 
+            "Visualise Kinect depth data as a mesh", "Visualisation")
         {
         }
 
-        protected override Bitmap Icon => null;
+        protected override Bitmap Icon => Resources.icons_mesh;
 
         public override Guid ComponentGuid => new Guid("f923f24d-86a0-4b7a-9373-23c6b7d2e162");
 

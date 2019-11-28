@@ -5,6 +5,7 @@ using Grasshopper.Kernel;
 using Grasshopper.Kernel.Special;
 using Rhino;
 using SandWorm.Components;
+using SandWorm.Properties;
 
 namespace SandWorm
 {
@@ -17,11 +18,11 @@ namespace SandWorm
         public int frameCount; // Number of frames to average the calibration across
 
         public SetupComponent() : base("Setup Component", "SWSetup",
-            "This component takes care of all the setup & calibration of your sandbox.")
+            "This component takes care of all the setup & calibration of your sandbox.", "Utility")
         {
         }
 
-        protected override Bitmap Icon => null;
+        protected override Bitmap Icon => Resources.icons_setup;
 
         public override Guid ComponentGuid => new Guid("9ee53381-c269-4fff-9d45-8a2dbefc243c");
 

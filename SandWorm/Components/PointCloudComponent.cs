@@ -7,6 +7,7 @@ using Grasshopper.Kernel.Types;
 using Microsoft.Kinect;
 using Rhino.Geometry;
 using SandWorm.Components;
+using SandWorm.Properties;
 
 namespace SandWorm
 {
@@ -20,11 +21,11 @@ namespace SandWorm
         private List<Point3d> _outputPoints;
 
         public PointCloudComponent() : base("Sandworm Point Cloud", "SW PCloud",
-            "Visualise live data from the Kinect as a point cloud")
+            "Visualise Kinect depth data as a point cloud", "Visualisation")
         {
         }
 
-        protected override Bitmap Icon => null;
+        protected override Bitmap Icon => Resources.icons_points;
 
         public override Guid ComponentGuid => new Guid("be133406-49aa-4b8d-a622-23f77161b03f");
 

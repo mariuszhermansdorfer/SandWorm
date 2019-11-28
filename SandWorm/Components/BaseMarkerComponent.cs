@@ -18,7 +18,7 @@ namespace SandWorm.Components
         protected Color[] allPixels;
 
         public BaseMarkerComponent(string name, string nickname, string description)
-            : base(name, nickname, description)
+            : base(name, nickname, description, "Markers")
         {
         }
 

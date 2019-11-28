@@ -39,8 +39,8 @@ namespace SandWorm.Components
         protected readonly LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
         public int[] runningSum = Enumerable.Range(1, 217088).Select(i => new int()).ToArray();
 
-        public BaseKinectComponent(string name, string nickname, string description)
-            : base(name, nickname, description, "Kinect Visualisation")
+        public BaseKinectComponent(string name, string nickname, string description, string subCategory)
+            : base(name, nickname, description, subCategory)
         {
         }
 
@@ -57,7 +57,7 @@ namespace SandWorm.Components
             if (options.BottomRows != 0) bottomRows = options.BottomRows;
             if (options.TickRate != 0) tickRate = options.TickRate;
             if (options.KeepFrames != 0) keepFrames = options.KeepFrames;
-            if (options.ElevationArray.Length != 0) elevationArray = options.ElevationArray;
+            if (options.ElevationArray != null && options.ElevationArray.Length != 0) elevationArray = options.ElevationArray;
             else elevationArray = new double[0];
             if ((int)options.KinectType <= 2) kinectType = options.KinectType;
 

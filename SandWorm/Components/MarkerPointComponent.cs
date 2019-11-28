@@ -8,6 +8,7 @@ using Microsoft.Kinect;
 using Rhino.Geometry;
 using SandWorm.Components;
 using OpenCvSharp;
+using SandWorm.Properties;
 using Point3d = Rhino.Geometry.Point3d;
 
 namespace SandWorm
@@ -16,11 +17,11 @@ namespace SandWorm
     {
         private List<Point3d> markerPoints;
         public MarkerPointComponent() : base("Sandworm Point Markers", "SW Markers",
-            "Track color markers from the Kinect camera stream and output them as points")
+            "Track color markers from the Kinect's' camera and output as points")
         {
         }
 
-        protected override Bitmap Icon => null;
+        protected override Bitmap Icon => Resources.icons_marker_points;
 
         public override Guid ComponentGuid => new Guid("e4752964-5214-47b8-a7db-954166ba5eee");
         
