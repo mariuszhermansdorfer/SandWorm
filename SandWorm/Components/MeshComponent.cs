@@ -20,7 +20,7 @@ namespace SandWorm
         private double _contourInterval = 10;
         // Outputs
         private List<GeometryBase> _outputGeometry;
-        private List<Mesh> outputMesh;
+        private List<Mesh> _outputMesh;
 
         public MeshComponent() : base("Sandworm Mesh", "SW Mesh", 
             "Visualise Kinect depth data as a mesh", "Visualisation")
@@ -88,8 +88,8 @@ namespace SandWorm
             var averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
 
             // Initialize outputs
-            if (keepFrames <= 1 || outputMesh == null)
-                outputMesh = new List<Mesh>(); // Don't replace prior frames (by clearing array) if using keepFrames
+            if (keepFrames <= 1 || _outputMesh == null)
+                _outputMesh = new List<Mesh>(); // Don't replace prior frames (by clearing array) if using keepFrames
 
             SetupRenderBuffer(depthFrameDataInt, _quadMesh);
             Core.LogTiming(ref output, timer, "Initial setup"); // Debug Info
@@ -121,9 +121,9 @@ namespace SandWorm
             // Generate the mesh itself
             _quadMesh = Core.CreateQuadMesh(_quadMesh, allPoints, _vertexColors, trimmedWidth, trimmedHeight);
             if (keepFrames > 1)
-                outputMesh.Insert(0, _quadMesh.DuplicateMesh()); // Clone and prepend if keeping frames
+                _outputMesh.Insert(0, _quadMesh.DuplicateMesh()); // Clone and prepend if keeping frames
             else
-                outputMesh.Add(_quadMesh);
+                _outputMesh.Add(_quadMesh);
 
             Core.LogTiming(ref output, timer, "Meshing"); // Debug Info
 
@@ -141,14 +141,14 @@ namespace SandWorm
                 }
             Core.LogTiming(ref output, timer, "Mesh analysis"); // Debug Info
 
-            // Trim the outputMesh List to length specified in keepFrames
-            if (keepFrames > 1 && keepFrames < outputMesh.Count)
+            // Trim the _outputMesh List to length specified in keepFrames
+            if (keepFrames > 1 && keepFrames < _outputMesh.Count)
             {
-                var framesToRemove = outputMesh.Count - keepFrames;
-                outputMesh.RemoveRange(keepFrames, framesToRemove > 0 ? framesToRemove : 0);
+                var framesToRemove = _outputMesh.Count - keepFrames;
+                _outputMesh.RemoveRange(keepFrames, framesToRemove > 0 ? framesToRemove : 0);
             }
 
-            DA.SetDataList(0, outputMesh);
+            DA.SetDataList(0, _outputMesh);
             DA.SetDataList(1, _outputGeometry);
             DA.SetDataList(2, output); // For logging/debugging
 

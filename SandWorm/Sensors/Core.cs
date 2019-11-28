@@ -73,6 +73,16 @@ namespace SandWorm
             public double y;
         }
 
+        public static void GetTrimmedDimensions(KinectTypes kinectType, ref int trimmedWidth, ref int trimmedHeight, ref double[] elevationArray,
+                                                int topRows, int bottomRows, int leftColumns, int rightColumns)
+        {
+            trimmedWidth = Core.GetDepthPixelXResolution(kinectType) - leftColumns - rightColumns;
+            trimmedHeight = Core.GetDepthPixelYResolution(kinectType) - topRows - bottomRows;
+            // Only create a new elevation array when user resizes the mesh
+            if (elevationArray == null || elevationArray.Length != trimmedWidth * trimmedHeight)
+                elevationArray = new double[trimmedWidth * trimmedHeight];
+        }
+
         public static int GetDepthPixelXResolution(KinectTypes type)
         {
             switch (type)

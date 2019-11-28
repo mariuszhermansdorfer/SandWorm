@@ -13,31 +13,27 @@ namespace SandWorm.Components
     public abstract class BaseKinectComponent : BaseComponent
     {
         // Common Input Parameters
-        public int averageFrames = 1;
-        public int blurRadius = 1;
-        public int keepFrames = 1;
+        protected int averageFrames = 1;
+        protected int blurRadius = 1;
+        protected int keepFrames = 1;
         // Sandworm Options
-        public SetupOptions options; // List of options coming from the SetupComponent
-        public int topRows = 0;
-        public int rightColumns = 0;
-        public int bottomRows = 0;
-        public int leftColumns = 0;
-        public double sensorElevation = 1000; // Arbitrary default value (must be >0)
-        public double[] elevationArray;
-        public int tickRate = 33; // In ms
+        protected SetupOptions options; // List of options coming from the SetupComponent
+        protected int topRows = 0;
+        protected int rightColumns = 0;
+        protected int bottomRows = 0;
+        protected int leftColumns = 0;
+        protected double sensorElevation = 1000; // Arbitrary default value (must be >0)
+        protected int tickRate = 33; // In ms
         protected Core.KinectTypes kinectType = Core.KinectTypes.KinectForWindows;
-        // Sensor Specific
-        protected KinectSensor kinectSensor;
-        protected Device k4aSensor;
-
+        private double[] elevationArray;
         // Derived
         protected Core.PixelSize depthPixelSize;
-        public static double unitsMultiplier;
+        protected static double unitsMultiplier;
         protected Point3f[] allPoints;
         protected int trimmedHeight;
         protected int trimmedWidth;
         protected readonly LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
-        public int[] runningSum = Enumerable.Range(1, 217088).Select(i => new int()).ToArray();
+        protected int[] runningSum;
 
         public BaseKinectComponent(string name, string nickname, string description, string subCategory)
             : base(name, nickname, description, subCategory)
@@ -80,38 +76,19 @@ namespace SandWorm.Components
 
         protected void SetupKinect()
         {
-            // TODO: shift to a method in the relevant controllers 
+            var errorMessage = "";
             if (kinectType == Core.KinectTypes.KinectForWindows)
-            {
-                if (kinectSensor == null)
-                {
-                    KinectController.AddRef();
-                    kinectSensor = KinectController.sensor;
-                }
-                if (KinectController.depthFrameData == null)
-                {
-                    ShowComponentError("No depth frame data provided by the Kinect.");
-                    return;
-                }
-            }
+                KinectController.SetupSensor(ref errorMessage);
             else
-            {
-                if (k4aSensor == null)
-                {
-                    try
-                    {
-                        k4aSensor = Device.Open();
-                    }
-                    catch (Exception exc)
-                    {
-                        ShowComponentError(exc.Message);
-                    }
-                }
-            }
+                K4AController.SetupSensor(ref errorMessage);
 
-            // Initialize all arrays
-            trimmedWidth = Core.GetDepthPixelXResolution(kinectType) - leftColumns - rightColumns;
-            trimmedHeight = Core.GetDepthPixelYResolution(kinectType) - topRows - bottomRows;
+            if (errorMessage != "")
+                ShowComponentError(errorMessage);
+
+            Core.GetTrimmedDimensions(kinectType, ref trimmedWidth, ref trimmedHeight, ref elevationArray,
+                                      topRows, bottomRows, leftColumns, rightColumns);
+            if (runningSum == null || runningSum.Length < elevationArray.Length)
+                runningSum = Enumerable.Range(1, elevationArray.Length).Select(i => new int()).ToArray();
         }
 
         protected void SetupRenderBuffer(int[] depthFrameDataInt, Mesh quadMesh)

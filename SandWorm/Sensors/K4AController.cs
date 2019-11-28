@@ -18,7 +18,6 @@ namespace SandWorm
         public static byte[] colorFrameData = null;
         // Kinect for Azure specific
         public static Device sensor = null;
-
         // Kinect for Azure Details; see https://docs.microsoft.com/en-us/azure/kinect-dk/hardware-specification
         // Near FOV unbinned
         public static double K4ANFOVForX = 75.0;
@@ -30,5 +29,24 @@ namespace SandWorm
         public static double K4AWFOVForY = 120.0;
         public static int K4AWResolutionForX = 1024; // Assuming low FPS mode
         public static int K4AWResolutionForY = 1024;
+
+
+        public static void SetupSensor(ref string errorMessage)
+        {
+            if (sensor == null)
+            {
+                try
+                {
+                    sensor = Device.Open();
+                }
+                catch (Exception exc)
+                {
+                    errorMessage = exc.Message;
+                }
+            }
+
+            if (K4AController.depthFrameData == null)
+                errorMessage = "No depth frame data provided by the Kinect for Azure.";
+        }
     }
 }
