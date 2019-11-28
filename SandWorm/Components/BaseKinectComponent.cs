@@ -52,7 +52,7 @@ namespace SandWorm.Components
             if (options.BottomRows != 0) bottomRows = options.BottomRows;
             if (options.TickRate != 0) tickRate = options.TickRate;
             if (options.KeepFrames != 0) keepFrames = options.KeepFrames;
-            if (options.ElevationArray.Length != 0) elevationArray = options.ElevationArray;
+            if (options.ElevationArray != null && options.ElevationArray.Length != 0) elevationArray = options.ElevationArray;
             else elevationArray = new double[0];
 
             // Pick the correct multiplier based on the drawing units. Shouldn't be a class variable; gets 'stuck'.
