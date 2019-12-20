@@ -44,13 +44,13 @@ namespace SandWorm
                 try
                 {
                     sensor = Device.Open();
+                    Initialize();
                 }
                 catch (Exception exc)
                 {
                     sensor?.Dispose();
-                    errorMessage = exc.Message;
+                    errorMessage = exc.Message; // Returned to BaseKinectComponent
                 }
-            Initialize();
         }
 
         private static DeviceConfiguration CreateCameraConfig()
