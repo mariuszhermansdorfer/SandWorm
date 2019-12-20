@@ -14,7 +14,7 @@ namespace SandWorm
         private double _averagedSensorElevation;
         private bool _calibrateSandworm;
         private double[] _elevationArray;
-        private int _frameCount; // Number of frames to average the calibration across
+        private int _frameCount = 0; // Number of frames to average the calibration across
 
         public SetupComponent() : base("Setup Component", "SWSetup",
             "This component takes care of all the setup & calibration of your sandbox.", "Utility")
