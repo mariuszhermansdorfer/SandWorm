@@ -20,6 +20,6 @@ To use Sandworm you will need a copy of [Rhino 6](https://www.rhino3d.com), a [K
 
 ## Contributors and License
 
-Sandworm includes contributions from Philip Belesky, Kane Borg, Mariusz Hermansdorfer, Sergio Pedri. It is open source and developed [on GitHub](https://github.com/mariuszhermansdorfer/SandWorm/).
+Sandworm includes contributions from [Philip Belesky](http://philipbelesky.com), Kane Borg, Mariusz Hermansdorfer, Sergio Pedri. It is open source and developed [on GitHub](https://github.com/mariuszhermansdorfer/SandWorm/).
 
 Sandworm, and its documentation, is provided under the terms of the [MIT License](https://github.com/mariuszhermansdorfer/SandWorm/blob/master/LICENSE).
