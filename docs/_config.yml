@@ -40,3 +40,5 @@ aux_links:
 
 # Footer content appears at the bottom of every page's main content
 footer_content: "TODO: Copyright & license details"
+
+ga_tracking: UA-314178-32
