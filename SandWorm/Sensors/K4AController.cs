@@ -51,6 +51,28 @@ namespace SandWorm
                     sensor?.Dispose();
                     errorMessage = exc.Message; // Returned to BaseKinectComponent
                 }
+            if (K4AController.depthFrameData == null)
+                errorMessage = "No depth frame data provided by the Kinect Azure.";
+        }
+
+        //Check if needed to flatten array of Image (for workaround)
+        static int[] To1DArray(int[,] input)
+        {
+            // Step 1: get total size of 2D array, and allocate 1D array.
+            int size = input.Length;
+            int[] result = new int[size];
+
+            // Step 2: copy 2D array elements into a 1D array.
+            int write = 0;
+            for (int i = 0; i <= input.GetUpperBound(0); i++)
+            {
+                for (int z = 0; z <= input.GetUpperBound(1); z++)
+                {
+                    result[write++] = input[i, z];
+                }
+            }
+            // Step 3: return the new array.
+            return result;
         }
 
         private static DeviceConfiguration CreateCameraConfig()
@@ -59,7 +81,7 @@ namespace SandWorm
             {
                 CameraFps = FrameRate.Fifteen,
                 ColorResolution = ColorResolution.Off,
-                DepthMode = DepthMode.WideViewUnbinned,
+                DepthMode = DepthMode.WideViewUnbinned,     //Passive IR, //WideViewUnbinned
                 SynchronizedImagesOnly = false // Color and depth images can be out of sync
             };
             return config;
@@ -78,27 +100,51 @@ namespace SandWorm
                     if (capture.DepthImage != null)
                     {
                         var depthImage = capture.DepthImage;
-                        var xyzImageBuffer = new short[depthImage.WidthPixels * depthImage.HeightPixels * 3];
-                        var xyzImageStride = depthImage.WidthPixels * sizeof(short) * 3;
+                        //Console.WriteLine(depthImage);
+                        //var flat_depthImage = new int[depthImage.WidthPixels * depthImage.HeightPixels];
+                        //Core.CopyAsIntArray(, flat_depthImage, 0, 0,
+                        //                0, 0, K4AController.depthHeight, K4AController.depthWidth);
+                        //var flat_depthImage = To1DArray(depthImage);
+                        var xyzImageBuffer = new ushort[depthImage.WidthPixels * depthImage.HeightPixels * 3]; //CHANGED was shor, changed to ushort
+                        var xyzImageStride = depthImage.WidthPixels * sizeof(short) * 3; //Can be also 0//correct
                         using (var transformation = calibration.CreateTransformation())
                         {
+
                             using (var xyzImage = Image.CreateFromArray(xyzImageBuffer, ImageFormat.Custom,
-                                depthImage.WidthPixels,
+                                depthImage.WidthPixels,  //should this be *3 or does stride take care of that?
                                 depthImage.HeightPixels, xyzImageStride))
                             {
-                                transformation.DepthImageToPointCloud(depthImage, CalibrationGeometry.Depth, xyzImage);
+                                //for color use CalibrationGeometry.Color
+                                transformation.DepthImageToPointCloud(depthImage, CalibrationGeometry.Depth, xyzImage); //BUG DepthImage must have 0 width but is shaped 1024 x 1024
                             }
+                            depthFrameData = new ushort[depthImage.WidthPixels * depthImage.HeightPixels]; //Setup empty array as ushort, TODO imidiately assign every %3 element as the depthframe shaped as 1024x1024 
+                                                                                                           //depthImage.CopyFrameDataToArray(depthFrameData)
                         }
 
+                        //Update depthFrameData array....
+                        for (int y = 0; y < depthImage.HeightPixels; y++)
+                        {
+                            for (int x = 0; x < depthImage.WidthPixels; x++)
+                            {
+                                var indx = x * 3 + y * depthImage.WidthPixels * 3;
+                                //var x3Dmillimeters = xyzImageBuffer[indx];
+                                //var y3Dmillimeters = xyzImageBuffer[indx + 1];
+                                //var z3Dmillimeters = xyzImageBuffer[indx + 2];
+                                depthFrameData[indx] = xyzImageBuffer[indx + 2];
+                            }
+                        }
                         // How to access 3D coordinates of pixel with (x,y) 2D coordinates
-                        var x = 400;
-                        var y = 400;
-                        var indx = x * 3 + y * depthImage.WidthPixels * 3;
-                        var x3Dmillimeters = xyzImageBuffer[indx];
-                        var y3Dmillimeters = xyzImageBuffer[indx + 1];
-                        var z3Dmillimeters = xyzImageBuffer[indx + 2];
+                        //var x = 400;
+                        //var y = 400;
+                        //var indx = x * 3 + y * depthImage.WidthPixels * 3;
+                        //var x3Dmillimeters = xyzImageBuffer[indx];
+                        //var y3Dmillimeters = xyzImageBuffer[indx + 1];
+                        //var z3Dmillimeters = xyzImageBuffer[indx + 2];
+
+
                     }
                 }
+                capture.Dispose(); //Must be called in the end to free the capture otherwise capture is equal to null
             }
             else
             {
@@ -110,6 +156,7 @@ namespace SandWorm
 
         public static void Initialize()
         {
+
             var deviceConfig = CreateCameraConfig();
             string message;
             if (!deviceConfig.IsValid(out message)) message += "";
@@ -117,13 +164,43 @@ namespace SandWorm
             try
             {
                 sensor.StartCameras(deviceConfig);
+                
+                //sensor = Device.GetDefault();
+                // TODO: switch based on component type?
+                //multiFrameReader = sensor.OpenMultiSourceFrameReader(FrameSourceTypes.Depth | FrameSourceTypes.Color);
+                //multiFrameReader.MultiSourceFrameArrived += new EventHandler<MultiSourceFrameArrivedEventArgs>(KinectController.Reader_FrameArrived);
+
+                //sensor.Open();
             }
             catch (Exception ex)
             {
                 message = ex.ToString();
             }
 
-            CaptureFrame();
+            CaptureFrame(); //CaptureFrame Once on Initialize
+        }
+
+
+        public static void UpdateFrame()
+        {
+            CaptureFrame(); //CaptureFrame Once each time public function is called
+        }
+        //KANE - Mimics Kinect Controller Architecture - DOES NOTHING ATM
+
+        public static Device Sensor
+        {
+            get
+            {
+                if (sensor == null)
+                {
+                    Initialize();
+                }
+                return sensor;
+            }
+            set
+            {
+                sensor = value;
+            }
         }
     }
 }

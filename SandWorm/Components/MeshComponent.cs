@@ -91,6 +91,9 @@ namespace SandWorm
             if (keepFrames <= 1 || _outputMesh == null)
                 _outputMesh = new List<Mesh>(); // Don't replace prior frames (by clearing array) if using keepFrames
 
+            
+            //If kinect type Azure K4AController.CaptureFrame() else do nothing
+
             SetupRenderBuffer(depthFrameDataInt, _quadMesh);
             Core.LogTiming(ref output, timer, "Initial setup"); // Debug Info
 

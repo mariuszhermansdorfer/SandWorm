@@ -97,6 +97,8 @@ namespace SandWorm
             DA.GetData(8, ref tempKinectType);
 
             kinectType = (Core.KinectTypes)tempKinectType;
+            //What kinect Type selects the correct KinectController or K4AController
+
 
             // Initialize all arrays
             Core.GetTrimmedDimensions(kinectType, ref trimmedWidth, ref trimmedHeight, ref _elevationArray, 
@@ -114,8 +116,20 @@ namespace SandWorm
                 output.Add("Reading frame: " + _frameCount); // Debug Info
 
                 // Trim the depth array and cast ushort values to int
-                Core.CopyAsIntArray(KinectController.depthFrameData, depthFrameDataInt, leftColumns, rightColumns,
-                                    topRows, bottomRows, KinectController.depthHeight, KinectController.depthWidth);
+                if (kinectType == Core.KinectTypes.KinectForWindows)
+                { 
+                    Core.CopyAsIntArray(KinectController.depthFrameData, depthFrameDataInt, leftColumns, rightColumns,
+                                        topRows, bottomRows, KinectController.depthHeight, KinectController.depthWidth);
+                }
+                else //Handle for K4A
+                {
+                    Core.CopyAsIntArray(K4AController.depthFrameData, depthFrameDataInt, leftColumns, rightColumns,
+                    topRows, bottomRows, K4AController.depthHeight, K4AController.depthWidth);
+                }
+                //foreach(var item in KinectController.depthFrameData) //Testing depth data
+                //{
+                //System.Diagnostics.Debug.WriteLine(item.ToString());
+                //}
 
                 renderBuffer.AddLast(depthFrameDataInt);
                 for (var pixel = 0; pixel < depthFrameDataInt.Length; pixel++)

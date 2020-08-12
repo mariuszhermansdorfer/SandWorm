@@ -95,8 +95,9 @@ namespace SandWorm.Components
         {
             ushort[] depthFrameData;
             if (kinectType == Core.KinectTypes.KinectForWindows)
-                depthFrameData = KinectController.depthFrameData;
+                depthFrameData = KinectController.depthFrameData; //Here this is handled by an event
             else
+                K4AController.UpdateFrame(); //Here this is updated each time render buffer is called.
                 depthFrameData = K4AController.depthFrameData;
 
             // Trim the depth array and cast ushort values to int
