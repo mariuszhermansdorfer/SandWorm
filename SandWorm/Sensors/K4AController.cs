@@ -114,14 +114,15 @@ namespace SandWorm
                                 depthImage.WidthPixels,  //should this be *3 or does stride take care of that?
                                 depthImage.HeightPixels, xyzImageStride))
                             {
-                                //for color use CalibrationGeometry.Color
+                                //for color space mapping use CalibrationGeometry.Color
                                 transformation.DepthImageToPointCloud(depthImage, CalibrationGeometry.Depth, xyzImage); //BUG DepthImage must have 0 width but is shaped 1024 x 1024
                             }
-                            depthFrameData = new ushort[depthImage.WidthPixels * depthImage.HeightPixels]; //Setup empty array as ushort, TODO imidiately assign every %3 element as the depthframe shaped as 1024x1024 
+                             
                                                                                                            //depthImage.CopyFrameDataToArray(depthFrameData)
                         }
 
                         //Update depthFrameData array....
+                        depthFrameData = new ushort[depthImage.WidthPixels * depthImage.HeightPixels]; //Setup empty array as ushort, TODO imidiately assign every %3 element as the depthframe shaped as 1024x1024 
                         for (int y = 0; y < depthImage.HeightPixels; y++)
                         {
                             for (int x = 0; x < depthImage.WidthPixels; x++)
@@ -130,7 +131,7 @@ namespace SandWorm
                                 //var x3Dmillimeters = xyzImageBuffer[indx];
                                 //var y3Dmillimeters = xyzImageBuffer[indx + 1];
                                 //var z3Dmillimeters = xyzImageBuffer[indx + 2];
-                                depthFrameData[indx] = xyzImageBuffer[indx + 2];
+                                depthFrameData[indx] = xyzImageBuffer[indx + 2]; 
                             }
                         }
                         // How to access 3D coordinates of pixel with (x,y) 2D coordinates
@@ -144,7 +145,7 @@ namespace SandWorm
 
                     }
                 }
-                capture.Dispose(); //Must be called in the end to free the capture otherwise capture is equal to null
+                capture.Dispose(); //Must be called in the end to free the capture otherwise capture is null - CHECK THIS
             }
             else
             {
