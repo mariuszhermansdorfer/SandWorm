@@ -78,7 +78,8 @@ namespace SandWorm
                     if (capture.Depth != null)
                     {
                         var depthImage = capture.Depth;
-                        var xyzImageBuffer = new short[depthImage.WidthPixels * depthImage.HeightPixels * 3];
+                        var array_test = depthImage.GetPixels<short>().ToArray();
+                        var xyzImageBuffer = new short[depthImage.WidthPixels * depthImage.HeightPixels * 3];  //Short or UShort?
                         var xyzImageStride = depthImage.WidthPixels * sizeof(short) * 3;
                         using (var transformation = calibration.CreateTransformation())
                         {
@@ -100,6 +101,11 @@ namespace SandWorm
             {
                 Thread.Sleep(1);
             }
+        }
+
+        public static void UpdateFrame()
+        {
+            CaptureFrame(); //CaptureFrame Once each time public function is called
         }
 
         public static void Initialize()
