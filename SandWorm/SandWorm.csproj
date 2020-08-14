@@ -69,8 +69,8 @@
     <Reference Include="Grasshopper, Version=6.17.19235.15040, Culture=neutral, PublicKeyToken=dda4f5ec2cd80803, processorArchitecture=MSIL">
       <HintPath>..\packages\Grasshopper.6.17.19235.15041\lib\net45\Grasshopper.dll</HintPath>
     </Reference>
-    <Reference Include="K4AdotNet, Version=1.3.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\K4AdotNet.1.3.0\lib\net461\K4AdotNet.dll</HintPath>
+    <Reference Include="K4AdotNet, Version=1.4.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\K4AdotNet.1.4.0\lib\net461\K4AdotNet.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Kinect, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Kinect.2.0.1410.19000\lib\net45\Microsoft.Kinect.dll</HintPath>
@@ -95,8 +95,18 @@
       <HintPath>..\packages\RhinoCommon.6.17.19235.15041\lib\net45\RhinoCommon.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.2.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.4.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
+    </Reference>
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.5.3\lib\netstandard2.0\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
     <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.5.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.4.6.0\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
@@ -136,6 +146,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
+    <None Include="app.config" />
     <None Include="Properties\icons_setup.png" />
     <None Include="Properties\icons_points.png" />
     <None Include="Properties\icons_mesh.png" />
@@ -210,12 +221,12 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Fody.6.0.5\build\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Fody.6.0.5\build\Fody.targets'))" />
     <Error Condition="!Exists('..\packages\Costura.Fody.4.1.0\build\Costura.Fody.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Costura.Fody.4.1.0\build\Costura.Fody.props'))" />
-    <Error Condition="!Exists('..\packages\K4AdotNet.1.3.0\build\k4adotnet.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\K4AdotNet.1.3.0\build\k4adotnet.targets'))" />
     <Error Condition="!Exists('..\packages\OpenCvSharp4.runtime.win.4.1.1.20191110\build\net\OpenCvSharp4.runtime.win.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenCvSharp4.runtime.win.4.1.1.20191110\build\net\OpenCvSharp4.runtime.win.props'))" />
     <Error Condition="!Exists('..\packages\RhinoCommon.6.17.19235.15041\build\net45\RhinoCommon.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\RhinoCommon.6.17.19235.15041\build\net45\RhinoCommon.targets'))" />
     <Error Condition="!Exists('..\packages\Grasshopper.6.17.19235.15041\build\net45\Grasshopper.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Grasshopper.6.17.19235.15041\build\net45\Grasshopper.targets'))" />
+    <Error Condition="!Exists('..\packages\K4AdotNet.1.4.0\build\k4adotnet.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\K4AdotNet.1.4.0\build\k4adotnet.targets'))" />
   </Target>
-  <Import Project="..\packages\K4AdotNet.1.3.0\build\k4adotnet.targets" Condition="Exists('..\packages\K4AdotNet.1.3.0\build\k4adotnet.targets')" />
   <Import Project="..\packages\RhinoCommon.6.17.19235.15041\build\net45\RhinoCommon.targets" Condition="Exists('..\packages\RhinoCommon.6.17.19235.15041\build\net45\RhinoCommon.targets')" />
   <Import Project="..\packages\Grasshopper.6.17.19235.15041\build\net45\Grasshopper.targets" Condition="Exists('..\packages\Grasshopper.6.17.19235.15041\build\net45\Grasshopper.targets')" />
+  <Import Project="..\packages\K4AdotNet.1.4.0\build\k4adotnet.targets" Condition="Exists('..\packages\K4AdotNet.1.4.0\build\k4adotnet.targets')" />
 </Project>

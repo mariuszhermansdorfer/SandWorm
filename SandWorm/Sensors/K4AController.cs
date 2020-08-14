@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading;
 using K4AdotNet.Sensor;
+using K4AdotNet.Record;
 
 namespace SandWorm
 {
@@ -55,6 +57,8 @@ namespace SandWorm
                 errorMessage = "No depth frame data provided by the Kinect Azure.";
         }
 
+
+
         //Check if needed to flatten array of Image (for workaround)
         static int[] To1DArray(int[,] input)
         {
@@ -75,22 +79,25 @@ namespace SandWorm
             return result;
         }
 
+        //public event EventHandler<CaptureReadyEventArgs> CaptureReady;
+
         private static DeviceConfiguration CreateCameraConfig()
         {
             var config = new DeviceConfiguration
             {
                 CameraFps = FrameRate.Fifteen,
-                ColorResolution = ColorResolution.Off,
+                ColorResolution = ColorResolution.R720p,   //Off
                 DepthMode = DepthMode.WideViewUnbinned,     //Passive IR, //WideViewUnbinned
-                SynchronizedImagesOnly = false // Color and depth images can be out of sync
+                SynchronizedImagesOnly = false //false =  Color and depth images can be out of sync
             };
             return config;
         }
 
+
         // Prototype function to try and capture a single frame
-        private static async void CaptureFrame()
+        private static async void CaptureFrame() //private static async void 
         {
-            //sensor.GetCalibration(deviceConfig.DepthMode, deviceConfig.ColorResolution, out calibration);
+            sensor.GetCalibration(DepthMode.WideViewUnbinned, ColorResolution.Off, out calibration); //deviceConfig.DepthMode deviceConfig.ColorResolution,
 
             var res = sensor.TryGetCapture(out var capture);
             if (res)
@@ -99,28 +106,32 @@ namespace SandWorm
                 {
                     if (capture.DepthImage != null)
                     {
+
+                        //CaptureReady?.Invoke(object sender, new CaptureReadyEventArgs(capture));
                         var depthImage = capture.DepthImage;
-                        //Console.WriteLine(depthImage);
-                        //var flat_depthImage = new int[depthImage.WidthPixels * depthImage.HeightPixels];
-                        //Core.CopyAsIntArray(, flat_depthImage, 0, 0,
-                        //                0, 0, K4AController.depthHeight, K4AController.depthWidth);
-                        //var flat_depthImage = To1DArray(depthImage);
+                        //var depthImageData = new ushort[depthImage.WidthPixels * depthImage.HeightPixels];
+                        //var shorts = Array.ConvertAll(depthImage, b => new Converter<byte, ushort>(b));  //b => (ushort)b System.Convert.ToUInt16
+                        //depthImage.CopyTo(depthImageData);
+
                         var xyzImageBuffer = new ushort[depthImage.WidthPixels * depthImage.HeightPixels * 3]; //CHANGED was shor, changed to ushort
                         var xyzImageStride = depthImage.WidthPixels * sizeof(short) * 3; //Can be also 0//correct
+                        var xyzImage = Image.CreateFromArray(xyzImageBuffer, ImageFormat.Custom,
+                                depthImage.WidthPixels,  //should this be *3 or does stride take care of that?
+                                depthImage.HeightPixels, xyzImageStride);
+
                         using (var transformation = calibration.CreateTransformation())
                         {
 
-                            using (var xyzImage = Image.CreateFromArray(xyzImageBuffer, ImageFormat.Custom,
-                                depthImage.WidthPixels,  //should this be *3 or does stride take care of that?
-                                depthImage.HeightPixels, xyzImageStride))
+                            using (xyzImage)
                             {
                                 //for color space mapping use CalibrationGeometry.Color
-                                transformation.DepthImageToPointCloud(depthImage, CalibrationGeometry.Depth, xyzImage); //BUG DepthImage must have 0 width but is shaped 1024 x 1024
+                                transformation.DepthImageToPointCloud(depthImage, CalibrationGeometry.Depth, xyzImage); //BUG DepthImage must have 0 width but is shaped 1024 x 1024 so is xyzImage since its based of its height and with.
+                                //https://github.com/sotanmochi/AzureKinect4Unity/blob/master/Assets/AzureKinect4Unity/Scripts/AzureKinectSensor.cs
                             }
-                             
-                                                                                                           //depthImage.CopyFrameDataToArray(depthFrameData)
+                            
+                            //depthImage.CopyFrameDataToArray(depthFrameData)
                         }
-
+                        
                         //Update depthFrameData array....
                         depthFrameData = new ushort[depthImage.WidthPixels * depthImage.HeightPixels]; //Setup empty array as ushort, TODO imidiately assign every %3 element as the depthframe shaped as 1024x1024 
                         for (int y = 0; y < depthImage.HeightPixels; y++)
@@ -128,9 +139,6 @@ namespace SandWorm
                             for (int x = 0; x < depthImage.WidthPixels; x++)
                             {
                                 var indx = x * 3 + y * depthImage.WidthPixels * 3;
-                                //var x3Dmillimeters = xyzImageBuffer[indx];
-                                //var y3Dmillimeters = xyzImageBuffer[indx + 1];
-                                //var z3Dmillimeters = xyzImageBuffer[indx + 2];
                                 depthFrameData[indx] = xyzImageBuffer[indx + 2]; 
                             }
                         }
@@ -144,6 +152,12 @@ namespace SandWorm
 
 
                     }
+                    //if (capture.ColorImage != null)
+                    //{
+
+                        //var colorImage = capture.ColorImage;
+
+                    //}
                 }
                 capture.Dispose(); //Must be called in the end to free the capture otherwise capture is null - CHECK THIS
             }
@@ -160,7 +174,7 @@ namespace SandWorm
 
             var deviceConfig = CreateCameraConfig();
             string message;
-            if (!deviceConfig.IsValid(out message)) message += "";
+            if (!deviceConfig.IsValid(out message)) message += "Configuration Valid.";
 
             try
             {
@@ -186,6 +200,7 @@ namespace SandWorm
         {
             CaptureFrame(); //CaptureFrame Once each time public function is called
         }
+        
         //KANE - Mimics Kinect Controller Architecture - DOES NOTHING ATM
 
         public static Device Sensor
