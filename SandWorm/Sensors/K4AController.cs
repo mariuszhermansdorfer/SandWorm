@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading;
-using K4AdotNet.Sensor;
+using Microsoft.Azure.Kinect.Sensor;
 
 namespace SandWorm
 {
@@ -57,9 +57,9 @@ namespace SandWorm
         {
             var config = new DeviceConfiguration
             {
-                CameraFps = FrameRate.Fifteen,
+                CameraFPS = FPS.FPS15,
                 ColorResolution = ColorResolution.Off,
-                DepthMode = DepthMode.WideViewUnbinned,
+                DepthMode = DepthMode.WFOV_Unbinned,
                 SynchronizedImagesOnly = false // Color and depth images can be out of sync
             };
             return config;
@@ -70,24 +70,20 @@ namespace SandWorm
         {
             //sensor.GetCalibration(deviceConfig.DepthMode, deviceConfig.ColorResolution, out calibration);
 
-            var res = sensor.TryGetCapture(out var capture);
-            if (res)
+            var capture = sensor.GetCapture();
+            if (capture != null)
             {
                 using (capture)
                 {
-                    if (capture.DepthImage != null)
+                    if (capture.Depth != null)
                     {
-                        var depthImage = capture.DepthImage;
+                        var depthImage = capture.Depth;
                         var xyzImageBuffer = new short[depthImage.WidthPixels * depthImage.HeightPixels * 3];
                         var xyzImageStride = depthImage.WidthPixels * sizeof(short) * 3;
                         using (var transformation = calibration.CreateTransformation())
                         {
-                            using (var xyzImage = Image.CreateFromArray(xyzImageBuffer, ImageFormat.Custom,
-                                depthImage.WidthPixels,
-                                depthImage.HeightPixels, xyzImageStride))
-                            {
-                                transformation.DepthImageToPointCloud(depthImage, CalibrationGeometry.Depth, xyzImage);
-                            }
+                            var output = transformation.DepthImageToPointCloud(depthImage);
+                            var test = output;
                         }
 
                         // How to access 3D coordinates of pixel with (x,y) 2D coordinates
@@ -102,8 +98,6 @@ namespace SandWorm
             }
             else
             {
-                if (!sensor.IsConnected)
-                    throw new DeviceConnectionLostException(sensor.DeviceIndex);
                 Thread.Sleep(1);
             }
         }
@@ -112,7 +106,6 @@ namespace SandWorm
         {
             var deviceConfig = CreateCameraConfig();
             string message;
-            if (!deviceConfig.IsValid(out message)) message += "";
 
             try
             {
