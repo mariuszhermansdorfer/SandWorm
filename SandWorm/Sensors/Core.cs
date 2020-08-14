@@ -113,12 +113,42 @@ namespace SandWorm
             }
         }
 
-        public static PixelSize GetDepthPixelSpacing(double sensorHeight)
+        public static double GetFOVForY(KinectTypes type)
+        {
+            switch (type)
+            {
+                case KinectTypes.KinectForWindows:
+                    return KinectController.kinect2FOVForY;
+                case KinectTypes.KinectForAzureNear:
+                    return K4AController.K4ANFOVForY;
+                case KinectTypes.KinectForAzureWide:
+                    return K4AController.K4AWFOVForY;
+                default:
+                    throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
+            }
+        }
+
+        public static double GetFOVForX(KinectTypes type)
+        {
+            switch (type)
+            {
+                case KinectTypes.KinectForWindows:
+                    return KinectController.kinect2FOVForX;
+                case KinectTypes.KinectForAzureNear:
+                    return K4AController.K4ANFOVForX;
+                case KinectTypes.KinectForAzureWide:
+                    return K4AController.K4AWFOVForX;
+                default:
+                    throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
+            }
+        }
+
+        public static PixelSize GetDepthPixelSpacing(double sensorHeight, KinectTypes kinectType)  //TODO rereference for 
         {
             PixelSize pixelsForHeight = new PixelSize
             {
-                x = GetDepthPixelSizeInDimension(KinectController.kinect2FOVForX, KinectController.kinect2ResolutionForX, sensorHeight),
-                y = GetDepthPixelSizeInDimension(KinectController.kinect2FOVForY, KinectController.kinect2ResolutionForY, sensorHeight)
+                x = GetDepthPixelSizeInDimension(GetFOVForX(kinectType), GetDepthPixelXResolution(kinectType), sensorHeight), //KinectController.kinect2FOVForX, KinectController.kinect2ResolutionForX
+                y = GetDepthPixelSizeInDimension(GetFOVForY(kinectType), GetDepthPixelYResolution(kinectType), sensorHeight) //KinectController.kinect2FOVForY, KinectController.kinect2ResolutionForY
             };
             return pixelsForHeight;
         }
@@ -130,7 +160,7 @@ namespace SandWorm
             return dimensionSpan / resolution;
         }
 
-        public static void CopyAsIntArray(ushort[] source, int[] destination, int leftColumns, int rightColumns, int topRows, int bottomRows, int height, int width)
+        public static void CopyAsIntArray(ushort[] source, int[] destination, int leftColumns, int rightColumns, int topRows, int bottomRows, int height, int width) //Takes the feed and trims and casts from ushort m to int
         {
             if (source == null)
             {
@@ -140,6 +170,15 @@ namespace SandWorm
             ref ushort ru0 = ref source[0];
             ref int ri0 = ref destination[0];
             int j = 0;
+            //for (int rows = topRows; rows < height - bottomRows; rows++)
+           // {
+            //    for (int columns = rightColumns; columns < width - leftColumns; columns++)
+            //    {
+            //        int i = rows * width + columns;
+            //       destination[j] = (int)source[i];
+            //        j++;
+            //    }
+            //}
 
             for (int rows = topRows; rows < height - bottomRows; rows++)
             {
@@ -150,7 +189,7 @@ namespace SandWorm
                     j++;
                 }
             }
-                
+
         }
 
         public static double ConvertDrawingUnits (Rhino.UnitSystem units)

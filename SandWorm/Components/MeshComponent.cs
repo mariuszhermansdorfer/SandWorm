@@ -82,10 +82,11 @@ namespace SandWorm
             DA.GetData(0, ref _waterLevel);
             DA.GetData(1, ref _contourInterval);
             GetSandwormOptions(DA, 4, 2, 3);
-
+            int test_me = trimmedHeight;
+            
             SetupKinect();
-            var depthFrameDataInt = new int[1024*1024]; //trimmedWidth * trimmedHeight
-            var averagedDepthFrameData = new double[1024*1024]; //trimmedWidth * trimmedHeight
+            var depthFrameDataInt = new int[trimmedWidth * trimmedHeight]; //BUG 1024x1024
+            var averagedDepthFrameData = new double[trimmedWidth * trimmedHeight]; //BUG 1024x1024
 
             // Initialize outputs
             if (keepFrames <= 1 || _outputMesh == null)

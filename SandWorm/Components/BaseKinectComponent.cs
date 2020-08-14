@@ -24,7 +24,7 @@ namespace SandWorm.Components
         protected int leftColumns = 0;
         protected double sensorElevation = 1000; // Arbitrary default value (must be >0)
         protected int tickRate = 33; // In ms
-        protected Core.KinectTypes kinectType = Core.KinectTypes.KinectForWindows;
+        protected Core.KinectTypes kinectType = Core.KinectTypes.KinectForAzureNear;  //Core.KinectTypes.KinectForWindows #TODO Make more general .KinectForAzureWide 
         private double[] elevationArray;
         // Derived
         protected Core.PixelSize depthPixelSize;
@@ -71,7 +71,7 @@ namespace SandWorm.Components
             if (blurIndex > 0)
                 DA.GetData(blurIndex, ref blurRadius);
 
-            depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation);
+            depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation, kinectType); //BUG Check if kinect type is correct
         }
 
         protected void SetupKinect()

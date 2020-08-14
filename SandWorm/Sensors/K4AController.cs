@@ -53,14 +53,25 @@ namespace SandWorm
                     errorMessage = exc.Message; // Returned to BaseKinectComponent
                 }
         }
-
+        public static int GetDepthMode(Core.KinectTypes type)
+        {
+            switch (type)
+            {
+                case Core.KinectTypes.KinectForAzureNear:
+                    return (int)DepthMode.NFOV_Unbinned;
+                case Core.KinectTypes.KinectForAzureWide:
+                    return (int)DepthMode.WFOV_Unbinned;
+                default:
+                    throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
+            }
+        }
         private static DeviceConfiguration CreateCameraConfig()
         {
             var config = new DeviceConfiguration
             {
                 CameraFPS = FPS.FPS15,
                 ColorResolution = ColorResolution.Off,
-                DepthMode = DepthMode.WFOV_Unbinned,
+                DepthMode = DepthMode.NFOV_Unbinned,  //TODO Switch mode based on Azure mode WFOV_Unbinned
                 SynchronizedImagesOnly = false // Color and depth images can be out of sync
             };
             return config;
@@ -85,11 +96,20 @@ namespace SandWorm
                         //int sum = depthFrameData.Select(r => (int)r).Sum();  //this is updating and changing correctly which means data is coming through larger number means further obstacles
                         //var xyzImageBuffer = new short[depthImage.WidthPixels * depthImage.HeightPixels * 3];  //Short or UShort?
                         //var xyzImageStride = depthImage.WidthPixels * sizeof(short) * 3;
+
                         //using (var transformation = calibration.CreateTransformation())
                         //{
-                        //    var output = transformation.DepthImageToPointCloud(depthImage);
-                        //    var test = output;
+                            //var output = transformation.DepthImageToColorCamera(capture);
                         //}
+
+
+                            //using (var transformation = calibration.CreateTransformation())
+                        //{
+                            //var output = transformation.DepthImageToPointCloud(depthImage);
+                            //    var test = output;
+                        //}
+
+
 
                         // How to access 3D coordinates of pixel with (x,y) 2D coordinates
                         //var x = 400;
