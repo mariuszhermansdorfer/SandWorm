@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using Microsoft.Azure.Kinect.Sensor;
 
@@ -78,22 +79,25 @@ namespace SandWorm
                     if (capture.Depth != null)
                     {
                         var depthImage = capture.Depth;
-                        var array_test = depthImage.GetPixels<short>().ToArray();
-                        var xyzImageBuffer = new short[depthImage.WidthPixels * depthImage.HeightPixels * 3];  //Short or UShort?
-                        var xyzImageStride = depthImage.WidthPixels * sizeof(short) * 3;
-                        using (var transformation = calibration.CreateTransformation())
-                        {
-                            var output = transformation.DepthImageToPointCloud(depthImage);
-                            var test = output;
-                        }
+                        depthHeight = depthImage.HeightPixels;
+                        depthWidth = depthImage.WidthPixels;
+                        depthFrameData = depthImage.GetPixels<ushort>().ToArray();
+                        //int sum = depthFrameData.Select(r => (int)r).Sum();  //this is updating and changing correctly which means data is coming through larger number means further obstacles
+                        //var xyzImageBuffer = new short[depthImage.WidthPixels * depthImage.HeightPixels * 3];  //Short or UShort?
+                        //var xyzImageStride = depthImage.WidthPixels * sizeof(short) * 3;
+                        //using (var transformation = calibration.CreateTransformation())
+                        //{
+                        //    var output = transformation.DepthImageToPointCloud(depthImage);
+                        //    var test = output;
+                        //}
 
                         // How to access 3D coordinates of pixel with (x,y) 2D coordinates
-                        var x = 400;
-                        var y = 400;
-                        var indx = x * 3 + y * depthImage.WidthPixels * 3;
-                        var x3Dmillimeters = xyzImageBuffer[indx];
-                        var y3Dmillimeters = xyzImageBuffer[indx + 1];
-                        var z3Dmillimeters = xyzImageBuffer[indx + 2];
+                        //var x = 400;
+                        //var y = 400;
+                        //var indx = x * 3 + y * depthImage.WidthPixels * 3;
+                        //var x3Dmillimeters = xyzImageBuffer[indx];
+                        //var y3Dmillimeters = xyzImageBuffer[indx + 1];
+                        //var z3Dmillimeters = xyzImageBuffer[indx + 2];
                     }
                 }
             }

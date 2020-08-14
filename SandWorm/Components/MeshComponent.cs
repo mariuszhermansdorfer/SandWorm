@@ -84,8 +84,8 @@ namespace SandWorm
             GetSandwormOptions(DA, 4, 2, 3);
 
             SetupKinect();
-            var depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
-            var averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
+            var depthFrameDataInt = new int[1024*1024]; //trimmedWidth * trimmedHeight
+            var averagedDepthFrameData = new double[1024*1024]; //trimmedWidth * trimmedHeight
 
             // Initialize outputs
             if (keepFrames <= 1 || _outputMesh == null)
@@ -93,7 +93,7 @@ namespace SandWorm
 
             SetupRenderBuffer(depthFrameDataInt, _quadMesh);
             Core.LogTiming(ref output, timer, "Initial setup"); // Debug Info
-
+            //int test_total = depthFrameDataInt.Sum();
             AverageAndBlurPixels(depthFrameDataInt, ref averagedDepthFrameData);
 
             GeneratePointCloud(averagedDepthFrameData);

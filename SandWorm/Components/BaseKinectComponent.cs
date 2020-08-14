@@ -93,17 +93,27 @@ namespace SandWorm.Components
 
         protected void SetupRenderBuffer(int[] depthFrameDataInt, Mesh quadMesh)
         {
+            var active_Height = 0;
+            var active_Width = 0;
             ushort[] depthFrameData;
             if (kinectType == Core.KinectTypes.KinectForWindows)
+            { 
                 depthFrameData = KinectController.depthFrameData;
+                active_Height = KinectController.depthHeight;
+                active_Width = KinectController.depthWidth;
+            }
             else
+            { 
                 K4AController.UpdateFrame();
                 depthFrameData = K4AController.depthFrameData;
+                active_Height = K4AController.depthHeight;
+                active_Width = K4AController.depthWidth;
+            }
 
-            // Trim the depth array and cast ushort values to int
+            // Trim the depth array and cast ushort values to int //BUG Attempted to write protected data
             Core.CopyAsIntArray(depthFrameData, depthFrameDataInt,
                 leftColumns, rightColumns, topRows, bottomRows,
-                KinectController.depthHeight, KinectController.depthWidth);
+                active_Height, active_Width);
 
             // Reset everything when resizing Kinect's field of view or changing the amounts of frame to average across
             if (renderBuffer.Count > averageFrames || (quadMesh != null && quadMesh.Faces.Count != (trimmedWidth - 2) * (trimmedHeight - 2)))
