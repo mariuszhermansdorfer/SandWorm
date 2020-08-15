@@ -24,7 +24,7 @@ namespace SandWorm.Components
         protected int leftColumns = 0;
         protected double sensorElevation = 1000; // Arbitrary default value (must be >0)
         protected int tickRate = 33; // In ms
-        protected Core.KinectTypes kinectType = Core.KinectTypes.KinectForAzureNear;  //Core.KinectTypes.KinectForWindows #TODO Make more general .KinectForAzureWide 
+        protected Core.KinectTypes kinectType = Core.KinectTypes.KinectForAzureWide; // KinectForAzureNear;  //Core.KinectTypes.KinectForWindows #TODO Make more general .KinectForAzureWide 
         private double[] elevationArray;
         // Derived
         protected Core.PixelSize depthPixelSize;
@@ -140,8 +140,10 @@ namespace SandWorm.Components
                 else
                 {
                     if (pixel > 0) // Pixel is invalid and we have a neighbor to steal information from
-                    {
+                    {                        
+                        //D1 Method
                         runningSum[pixel] += depthFrameDataInt[pixel - 1];
+                        
                         // Replace the zero value from the depth array with the one from the neighboring pixel
                         renderBuffer.Last.Value[pixel] = depthFrameDataInt[pixel - 1]; 
                     }

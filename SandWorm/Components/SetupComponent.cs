@@ -129,6 +129,7 @@ namespace SandWorm
 
             if (_calibrateSandworm) _frameCount = 60; // Start calibration 
 
+
             if (_frameCount > 1) // Iterate a pre-set number of times
             {
                 output.Add("Reading frame: " + _frameCount); // Debug Info

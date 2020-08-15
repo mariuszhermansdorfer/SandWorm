@@ -16,7 +16,6 @@ namespace SandWorm
         public static int colorHeight = 0;
         public static int colorWidth = 0;
         public static ushort[] depthFrameData = null;
-
         public static byte[] colorFrameData = null;
 
         // Kinect for Azure specific
@@ -27,7 +26,6 @@ namespace SandWorm
         public static double K4ANFOVForX = 75.0;
         public static double K4ANFOVForY = 65.0;
         public static int K4ANResolutionForX = 640; // Assuming low FPS mode
-
         public static int K4ANResolutionForY = 576;
 
         // Wide FOV unbinned
@@ -71,7 +69,7 @@ namespace SandWorm
             {
                 CameraFPS = FPS.FPS15,
                 ColorResolution = ColorResolution.Off,
-                DepthMode = DepthMode.NFOV_Unbinned,  //TODO Switch mode based on Azure mode WFOV_Unbinned
+                DepthMode = DepthMode.WFOV_Unbinned, //NFOV_Unbinned,  //TODO Switch mode based on Azure mode WFOV_Unbinned
                 SynchronizedImagesOnly = false // Color and depth images can be out of sync
             };
             return config;
@@ -92,15 +90,18 @@ namespace SandWorm
                         var depthImage = capture.Depth;
                         depthHeight = depthImage.HeightPixels;
                         depthWidth = depthImage.WidthPixels;
-                        depthFrameData = depthImage.GetPixels<ushort>().ToArray();
+                        //using (var transformation = calibration.CreateTransformation())
+                        //{
+                            //transformed_depthImage = transformation.DepthImageToColorCamera(capture);
+                        //}
+                        //depthFrameData = transformed_depthImage.GetPixels<ushort>().ToArray();
+
+                        depthFrameData = depthImage.GetPixels<ushort>().ToArray(); //Works
+                        
+                        
                         //int sum = depthFrameData.Select(r => (int)r).Sum();  //this is updating and changing correctly which means data is coming through larger number means further obstacles
                         //var xyzImageBuffer = new short[depthImage.WidthPixels * depthImage.HeightPixels * 3];  //Short or UShort?
                         //var xyzImageStride = depthImage.WidthPixels * sizeof(short) * 3;
-
-                        //using (var transformation = calibration.CreateTransformation())
-                        //{
-                            //var output = transformation.DepthImageToColorCamera(capture);
-                        //}
 
 
                             //using (var transformation = calibration.CreateTransformation())
