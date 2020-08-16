@@ -167,19 +167,19 @@ namespace SandWorm
                 return; // Triggers on initial setup
             }
 
-            ref ushort ru0 = ref source[0];
-            ref int ri0 = ref destination[0];
             int j = 0;
             //for (int rows = topRows; rows < height - bottomRows; rows++)
-           // {
+            //{
             //    for (int columns = rightColumns; columns < width - leftColumns; columns++)
             //    {
             //        int i = rows * width + columns;
             //       destination[j] = (int)source[i];
-            //        j++;
+            //       j++;
             //    }
             //}
 
+            ref ushort ru0 = ref source[0];
+            ref int ri0 = ref destination[0];
             for (int rows = topRows; rows < height - bottomRows; rows++)
             {
                 for (int columns = rightColumns; columns < width - leftColumns; columns++)

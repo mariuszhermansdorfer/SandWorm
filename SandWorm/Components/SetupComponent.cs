@@ -126,6 +126,10 @@ namespace SandWorm
             }
             else
             {
+                var errorMessage = "";
+                K4AController.SetupSensor(kinectType, ref errorMessage); //needed to for the following to work the first time round.
+                K4AController.Initialize(kinectType); //this should be stoping active cameras and updating the settings for the new one
+                K4AController.UpdateFrame(); //this gets a frame so the varaibles below have some values.
                 depthFrameData = K4AController.depthFrameData;
                 active_Height = K4AController.depthHeight;
                 active_Width = K4AController.depthWidth;

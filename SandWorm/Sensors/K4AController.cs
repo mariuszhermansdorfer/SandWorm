@@ -96,8 +96,10 @@ namespace SandWorm
                     if (capture.Depth != null)
                     {
                         var depthImage = capture.Depth;
-                        depthHeight = depthImage.HeightPixels;
+
+                        depthHeight = depthImage.HeightPixels; //BUG these are overwriting the good values
                         depthWidth = depthImage.WidthPixels;
+
                         //using (var transformation = calibration.CreateTransformation())
                         //{
                             //transformed_depthImage = transformation.DepthImageToColorCamera(capture);
@@ -105,6 +107,7 @@ namespace SandWorm
                         //depthFrameData = transformed_depthImage.GetPixels<ushort>().ToArray();
 
                         depthFrameData = depthImage.GetPixels<ushort>().ToArray(); //Works
+                        //capture.Dispose();
                         
                         
                         //int sum = depthFrameData.Select(r => (int)r).Sum();  //this is updating and changing correctly which means data is coming through larger number means further obstacles
@@ -143,6 +146,14 @@ namespace SandWorm
         {
             string message;
             CreateCameraConfig(k4AConfig); // Apply the user options from Sandworm Options
+            try
+            {
+                sensor.StopCameras();
+            }
+            catch (Exception ex)
+            {
+                message = ex.ToString();
+            }
 
             try
             {
