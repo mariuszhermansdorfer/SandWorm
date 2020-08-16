@@ -95,21 +95,27 @@ namespace SandWorm
                 {
                     if (capture.Depth != null)
                     {
-                        var depthImage = capture.Depth;
 
-                        depthHeight = depthImage.HeightPixels; //BUG these are overwriting the good values
-                        depthWidth = depthImage.WidthPixels;
 
                         //using (var transformation = calibration.CreateTransformation())
                         //{
-                            //transformed_depthImage = transformation.DepthImageToColorCamera(capture);
+                        //    var depthImage = capture.Depth;
+                        //    depthFrameData = transformation.DepthImageToColorCamera(depthImage).GetPixels<ushort>().ToArray();
+                        //    depthHeight = depthImage.HeightPixels;
+                        //    depthWidth = depthImage.WidthPixels;
                         //}
-                        //depthFrameData = transformed_depthImage.GetPixels<ushort>().ToArray();
 
+                        //WORKING SOL//
+                        var depthImage = capture.Depth;
+                        depthHeight = depthImage.HeightPixels; 
+                        depthWidth = depthImage.WidthPixels;
                         depthFrameData = depthImage.GetPixels<ushort>().ToArray(); //Works
+                        //END WORKING SOL//
+
+
                         //capture.Dispose();
-                        
-                        
+
+
                         //int sum = depthFrameData.Select(r => (int)r).Sum();  //this is updating and changing correctly which means data is coming through larger number means further obstacles
                         //var xyzImageBuffer = new short[depthImage.WidthPixels * depthImage.HeightPixels * 3];  //Short or UShort?
                         //var xyzImageStride = depthImage.WidthPixels * sizeof(short) * 3;
@@ -117,8 +123,8 @@ namespace SandWorm
 
                         //using (var transformation = calibration.CreateTransformation())
                         //{
-                            //var output = transformation.DepthImageToPointCloud(depthImage);
-                            //var test = output;
+                        //var output = transformation.DepthImageToPointCloud(depthImage);
+                        //var test = output;
                         //}
 
                         // How to access 3D coordinates of pixel with (x,y) 2D coordinates
