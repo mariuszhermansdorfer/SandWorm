@@ -182,8 +182,8 @@ namespace SandWorm.Components
             for (var columns = 0; columns < trimmedWidth; columns++)
             {
                 depthPoint = averagedDepthFrameData[arrayIndex];
-                tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x);
-                tempPoint.Y = (float)(rows * -unitsMultiplier * depthPixelSize.y);
+                tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x); //FLIP VARIABLES
+                tempPoint.Y = (float)(rows * unitsMultiplier * depthPixelSize.y);
                 tempPoint.Z = (float)((depthPoint - sensorElevation) * -unitsMultiplier);
                 allPoints[arrayIndex] = tempPoint; // Add new point to point cloud itself
                 arrayIndex++;
