@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom;
 using System.Linq;
 using System.Threading;
 using Microsoft.Azure.Kinect.Sensor;
@@ -8,7 +9,7 @@ namespace SandWorm
     // Reference: https://github.com/bibigone/k4a.net/issues/15
     // Reference: https://github.com/windperson/K4aColorCameraDemo/blob/70816a7e9fd479a12da6b4470385b56516ebd106/K4aColorCameraDemo/MainWindow.xaml.cs
 
-    internal static class K4AController
+    static class K4AController
     {
         // Shared in Kinect for Windows Controller
         public static int depthHeight = 0;
@@ -37,48 +38,55 @@ namespace SandWorm
         private static DeviceConfiguration deviceConfig;
         private static Calibration calibration;
 
-        public static void SetupSensor(ref string errorMessage)
+        public static void SetupSensor(Core.KinectTypes k4AConfig, ref string errorMessage)
         {
             if (sensor == null)
+            {
                 try
                 {
                     sensor = Device.Open();
-                    Initialize();
+                    Initialize(k4AConfig);
                 }
                 catch (Exception exc)
                 {
                     sensor?.Dispose();
                     errorMessage = exc.Message; // Returned to BaseKinectComponent
                 }
+            }
         }
-        public static int GetDepthMode(Core.KinectTypes type)
+        public static DepthMode GetDepthMode(Core.KinectTypes type)
         {
             switch (type)
             {
                 case Core.KinectTypes.KinectForAzureNear:
-                    return (int)DepthMode.NFOV_Unbinned;
+                    return DepthMode.NFOV_Unbinned;
                 case Core.KinectTypes.KinectForAzureWide:
-                    return (int)DepthMode.WFOV_Unbinned;
+                    return DepthMode.WFOV_Unbinned;
                 default:
-                    throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
+                    throw new System.ArgumentException("Invalid Kinect Type provided", "original"); ;
             }
         }
-        private static DeviceConfiguration CreateCameraConfig()
+
+        private static void CreateCameraConfig(Core.KinectTypes k4AConfig)
         {
-            var config = new DeviceConfiguration
+            deviceConfig = new DeviceConfiguration
             {
-                CameraFPS = FPS.FPS15,
+                CameraFPS = FPS.FPS15, // TODO: set this based on tick rate?
+                DepthMode = GetDepthMode(k4AConfig),
                 ColorResolution = ColorResolution.Off,
-                DepthMode = DepthMode.WFOV_Unbinned, //NFOV_Unbinned,  //TODO Switch mode based on Azure mode WFOV_Unbinned
                 SynchronizedImagesOnly = false // Color and depth images can be out of sync
             };
-            return config;
         }
 
         // Prototype function to try and capture a single frame
-        private static async void CaptureFrame()
+        private static void CaptureFrame()
         {
             //sensor.GetCalibration(deviceConfig.DepthMode, deviceConfig.ColorResolution, out calibration);
+
+            if (sensor == null)
+            {
+                return; // Occurs during initial load?
+            }
 
             var capture = sensor.GetCapture();
             if (capture != null)
@@ -104,13 +112,11 @@ namespace SandWorm
                         //var xyzImageStride = depthImage.WidthPixels * sizeof(short) * 3;
 
 
-                            //using (var transformation = calibration.CreateTransformation())
+                        //using (var transformation = calibration.CreateTransformation())
                         //{
                             //var output = transformation.DepthImageToPointCloud(depthImage);
-                            //    var test = output;
+                            //var test = output;
                         //}
-
-
 
                         // How to access 3D coordinates of pixel with (x,y) 2D coordinates
                         //var x = 400;
@@ -133,10 +139,10 @@ namespace SandWorm
             CaptureFrame(); //CaptureFrame Once each time public function is called
         }
 
-        public static void Initialize()
+        public static void Initialize(Core.KinectTypes k4AConfig)
         {
-            var deviceConfig = CreateCameraConfig();
             string message;
+            CreateCameraConfig(k4AConfig); // Apply the user options from Sandworm Options
 
             try
             {

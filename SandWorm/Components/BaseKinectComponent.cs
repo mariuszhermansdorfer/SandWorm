@@ -24,7 +24,7 @@ namespace SandWorm.Components
         protected int leftColumns = 0;
         protected double sensorElevation = 1000; // Arbitrary default value (must be >0)
         protected int tickRate = 33; // In ms
-        protected Core.KinectTypes kinectType = Core.KinectTypes.KinectForAzureWide; // KinectForAzureNear;  //Core.KinectTypes.KinectForWindows #TODO Make more general .KinectForAzureWide 
+        protected Core.KinectTypes kinectType = Core.KinectTypes.KinectForWindows; // Default; set by options params
         private double[] elevationArray;
         // Derived
         protected Core.PixelSize depthPixelSize;
@@ -80,7 +80,7 @@ namespace SandWorm.Components
             if (kinectType == Core.KinectTypes.KinectForWindows)
                 KinectController.SetupSensor(ref errorMessage);
             else
-                K4AController.SetupSensor(ref errorMessage);
+                K4AController.SetupSensor(kinectType, ref errorMessage);
 
             if (errorMessage != "")
                 ShowComponentError(errorMessage);

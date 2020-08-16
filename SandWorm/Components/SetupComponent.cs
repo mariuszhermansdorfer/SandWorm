@@ -96,7 +96,15 @@ namespace SandWorm
             DA.GetData(7, ref keepFrames);
             DA.GetData(8, ref tempKinectType);
 
-            kinectType = (Core.KinectTypes)tempKinectType;
+            if ((int)tempKinectType > 2)
+            {
+                ShowComponentError("Invalid KinectType provided. Must be 0, 1, or 2.");
+                return;
+            }
+            else
+            {
+                kinectType = (Core.KinectTypes)tempKinectType;
+            }
 
             // Initialize all arrays
             Core.GetTrimmedDimensions(kinectType, ref trimmedWidth, ref trimmedHeight, ref _elevationArray, 
@@ -118,14 +126,12 @@ namespace SandWorm
             }
             else
             {
-                K4AController.UpdateFrame();
                 depthFrameData = K4AController.depthFrameData;
                 active_Height = K4AController.depthHeight;
                 active_Width = K4AController.depthWidth;
             }
 
             // Trim the depth array and cast ushort values to int //BUG Attempted to write protected data
-
 
             if (_calibrateSandworm) _frameCount = 60; // Start calibration 
 
