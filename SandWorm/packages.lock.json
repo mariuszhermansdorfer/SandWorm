@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "dependencies": {
+    ".NETFramework,Version=v4.6.1": {
+      "Grasshopper": {
+        "type": "Direct",
+        "requested": "[6.17.19235.15041, )",
+        "resolved": "6.17.19235.15041",
+        "contentHash": "Y4+41kHTFVjOL6EuUx4GGrA/dtjVnib3tfzzdr/boRdbNpSfA3DTKG1fOxH6fjzjOeyQdKSn6sMwSK314yn0CA==",
+        "dependencies": {
+          "RhinoCommon": "[6.17.19235.15041]"
+        }
+      },
+      "Microsoft.Azure.Kinect.Sensor": {
+        "type": "Direct",
+        "requested": "[1.4.1, )",
+        "resolved": "1.4.1",
+        "contentHash": "X/vT3Q8gS+5qTU/i3Dj64IBHg90mWE9NRkeHIgiof+fkksGM0UtSCZvIUCUhyTxQmt2i+4bdzI3nL+WqmTKmew==",
+        "dependencies": {
+          "System.Memory": "4.5.3",
+          "System.Numerics.Vectors": "4.5.0"
+        }
+      },
+      "Microsoft.Kinect": {
+        "type": "Direct",
+        "requested": "[2.0.1410.19000, )",
+        "resolved": "2.0.1410.19000",
+        "contentHash": "DrmYR/q4Ne49LFluomcxwuiCDq6Gw2xgQqLXYUGCRVkzF/fEaNFy+OfdH6lSWTX32VFbuDueDph9E865bvq4oQ=="
+      },
+      "OpenCvSharp4": {
+        "type": "Direct",
+        "requested": "[4.1.1.20191216, )",
+        "resolved": "4.1.1.20191216",
+        "contentHash": "ocW97MyTuHitTHSpo2xRq2QSC4ciZj2IEyF/41dDgjntnFh9QRt9RE4RSJYoC205/z3RvxnHMhV2rBY11+j7lA=="
+      },
+      "OpenCvSharp4.runtime.win": {
+        "type": "Direct",
+        "requested": "[4.1.1.20191216, )",
+        "resolved": "4.1.1.20191216",
+        "contentHash": "Ydxk4qtaHO7kqSvuEztCEOcfRkGnMCdgQO+bkpptgGnZM1D5lI1xfEl1badgIJqbtfzBGoleHbe+InewHwVgpg=="
+      },
+      "RhinoCommon": {
+        "type": "Direct",
+        "requested": "[6.17.19235.15041, )",
+        "resolved": "6.17.19235.15041",
+        "contentHash": "Aw342SgGJZyaugNtT84/4zgtl7tDJXCpOg81DhC/8JEwDU1OiMiqRU3q3IxpWaVglSDX8jWFdhP8CrcQMgerdw=="
+      },
+      "System.Runtime.CompilerServices.Unsafe": {
+        "type": "Direct",
+        "requested": "[4.6.0, )",
+        "resolved": "4.6.0",
+        "contentHash": "HxozeSlipUK7dAroTYwIcGwKDeOVpQnJlpVaOkBz7CM4TsE5b/tKlQBZecTjh6FzcSbxndYaxxpsBMz+wMJeyw=="
+      },
+      "System.Buffers": {
+        "type": "Transitive",
+        "resolved": "4.4.0",
+        "contentHash": "AwarXzzoDwX6BgrhjoJsk6tUezZEozOT5Y9QKF94Gl4JK91I4PIIBkBco9068Y9/Dra8Dkbie99kXB8+1BaYKw=="
+      },
+      "System.Memory": {
+        "type": "Transitive",
+        "resolved": "4.5.3",
+        "contentHash": "3oDzvc/zzetpTKWMShs1AADwZjQ/36HnsufHRPcOjyRAAMLDlu2iD33MBI2opxnezcVUtXyqDXXjoFMOU9c7SA==",
+        "dependencies": {
+          "System.Buffers": "4.4.0",
+          "System.Numerics.Vectors": "4.4.0",
+          "System.Runtime.CompilerServices.Unsafe": "4.5.2"
+        }
+      },
+      "System.Numerics.Vectors": {
+        "type": "Transitive",
+        "resolved": "4.5.0",
+        "contentHash": "QQTlPTl06J/iiDbJCiepZ4H//BVraReU4O4EoRw1U02H5TLUIT7xn3GnDp9AXPSlJUDyFs4uWjWafNX6WrAojQ=="
+      }
+    },
+    ".NETFramework,Version=v4.6.1/win": {
+      "OpenCvSharp4.runtime.win": {
+        "type": "Direct",
+        "requested": "[4.1.1.20191216, )",
+        "resolved": "4.1.1.20191216",
+        "contentHash": "Ydxk4qtaHO7kqSvuEztCEOcfRkGnMCdgQO+bkpptgGnZM1D5lI1xfEl1badgIJqbtfzBGoleHbe+InewHwVgpg=="
+      }
+    },
+    ".NETFramework,Version=v4.6.1/win-x64": {
+      "OpenCvSharp4.runtime.win": {
+        "type": "Direct",
+        "requested": "[4.1.1.20191216, )",
+        "resolved": "4.1.1.20191216",
+        "contentHash": "Ydxk4qtaHO7kqSvuEztCEOcfRkGnMCdgQO+bkpptgGnZM1D5lI1xfEl1badgIJqbtfzBGoleHbe+InewHwVgpg=="
+      }
+    },
+    ".NETFramework,Version=v4.6.1/win-x86": {
+      "OpenCvSharp4.runtime.win": {
+        "type": "Direct",
+        "requested": "[4.1.1.20191216, )",
+        "resolved": "4.1.1.20191216",
+        "contentHash": "Ydxk4qtaHO7kqSvuEztCEOcfRkGnMCdgQO+bkpptgGnZM1D5lI1xfEl1badgIJqbtfzBGoleHbe+InewHwVgpg=="
+      }
+    }
+  }
+}
