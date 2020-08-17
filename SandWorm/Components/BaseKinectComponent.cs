@@ -110,11 +110,6 @@ namespace SandWorm.Components
                 active_Width = K4AController.depthWidth;
             }
 
-            // Trim the depth array and cast ushort values to int //BUG Attempted to write protected data
-            Core.CopyAsIntArray(depthFrameData, depthFrameDataInt,
-                leftColumns, rightColumns, topRows, bottomRows,
-                active_Height, active_Width);
-
             // Reset everything when resizing Kinect's field of view or changing the amounts of frame to average across
             if (renderBuffer.Count > averageFrames || (quadMesh != null && quadMesh.Faces.Count != (trimmedWidth - 2) * (trimmedHeight - 2)))
             {
@@ -126,6 +121,11 @@ namespace SandWorm.Components
             {
                 renderBuffer.AddLast(depthFrameDataInt);
             }
+
+            // Trim the depth array and cast ushort values to int //BUG Attempted to write protected data
+            Core.CopyAsIntArray(depthFrameData, depthFrameDataInt,
+                leftColumns, rightColumns, topRows, bottomRows,
+                active_Height, active_Width);
         }
 
         protected void AverageAndBlurPixels(int[] depthFrameDataInt, ref double[] averagedDepthFrameData)
