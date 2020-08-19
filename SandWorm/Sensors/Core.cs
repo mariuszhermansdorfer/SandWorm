@@ -40,8 +40,7 @@ namespace SandWorm
                 {
                     using (var meshAccess = mesh.GetUnsafeLock(true))
                     {
-                        int arrayLength;
-                        Point3f* points = meshAccess.VertexPoint3fArray(out arrayLength);
+                        Point3f* points = meshAccess.VertexPoint3fArray(out int arrayLength);
                         for (int i = 0; i < arrayLength; i++)
                         {
                             points->Z = vertices[i].Z;

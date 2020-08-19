@@ -45,7 +45,7 @@ namespace SandWorm
             if (sensor == null)
             {
                 KinectController.AddRef();
-                sensor = KinectController.sensor;
+                //sensor = KinectController.sensor;
             }
             if (KinectController.depthFrameData == null)
                 errorMessage = "No depth frame data provided by the Kinect for Windows.";
