@@ -12,7 +12,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>SandWorm</RootNamespace>
     <AssemblyName>SandWorm</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <NuGetPackageImportStamp>
@@ -94,6 +94,9 @@
     <Reference Include="Grasshopper, Version=6.17.19235.15040, Culture=neutral, PublicKeyToken=dda4f5ec2cd80803, processorArchitecture=MSIL">
       <HintPath>..\packages\Grasshopper.6.17.19235.15041\lib\net45\Grasshopper.dll</HintPath>
     </Reference>
+    <Reference Include="K4AdotNet, Version=1.4.12.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\K4AdotNet.1.4.12\lib\net461\K4AdotNet.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Azure.Kinect.Sensor, Version=1.4.1.0, Culture=neutral, PublicKeyToken=6f6471c4ba98fac7, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Azure.Kinect.Sensor.1.4.1\lib\netstandard2.0\Microsoft.Azure.Kinect.Sensor.dll</HintPath>
     </Reference>
@@ -171,14 +174,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
-    <Content Include="..\externals\depthengine_2_0.dll">
-      <Link>depthengine_2_0.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\externals\k4a.dll">
-      <Link>k4a.dll</Link>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <None Include="app.config" />
     <None Include="packages.config" />
     <None Include="Properties\icons_setup.png" />
@@ -257,8 +252,10 @@
     <Error Condition="!Exists('..\packages\RhinoCommon.6.17.19235.15041\build\net45\RhinoCommon.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\RhinoCommon.6.17.19235.15041\build\net45\RhinoCommon.targets'))" />
     <Error Condition="!Exists('..\packages\Grasshopper.6.17.19235.15041\build\net45\Grasshopper.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Grasshopper.6.17.19235.15041\build\net45\Grasshopper.targets'))" />
     <Error Condition="!Exists('..\packages\Microsoft.Azure.Kinect.Sensor.1.4.1\build\netstandard2.0\Microsoft.Azure.Kinect.Sensor.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Azure.Kinect.Sensor.1.4.1\build\netstandard2.0\Microsoft.Azure.Kinect.Sensor.targets'))" />
+    <Error Condition="!Exists('..\packages\K4AdotNet.1.4.12\build\k4adotnet.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\K4AdotNet.1.4.12\build\k4adotnet.targets'))" />
   </Target>
   <Import Project="..\packages\RhinoCommon.6.17.19235.15041\build\net45\RhinoCommon.targets" Condition="Exists('..\packages\RhinoCommon.6.17.19235.15041\build\net45\RhinoCommon.targets')" />
   <Import Project="..\packages\Grasshopper.6.17.19235.15041\build\net45\Grasshopper.targets" Condition="Exists('..\packages\Grasshopper.6.17.19235.15041\build\net45\Grasshopper.targets')" />
   <Import Project="..\packages\Microsoft.Azure.Kinect.Sensor.1.4.1\build\netstandard2.0\Microsoft.Azure.Kinect.Sensor.targets" Condition="Exists('..\packages\Microsoft.Azure.Kinect.Sensor.1.4.1\build\netstandard2.0\Microsoft.Azure.Kinect.Sensor.targets')" />
+  <Import Project="..\packages\K4AdotNet.1.4.12\build\k4adotnet.targets" Condition="Exists('..\packages\K4AdotNet.1.4.12\build\k4adotnet.targets')" />
 </Project>

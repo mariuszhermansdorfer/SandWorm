@@ -2,7 +2,8 @@
 using System.CodeDom;
 using System.Linq;
 using System.Threading;
-using Microsoft.Azure.Kinect.Sensor;
+//using Microsoft.Azure.Kinect.Sensor;
+using K4AdotNet.Sensor;
 
 namespace SandWorm
 {
@@ -59,9 +60,9 @@ namespace SandWorm
             switch (type)
             {
                 case Core.KinectTypes.KinectForAzureNear:
-                    return DepthMode.NFOV_Unbinned;
+                    return DepthMode.NarrowViewUnbinned;
                 case Core.KinectTypes.KinectForAzureWide:
-                    return DepthMode.WFOV_Unbinned;
+                    return DepthMode.WideViewUnbinned;
                 default:
                     throw new System.ArgumentException("Invalid Kinect Type provided", "original"); ;
             }
@@ -71,7 +72,8 @@ namespace SandWorm
         {
             deviceConfig = new DeviceConfiguration
             {
-                CameraFPS = FPS.FPS15, // TODO: set this based on tick rate?
+                
+                CameraFps = FrameRate.Fifteen, // TODO: set this based on tick rate?
                 DepthMode = GetDepthMode(k4AConfig),
                 ColorResolution = ColorResolution.Off,
                 SynchronizedImagesOnly = false // Color and depth images can be out of sync
@@ -81,7 +83,7 @@ namespace SandWorm
         // Prototype function to try and capture a single frame
         private static void CaptureFrame()
         {
-            //sensor.GetCalibration(deviceConfig.DepthMode, deviceConfig.ColorResolution, out calibration);
+            
 
             if (sensor == null)
             {
@@ -93,47 +95,32 @@ namespace SandWorm
             {
                 using (capture)
                 {
-                    if (capture.Depth != null)
+                    if (capture.DepthImage != null)
                     {
 
 
-                        //using (var transformation = calibration.CreateTransformation())
-                        //{
-                        //    var depthImage = capture.Depth;
-                        //    depthFrameData = transformation.DepthImageToColorCamera(depthImage).GetPixels<ushort>().ToArray();
-                        //    depthHeight = depthImage.HeightPixels;
-                        //    depthWidth = depthImage.WidthPixels;
-                        //}
 
                         //WORKING SOL//
-                        var depthImage = capture.Depth;
+                        var depthImage = capture.DepthImage;
                         depthHeight = depthImage.HeightPixels; 
                         depthWidth = depthImage.WidthPixels;
-                        depthFrameData = depthImage.GetPixels<ushort>().ToArray(); //Works
+                        //depthFrameData = depthImage.GetPixels<ushort>().ToArray(); //Works
                         //END WORKING SOL//
 
 
-                        //capture.Dispose();
+                        short[] xyzImageBuffer = new short[depthImage.WidthPixels * depthImage.HeightPixels * 3];
+                        int xyzImageStride = depthImage.WidthPixels * sizeof(short) * 3;
+                        using (var transformation = calibration.CreateTransformation())
+                        {
+                            using (var xyzImage = K4AdotNet.Sensor.Image.CreateFromArray(xyzImageBuffer, K4AdotNet.Sensor.ImageFormat.Custom, depthImage.WidthPixels, depthImage.HeightPixels, xyzImageStride))
+                            {
+                                transformation.DepthImageToPointCloud(depthImage, CalibrationGeometry.Depth, xyzImage);
+                            }
+                        }
 
-
-                        //int sum = depthFrameData.Select(r => (int)r).Sum();  //this is updating and changing correctly which means data is coming through larger number means further obstacles
-                        //var xyzImageBuffer = new short[depthImage.WidthPixels * depthImage.HeightPixels * 3];  //Short or UShort?
-                        //var xyzImageStride = depthImage.WidthPixels * sizeof(short) * 3;
-
-
-                        //using (var transformation = calibration.CreateTransformation())
-                        //{
-                        //var output = transformation.DepthImageToPointCloud(depthImage);
-                        //var test = output;
-                        //}
-
-                        // How to access 3D coordinates of pixel with (x,y) 2D coordinates
-                        //var x = 400;
-                        //var y = 400;
-                        //var indx = x * 3 + y * depthImage.WidthPixels * 3;
-                        //var x3Dmillimeters = xyzImageBuffer[indx];
-                        //var y3Dmillimeters = xyzImageBuffer[indx + 1];
-                        //var z3Dmillimeters = xyzImageBuffer[indx + 2];
+                        short x3Dmillimeters = xyzImageBuffer[10000];
+                        short y3Dmillimeters = xyzImageBuffer[1];
+                        short z3Dmillimeters = xyzImageBuffer[2];
                     }
                 }
             }
@@ -164,6 +151,8 @@ namespace SandWorm
             try
             {
                 sensor.StartCameras(deviceConfig);
+                sensor.GetCalibration(deviceConfig.DepthMode, deviceConfig.ColorResolution, out calibration);
+                //sensor.GetCalibration(DepthMode.)
             }
             catch (Exception ex)
             {
