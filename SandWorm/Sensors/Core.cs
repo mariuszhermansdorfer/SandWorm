@@ -90,9 +90,9 @@ namespace SandWorm
                 case KinectTypes.KinectForWindows:
                     return KinectController.kinect2ResolutionForX;
                 case KinectTypes.KinectForAzureNear:
-                    return K4AController.K4ANResolutionForX;
+                    return KinectAzureController.K4ANResolutionForX;
                 case KinectTypes.KinectForAzureWide:
-                    return K4AController.K4AWResolutionForX;
+                    return KinectAzureController.K4AWResolutionForX;
                 default:
                     throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
             }
@@ -105,9 +105,9 @@ namespace SandWorm
                 case KinectTypes.KinectForWindows:
                     return KinectController.kinect2ResolutionForY;
                 case KinectTypes.KinectForAzureNear:
-                    return K4AController.K4ANResolutionForY;
+                    return KinectAzureController.K4ANResolutionForY;
                 case KinectTypes.KinectForAzureWide:
-                    return K4AController.K4AWResolutionForY;
+                    return KinectAzureController.K4AWResolutionForY;
                 default:
                     throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
             }
@@ -120,9 +120,9 @@ namespace SandWorm
                 case KinectTypes.KinectForWindows:
                     return KinectController.kinect2FOVForY;
                 case KinectTypes.KinectForAzureNear:
-                    return K4AController.K4ANFOVForY;
+                    return KinectAzureController.K4ANFOVForY;
                 case KinectTypes.KinectForAzureWide:
-                    return K4AController.K4AWFOVForY;
+                    return KinectAzureController.K4AWFOVForY;
                 default:
                     throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
             }
@@ -135,9 +135,9 @@ namespace SandWorm
                 case KinectTypes.KinectForWindows:
                     return KinectController.kinect2FOVForX;
                 case KinectTypes.KinectForAzureNear:
-                    return K4AController.K4ANFOVForX;
+                    return KinectAzureController.K4ANFOVForX;
                 case KinectTypes.KinectForAzureWide:
-                    return K4AController.K4AWFOVForX;
+                    return KinectAzureController.K4AWFOVForX;
                 default:
                     throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
             }

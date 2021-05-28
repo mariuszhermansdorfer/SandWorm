@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Grasshopper.Kernel;
-using Microsoft.Azure.Kinect;
-using Microsoft.Kinect;
 using Rhino;
 using Rhino.Geometry;
 
@@ -80,7 +78,7 @@ namespace SandWorm.Components
             if (kinectType == Core.KinectTypes.KinectForWindows)
                 KinectController.SetupSensor(ref errorMessage);
             else
-                K4AController.SetupSensor(kinectType, ref errorMessage);
+                KinectAzureController.SetupSensor(kinectType, ref errorMessage);
 
             if (errorMessage != "")
                 ShowComponentError(errorMessage);
@@ -103,14 +101,14 @@ namespace SandWorm.Components
                 active_Width = KinectController.depthWidth;
             }
             else
-            { 
-                K4AController.UpdateFrame();
-                depthFrameData = K4AController.depthFrameData;
-                active_Height = K4AController.depthHeight;
-                active_Width = K4AController.depthWidth;
+            {
+                KinectAzureController.CaptureFrame();
+                depthFrameData = KinectAzureController.depthFrameData;
+                active_Height = KinectAzureController.depthHeight;
+                active_Width = KinectAzureController.depthWidth;
             }
 
-            // Trim the depth array and cast ushort values to int //BUG Attempted to write protected data
+            // Trim the depth array and cast ushort values to int 
             Core.CopyAsIntArray(depthFrameData, depthFrameDataInt,
                 leftColumns, rightColumns, topRows, bottomRows,
                 active_Height, active_Width);
