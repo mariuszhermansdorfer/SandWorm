@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using Grasshopper.Kernel;
+using Microsoft.Azure.Kinect;
+using Microsoft.Kinect;
 using Rhino;
 using Rhino.Geometry;
 
@@ -69,7 +72,8 @@ namespace SandWorm.Components
             if (blurIndex > 0)
                 DA.GetData(blurIndex, ref blurRadius);
 
-            depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation, kinectType); //BUG Check if kinect type is correct
+            if (kinectType == Core.KinectTypes.KinectForWindows)
+                depthPixelSize = Core.GetDepthPixelSpacing(sensorElevation); 
         }
 
         protected void SetupKinect()
@@ -85,17 +89,20 @@ namespace SandWorm.Components
 
             Core.GetTrimmedDimensions(kinectType, ref trimmedWidth, ref trimmedHeight, ref elevationArray,
                                       topRows, bottomRows, leftColumns, rightColumns);
+
             if (runningSum == null || runningSum.Length < elevationArray.Length)
                 runningSum = Enumerable.Range(1, elevationArray.Length).Select(i => new int()).ToArray();
         }
 
-        protected void SetupRenderBuffer(int[] depthFrameDataInt, Mesh quadMesh)
+        protected void SetupRenderBuffer(int[] depthFrameDataInt, Vector2[] trimmedIdealXYCoordinates, Mesh quadMesh)
         {
             var active_Height = 0;
             var active_Width = 0;
             ushort[] depthFrameData;
+            Vector2[] idealXYCoordinates = null;
+
             if (kinectType == Core.KinectTypes.KinectForWindows)
-            { 
+            {
                 depthFrameData = KinectController.depthFrameData;
                 active_Height = KinectController.depthHeight;
                 active_Width = KinectController.depthWidth;
@@ -106,10 +113,12 @@ namespace SandWorm.Components
                 depthFrameData = KinectAzureController.depthFrameData;
                 active_Height = KinectAzureController.depthHeight;
                 active_Width = KinectAzureController.depthWidth;
+                idealXYCoordinates = KinectAzureController.idealXYCoordinates;
             }
 
-            // Trim the depth array and cast ushort values to int 
+            // Trim the depth array and cast ushort values to int //BUG Attempted to write protected data
             Core.CopyAsIntArray(depthFrameData, depthFrameDataInt,
+                idealXYCoordinates, trimmedIdealXYCoordinates,
                 leftColumns, rightColumns, topRows, bottomRows,
                 active_Height, active_Width);
 
@@ -138,12 +147,12 @@ namespace SandWorm.Components
                 else
                 {
                     if (pixel > 0) // Pixel is invalid and we have a neighbor to steal information from
-                    {                        
+                    {
                         //D1 Method
                         runningSum[pixel] += depthFrameDataInt[pixel - 1];
-                        
+
                         // Replace the zero value from the depth array with the one from the neighboring pixel
-                        renderBuffer.Last.Value[pixel] = depthFrameDataInt[pixel - 1]; 
+                        renderBuffer.Last.Value[pixel] = depthFrameDataInt[pixel - 1];
                     }
                     else // Pixel is invalid and it is the first one in the list. (No neighbor on the left hand side, so we set it to the lowest point on the table)
                     {
@@ -169,23 +178,26 @@ namespace SandWorm.Components
             }
         }
 
-        protected void GeneratePointCloud(double[] averagedDepthFrameData)
+        protected void GeneratePointCloud(double[] averagedDepthFrameData, Vector2[] trimmedXYLookupTable)
         {
-            double depthPoint; 
+
             // Setup variables for per-pixel loop
             allPoints = new Point3f[trimmedWidth * trimmedHeight];
             var tempPoint = new Point3f();
-            var arrayIndex = 0;
-            for (var rows = 0; rows < trimmedHeight; rows++)
-            for (var columns = 0; columns < trimmedWidth; columns++)
-            {
-                depthPoint = averagedDepthFrameData[arrayIndex];
-                tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x); //FLIP VARIABLES
-                tempPoint.Y = (float)(rows * unitsMultiplier * depthPixelSize.y);
-                tempPoint.Z = (float)((depthPoint - sensorElevation) * -unitsMultiplier);
-                allPoints[arrayIndex] = tempPoint; // Add new point to point cloud itself
-                arrayIndex++;
-            }
+            for (int rows = 0, arrayIndex = 0; rows < trimmedHeight; rows++)
+                for (int columns = 0; columns < trimmedWidth; columns++, arrayIndex++)
+                {
+                    //TODO add switch for various kinect types
+                    //tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x); //FLIP VARIABLES
+                    //tempPoint.Y = (float)(rows * unitsMultiplier * depthPixelSize.y);
+                    
+                    tempPoint.X = (float)(trimmedXYLookupTable[arrayIndex].X * -unitsMultiplier);
+                    tempPoint.Y = (float)(trimmedXYLookupTable[arrayIndex].Y * unitsMultiplier);
+
+                    tempPoint.Z = (float)((averagedDepthFrameData[arrayIndex] - (0.10452846326 * tempPoint.Y) - sensorElevation) * -unitsMultiplier); // TODO add lookup table to avoid constant multiplication
+                    averagedDepthFrameData[arrayIndex] = averagedDepthFrameData[arrayIndex] - (0.10452846326 * tempPoint.Y);
+                    allPoints[arrayIndex] = tempPoint; // Add new point to point cloud itself
+                }
 
             // Keep only the desired amount of frames in the buffer
             while (renderBuffer.Count >= averageFrames) renderBuffer.RemoveFirst();

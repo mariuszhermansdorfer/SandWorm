@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using Rhino.Geometry;
 
@@ -19,7 +20,7 @@ namespace SandWorm
                 mesh = new Mesh();
                 mesh.Vertices.Capacity = vertices.Length;      // Don't resize array
                 mesh.Vertices.UseDoublePrecisionVertices = false;
-                mesh.Vertices.AddVertices(vertices);       
+                mesh.Vertices.AddVertices(vertices);
 
                 for (int y = 1; y < yd - 1; y++)       // Iterate over y dimension
                 {
@@ -34,7 +35,7 @@ namespace SandWorm
             }
             else
             {
-                mesh.Vertices.UseDoublePrecisionVertices = false; 
+                mesh.Vertices.UseDoublePrecisionVertices = false;
 
                 unsafe
                 {
@@ -48,7 +49,7 @@ namespace SandWorm
                             points++;
                         }
                         mesh.ReleaseUnsafeLock(meshAccess);
-                    }  
+                    }
                 }
             }
 
@@ -62,7 +63,7 @@ namespace SandWorm
 
         public enum KinectTypes
         {
-            KinectForWindows, 
+            KinectForWindows,
             KinectForAzureNear,
             KinectForAzureWide,
         }
@@ -76,79 +77,40 @@ namespace SandWorm
         public static void GetTrimmedDimensions(KinectTypes kinectType, ref int trimmedWidth, ref int trimmedHeight, ref double[] elevationArray,
                                                 int topRows, int bottomRows, int leftColumns, int rightColumns)
         {
-            trimmedWidth = Core.GetDepthPixelXResolution(kinectType) - leftColumns - rightColumns;
-            trimmedHeight = Core.GetDepthPixelYResolution(kinectType) - topRows - bottomRows;
+            int _x;
+            int _y;
+            switch (kinectType)
+            {
+                case KinectTypes.KinectForWindows:
+                    _x = KinectController.kinect2ResolutionForX;
+                    _y = KinectController.kinect2ResolutionForY;
+                    break;
+                case KinectTypes.KinectForAzureNear:
+                    _x = KinectAzureController.K4ANResolutionForX;
+                    _y = KinectAzureController.K4ANResolutionForY;
+                    break;
+                case KinectTypes.KinectForAzureWide:
+                    _x = KinectAzureController.K4AWResolutionForX;
+                    _y = KinectAzureController.K4AWResolutionForY;
+                    break;
+                default:
+                    throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
+            }
+
+            trimmedWidth = _x - leftColumns - rightColumns;
+            trimmedHeight = _y - topRows - bottomRows;
             // Only create a new elevation array when user resizes the mesh
             if (elevationArray == null || elevationArray.Length != trimmedWidth * trimmedHeight)
                 elevationArray = new double[trimmedWidth * trimmedHeight];
         }
 
-        public static int GetDepthPixelXResolution(KinectTypes type)
-        {
-            switch (type)
-            {
-                case KinectTypes.KinectForWindows:
-                    return KinectController.kinect2ResolutionForX;
-                case KinectTypes.KinectForAzureNear:
-                    return KinectAzureController.K4ANResolutionForX;
-                case KinectTypes.KinectForAzureWide:
-                    return KinectAzureController.K4AWResolutionForX;
-                default:
-                    throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
-            }
-        }
 
-        public static int GetDepthPixelYResolution(KinectTypes type)
-        {
-            switch (type)
-            {
-                case KinectTypes.KinectForWindows:
-                    return KinectController.kinect2ResolutionForY;
-                case KinectTypes.KinectForAzureNear:
-                    return KinectAzureController.K4ANResolutionForY;
-                case KinectTypes.KinectForAzureWide:
-                    return KinectAzureController.K4AWResolutionForY;
-                default:
-                    throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
-            }
-        }
-
-        public static double GetFOVForY(KinectTypes type)
-        {
-            switch (type)
-            {
-                case KinectTypes.KinectForWindows:
-                    return KinectController.kinect2FOVForY;
-                case KinectTypes.KinectForAzureNear:
-                    return KinectAzureController.K4ANFOVForY;
-                case KinectTypes.KinectForAzureWide:
-                    return KinectAzureController.K4AWFOVForY;
-                default:
-                    throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
-            }
-        }
-
-        public static double GetFOVForX(KinectTypes type)
-        {
-            switch (type)
-            {
-                case KinectTypes.KinectForWindows:
-                    return KinectController.kinect2FOVForX;
-                case KinectTypes.KinectForAzureNear:
-                    return KinectAzureController.K4ANFOVForX;
-                case KinectTypes.KinectForAzureWide:
-                    return KinectAzureController.K4AWFOVForX;
-                default:
-                    throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
-            }
-        }
-
-        public static PixelSize GetDepthPixelSpacing(double sensorHeight, KinectTypes kinectType)  //TODO rereference for 
+        public static PixelSize GetDepthPixelSpacing(double sensorHeight)  //TODO rereference for 
         {
             PixelSize pixelsForHeight = new PixelSize
             {
-                x = GetDepthPixelSizeInDimension(GetFOVForX(kinectType), GetDepthPixelXResolution(kinectType), sensorHeight), //KinectController.kinect2FOVForX, KinectController.kinect2ResolutionForX
-                y = GetDepthPixelSizeInDimension(GetFOVForY(kinectType), GetDepthPixelYResolution(kinectType), sensorHeight) //KinectController.kinect2FOVForY, KinectController.kinect2ResolutionForY
+                x = GetDepthPixelSizeInDimension(KinectController.kinect2FOVForX, KinectController.kinect2ResolutionForX, sensorHeight),
+                y = GetDepthPixelSizeInDimension(KinectController.kinect2FOVForY, KinectController.kinect2ResolutionForX, sensorHeight)
             };
             return pixelsForHeight;
         }
@@ -160,7 +122,7 @@ namespace SandWorm
             return dimensionSpan / resolution;
         }
 
-        public static void CopyAsIntArray(ushort[] source, int[] destination, int leftColumns, int rightColumns, int topRows, int bottomRows, int height, int width) //Takes the feed and trims and casts from ushort m to int
+        public static void CopyAsIntArray(ushort[] source, int[] destination, Vector2[] sourceXY, Vector2[] destinationXY, int leftColumns, int rightColumns, int topRows, int bottomRows, int height, int width) //Takes the feed and trims and casts from ushort m to int
         {
             if (source == null)
             {
@@ -168,31 +130,31 @@ namespace SandWorm
             }
 
             int j = 0;
-            //for (int rows = topRows; rows < height - bottomRows; rows++)
-            //{
-            //    for (int columns = rightColumns; columns < width - leftColumns; columns++)
-            //    {
-            //        int i = rows * width + columns;
-            //       destination[j] = (int)source[i];
-            //       j++;
-            //    }
-            //}
+
 
             ref ushort ru0 = ref source[0];
             ref int ri0 = ref destination[0];
+
+            ref Vector2 rv0 = ref sourceXY[0];
+            ref Vector2 rd0 = ref destinationXY[0];
+
             for (int rows = topRows; rows < height - bottomRows; rows++)
             {
                 for (int columns = rightColumns; columns < width - leftColumns; columns++)
                 {
                     int i = rows * width + columns;
-                    Unsafe.Add(ref ri0, j) = Unsafe.Add(ref ru0, i);
+                    Unsafe.Add(ref ri0, j) = Unsafe.Add(ref ru0, i); // Depth array
+                    
+                    if (sourceXY != null)
+                        Unsafe.Add(ref rd0, j) = Unsafe.Add(ref rv0, i); //XY lookup table
+
                     j++;
                 }
             }
-
         }
 
-        public static double ConvertDrawingUnits (Rhino.UnitSystem units)
+
+        public static double ConvertDrawingUnits(Rhino.UnitSystem units)
         {
             double unitsMultiplier = 1.0;
 
@@ -229,7 +191,7 @@ namespace SandWorm
             return unitsMultiplier;
         }
 
-        public static void LogTiming(ref List<string>  output, Stopwatch timer, string eventDescription)
+        public static void LogTiming(ref List<string> output, Stopwatch timer, string eventDescription)
         {
             var logInfo = eventDescription + ": ";
             timer.Stop();

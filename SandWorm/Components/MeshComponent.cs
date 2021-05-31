@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Numerics;
 using System.Windows.Forms;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
@@ -22,7 +23,7 @@ namespace SandWorm
         private List<GeometryBase> _outputGeometry;
         private List<Mesh> _outputMesh;
 
-        public MeshComponent() : base("Sandworm Mesh", "SW Mesh", 
+        public MeshComponent() : base("Sandworm Mesh", "SW Mesh",
             "Visualise Kinect depth data as a mesh", "Visualisation")
         {
         }
@@ -63,7 +64,7 @@ namespace SandWorm
             {
                 Menu_AppendItem(menu, option.Name, SetMeshVisualisation, true, option.isEnabled);
                 // Create reference to the menu item in the analysis class
-                option.MenuItem = (ToolStripMenuItem) menu.Items[menu.Items.Count - 1];
+                option.MenuItem = (ToolStripMenuItem)menu.Items[menu.Items.Count - 1];
                 if (!option.IsExclusive)
                     Menu_AppendSeparator(menu);
             }
@@ -71,7 +72,7 @@ namespace SandWorm
 
         private void SetMeshVisualisation(object sender, EventArgs e)
         {
-            Analysis.AnalysisManager.SetEnabledOptions((ToolStripMenuItem) sender);
+            Analysis.AnalysisManager.SetEnabledOptions((ToolStripMenuItem)sender);
             _quadMesh.VertexColors.Clear(); // Must flush mesh colors to properly updated display
             ExpireSolution(true);
         }
@@ -83,21 +84,22 @@ namespace SandWorm
             DA.GetData(1, ref _contourInterval);
             GetSandwormOptions(DA, 4, 2, 3);
             int test_me = trimmedHeight;
-            
+
             SetupKinect();
-            var depthFrameDataInt = new int[trimmedWidth * trimmedHeight]; //BUG 1024x1024
-            var averagedDepthFrameData = new double[trimmedWidth * trimmedHeight]; //BUG 1024x1024
+            int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight]; //BUG 1024x1024
+            double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight]; //BUG 1024x1024
+            Vector2[] trimmedXYLookupTable = new Vector2[trimmedWidth * trimmedHeight];
 
             // Initialize outputs
             if (keepFrames <= 1 || _outputMesh == null)
                 _outputMesh = new List<Mesh>(); // Don't replace prior frames (by clearing array) if using keepFrames
 
-            SetupRenderBuffer(depthFrameDataInt, _quadMesh);
+            SetupRenderBuffer(depthFrameDataInt, trimmedXYLookupTable, _quadMesh);
             Core.LogTiming(ref output, timer, "Initial setup"); // Debug Info
             //int test_total = depthFrameDataInt.Sum();
             AverageAndBlurPixels(depthFrameDataInt, ref averagedDepthFrameData);
 
-            GeneratePointCloud(averagedDepthFrameData);
+            GeneratePointCloud(averagedDepthFrameData, trimmedXYLookupTable);
 
             // Produce 1st type of analysis that acts on the pixel array and assigns vertex colors
             switch (Analysis.AnalysisManager.GetEnabledMeshColoring())

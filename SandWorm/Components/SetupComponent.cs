@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Numerics;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Special;
 using Rhino;
@@ -16,10 +18,9 @@ namespace SandWorm
         private double[] _elevationArray;
         private int _frameCount = 0; // Number of frames to average the calibration across
 
-        private System.Collections.Generic.List<Grasshopper.Kernel.Types.GH_Point> points;
+        private List<Grasshopper.Kernel.Types.GH_Point> points;
 
-        //private System.Numerics.Vector3?[] translationMatrix;
-        private K4AdotNet.Float3?[] translationMatrix;
+
         private short[] depthFrameShort;
 
         public SetupComponent() : base("Setup Component", "SWSetup",
@@ -69,7 +70,6 @@ namespace SandWorm
         {
             pManager.AddGenericParameter("Options", "O", "SandWorm Options", GH_ParamAccess.item);
             pManager.AddTextParameter("Info", "I", "Component info", GH_ParamAccess.list); //debugging
-            pManager.AddPointParameter("po", "po", "", GH_ParamAccess.list);
         }
 
         private void ManipulateSlider(GH_Document doc)
@@ -114,12 +114,13 @@ namespace SandWorm
             }
 
             // Initialize all arrays
-            points = new System.Collections.Generic.List<Grasshopper.Kernel.Types.GH_Point>();
+            points = new List<Grasshopper.Kernel.Types.GH_Point>();
 
             Core.GetTrimmedDimensions(kinectType, ref trimmedWidth, ref trimmedHeight, ref _elevationArray, 
                                       topRows, bottomRows, leftColumns, rightColumns);
-            var depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
-            var averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
+            int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
+            double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
+            Vector2[] trimmedXYLookupTable = new Vector2[trimmedWidth * trimmedHeight];
 
             _averagedSensorElevation = sensorElevation;
             var unitsMultiplier = Core.ConvertDrawingUnits(RhinoDoc.ActiveDoc.ModelUnitSystem);
@@ -137,10 +138,8 @@ namespace SandWorm
             {
                 var errorMessage = "";
                 KinectAzureController.SetupSensor(kinectType, ref errorMessage); //neededfor the following to work the first time round.
-                KinectAzureController.Initialize(kinectType); //this should be stoping active cameras and updating the settings for the new one
+                KinectAzureController.Initialize(kinectType, sensorElevation); //this should be stoping active cameras and updating the settings for the new one
                 KinectAzureController.CaptureFrame(); //this gets a frame so the variables below have some values.
-                translationMatrix = KinectAzureController.translationMatrix;
-                depthFrameShort = KinectAzureController.depthFrameShort;
                 depthFrameData = KinectAzureController.depthFrameData;
                 active_Height = KinectAzureController.depthHeight;
                 active_Width = KinectAzureController.depthWidth;
@@ -157,6 +156,7 @@ namespace SandWorm
 
                 // Trim the depth array and cast ushort values to int
                 Core.CopyAsIntArray(depthFrameData, depthFrameDataInt,
+                    KinectAzureController.idealXYCoordinates, trimmedXYLookupTable,
                                     leftColumns, rightColumns, topRows, bottomRows,
                                     active_Height, active_Width);
 
@@ -231,89 +231,14 @@ namespace SandWorm
                 TickRate = tickRate,
                 KeepFrames = keepFrames,
                 ElevationArray = _elevationArray,
+                IdealXYCoordinates = KinectAzureController.idealXYCoordinates,
                 KinectType = kinectType,
             };
             
 
-            Rhino.Geometry.Point3d pt = new Rhino.Geometry.Point3d();
-            System.Collections.Generic.List<Rhino.Geometry.Point3d> _points = new System.Collections.Generic.List<Rhino.Geometry.Point3d>();
-            /*
-            for (int y = 0, i = 0; y < active_Height; y++)
-            {
-                
-                for (int x = 0; x < active_Width; x++, i++)
-                {
-
-                    int indx = x * 3 + y * active_Width * 3;
-                    pt.X = KinectAzureController.xyzImageBuffer[indx];
-                    pt.Y = KinectAzureController.xyzImageBuffer[indx + 1];
-                    pt.Z = KinectAzureController.xyzImageBuffer[indx + 2];
-
-                    //_points.Add(pt);
-                    points.Add(new Grasshopper.Kernel.Types.GH_Point(pt));
-                }
-            }
-            */
-            /*
-            for (int i = 0; i < KinectAzureController.depthFrameShort.Length; i++)
-            {
-                pt.X = Math.Round(KinectAzureController.depthFrameShort[i] * translationMatrix[i].Value.X, 1);
-                pt.Y = Math.Round(KinectAzureController.depthFrameShort[i] * translationMatrix[i].Value.Y, 1);
-                pt.Z = KinectAzureController.depthFrameShort[i];
-
-                points.Add(new Grasshopper.Kernel.Types.GH_Point(pt));
-            }
-            */
-            /*
-            for (int i = 0; i < _points.Count; i++)
-            {
-                pt.X = _points[i].X * translationMatrix[i].Value.X * 100;
-                pt.Y = _points[i].Y * translationMatrix[i].Value.Y * 100;
-                pt.Z = _points[i].Z;
-
-                points.Add(new Grasshopper.Kernel.Types.GH_Point(pt));
-            }
-            */
-            /*
-            for (int y = 0, i = 0; y < active_Height; y++)
-            {
-                pt.Y = 100 * translationMatrix[i].Value.Y;
-                for (int x = 0; x < active_Width; x++, i++)
-                {
-                    pt.X = 100 * translationMatrix[i].Value.X;
-                    pt.Z = 100;
-                    points.Add(new Grasshopper.Kernel.Types.GH_Point(pt));
-                }
-            }
-            
-            */
-            /*
-            var te = KinectAzureController.test;
-
-            var byteArray = KinectAzureController.test.Memory.ToArray();
-
-
-
-                for (int x = 0; x < active_Width * active_Height * 6; x+=3)
-                {
-                    //int indx = x * 3 + y * active_Width * 3;
-
-                    pt.X = byteArray[x];
-                    pt.Y = byteArray[x + 1];
-                    pt.Z = byteArray[x + 2];
-
-                    points.Add(new Grasshopper.Kernel.Types.GH_Point(pt));
-                }
-            
-
-            int o = active_Width / 2 * 3 + active_Height / 2 * active_Width * 3;
-            RhinoApp.WriteLine($"x ={byteArray[o]}, y ={byteArray[o + 1]}, z ={byteArray[o + 2]}");
-            */
-
             Core.LogTiming(ref output, timer, "Setup completion"); // Debug Info
             DA.SetData(0, outputOptions);
             DA.SetDataList(1, output); // For logging/debugging
-            DA.SetDataList(2, KinectAzureController.points);
         }
     }
 }

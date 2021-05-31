@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -20,6 +21,7 @@ namespace SandWorm
         private int _tickRate;
         private int _keepFrames;
         private double[] _elevationArray; // Store all deltas between desired and measured distance values from the sensor to the table for each pixel.
+        private Vector2[] _idealXYCoordinates;
         private Core.KinectTypes _kinectType;
 
         public double SensorElevation
@@ -68,7 +70,13 @@ namespace SandWorm
             get { return _elevationArray; }
             set { _elevationArray = value; }
         }
-        
+
+        public Vector2[] IdealXYCoordinates
+        {
+            get { return _idealXYCoordinates; }
+            set { _idealXYCoordinates = value; }
+        }
+
         public Core.KinectTypes KinectType
         {
             get { return _kinectType; }
