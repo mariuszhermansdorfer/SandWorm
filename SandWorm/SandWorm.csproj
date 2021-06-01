@@ -148,7 +148,7 @@
     <Compile Include="Analytics\None.cs" />
     <Compile Include="Analytics\Slope.cs" />
     <Compile Include="Analytics\WaterLevel.cs" />
-    <Compile Include="Components\SandWorm.cs" />
+    <Compile Include="Components\SandWormComponent.cs" />
     <Compile Include="CustomComponent\EvaluationUnit.cs" />
     <Compile Include="CustomComponent\EvaluationUnitContext.cs" />
     <Compile Include="CustomComponent\EvaluationUnitManager.cs" />
