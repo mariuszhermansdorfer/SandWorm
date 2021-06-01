@@ -5,15 +5,16 @@ using Microsoft.Kinect;
 
 namespace SandWorm
 {
-    static class KinectController
+    static class KinectForWindows
     {
-        // Shared in K4Azure Controller
-        public static int depthHeight = 0;
-        public static int depthWidth = 0;
+        // Shared across devices
+        public static int depthHeight = 424;
+        public static int depthWidth = 512;
         public static int colorHeight = 0;
         public static int colorWidth = 0;
         public static ushort[] depthFrameData = null;
         public static byte[] colorFrameData = null;
+
         // Kinect for Windows specific
         public static KinectSensor sensor = null;
         public static MultiSourceFrameReader multiFrameReader = null;
@@ -22,11 +23,8 @@ namespace SandWorm
         public static int refc = 0;
         public static int bytesForPixelColor = (PixelFormats.Bgr32.BitsPerPixel + 7) / 8;
 
-        // Kinect for Windows Details
-        public static double kinect2FOVForX = 70.6;
-        public static double kinect2FOVForY = 60.0;
-        public static int kinect2ResolutionForX = 512;
-        public static int kinect2ResolutionForY = 424;
+        public const double kinect2FOVForX = 70.6;
+        public const double kinect2FOVForY = 60.0;
 
         public static void AddRef()
         {
@@ -44,10 +42,10 @@ namespace SandWorm
         {
             if (sensor == null)
             {
-                KinectController.AddRef();
-                sensor = KinectController.sensor;
+                KinectForWindows.AddRef();
+                sensor = KinectForWindows.sensor;
             }
-            if (KinectController.depthFrameData == null)
+            if (KinectForWindows.depthFrameData == null)
                 errorMessage = "No depth frame data provided by the Kinect for Windows.";
         }
 
@@ -67,7 +65,7 @@ namespace SandWorm
             sensor = KinectSensor.GetDefault();
             // TODO: switch based on component type?
             multiFrameReader = sensor.OpenMultiSourceFrameReader(FrameSourceTypes.Depth | FrameSourceTypes.Color);
-            multiFrameReader.MultiSourceFrameArrived += new EventHandler<MultiSourceFrameArrivedEventArgs>(KinectController.Reader_FrameArrived);
+            multiFrameReader.MultiSourceFrameArrived += new EventHandler<MultiSourceFrameArrivedEventArgs>(KinectForWindows.Reader_FrameArrived);
 
             sensor.Open();
         }

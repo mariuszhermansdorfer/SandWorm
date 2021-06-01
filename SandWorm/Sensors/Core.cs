@@ -64,8 +64,8 @@ namespace SandWorm
         public enum KinectTypes
         {
             KinectForWindows,
-            KinectForAzureNear,
-            KinectForAzureWide,
+            KinectAzureNear,
+            KinectAzureWide,
         }
 
         public struct PixelSize // Unfortunately no nice tuples in this version of C# :(
@@ -82,16 +82,16 @@ namespace SandWorm
             switch (kinectType)
             {
                 case KinectTypes.KinectForWindows:
-                    _x = KinectController.kinect2ResolutionForX;
-                    _y = KinectController.kinect2ResolutionForY;
+                    _x = KinectForWindows.depthWidth;
+                    _y = KinectForWindows.depthHeight;
                     break;
-                case KinectTypes.KinectForAzureNear:
-                    _x = KinectAzureController.K4ANResolutionForX;
-                    _y = KinectAzureController.K4ANResolutionForY;
+                case KinectTypes.KinectAzureNear:
+                    _x = KinectAzureController.depthWidthNear;
+                    _y = KinectAzureController.depthHeightNear;
                     break;
-                case KinectTypes.KinectForAzureWide:
-                    _x = KinectAzureController.K4AWResolutionForX;
-                    _y = KinectAzureController.K4AWResolutionForY;
+                case KinectTypes.KinectAzureWide:
+                    _x = KinectAzureController.depthWidthWide;
+                    _y = KinectAzureController.depthHeightWide;
                     break;
                 default:
                     throw new System.ArgumentException("Invalid Kinect Type", "original"); ;
@@ -109,8 +109,8 @@ namespace SandWorm
         {
             PixelSize pixelsForHeight = new PixelSize
             {
-                x = GetDepthPixelSizeInDimension(KinectController.kinect2FOVForX, KinectController.kinect2ResolutionForX, sensorHeight),
-                y = GetDepthPixelSizeInDimension(KinectController.kinect2FOVForY, KinectController.kinect2ResolutionForX, sensorHeight)
+                x = GetDepthPixelSizeInDimension(KinectForWindows.kinect2FOVForX, KinectForWindows.depthWidth, sensorHeight),
+                y = GetDepthPixelSizeInDimension(KinectForWindows.kinect2FOVForY, KinectForWindows.depthHeight, sensorHeight)
             };
             return pixelsForHeight;
         }
@@ -122,33 +122,38 @@ namespace SandWorm
             return dimensionSpan / resolution;
         }
 
-        public static void CopyAsIntArray(ushort[] source, int[] destination, Vector2[] sourceXY, Vector2[] destinationXY, int leftColumns, int rightColumns, int topRows, int bottomRows, int height, int width) //Takes the feed and trims and casts from ushort m to int
+        public static void CopyAsIntArray(ushort[] source, int[] destination, int leftColumns, int rightColumns, int topRows, int bottomRows, int height, int width) //Takes the feed and trims and casts from ushort m to int
         {
             if (source == null)
-            {
                 return; // Triggers on initial setup
-            }
-
-            int j = 0;
-
 
             ref ushort ru0 = ref source[0];
             ref int ri0 = ref destination[0];
 
-            ref Vector2 rv0 = ref sourceXY[0];
-            ref Vector2 rd0 = ref destinationXY[0];
-
-            for (int rows = topRows; rows < height - bottomRows; rows++)
+            for (int rows = topRows, j = 0; rows < height - bottomRows; rows++)
             {
-                for (int columns = rightColumns; columns < width - leftColumns; columns++)
+                for (int columns = rightColumns; columns < width - leftColumns; columns++, j++)
                 {
                     int i = rows * width + columns;
-                    Unsafe.Add(ref ri0, j) = Unsafe.Add(ref ru0, i); // Depth array
-                    
-                    if (sourceXY != null)
-                        Unsafe.Add(ref rd0, j) = Unsafe.Add(ref rv0, i); //XY lookup table
+                    Unsafe.Add(ref ri0, j) = Unsafe.Add(ref ru0, i);
+                }
+            }
+        }
 
-                    j++;
+        public static void TrimXYLookupTable(Vector2[] sourceXY, Vector2[] destinationXY, double[] verticalTiltCorrectionLookupTable, int leftColumns, int rightColumns, int topRows, int bottomRows, int height, int width, double unitsMultiplier) //Takes the feed and trims and casts from ushort m to int
+        {
+            ref Vector2 rv0 = ref sourceXY[0];
+            ref Vector2 rd0 = ref destinationXY[0];
+            float _units = (float)unitsMultiplier;
+
+            for (int rows = topRows, j = 0; rows < height - bottomRows; rows++)
+            {
+                for (int columns = rightColumns; columns < width - leftColumns; columns++, j++)
+                {
+                    int i = rows * width + columns;
+                    Unsafe.Add(ref rd0, j).X = Unsafe.Add(ref rv0, i).X * -_units;
+                    Unsafe.Add(ref rd0, j).Y = Unsafe.Add(ref rv0, i).Y * _units;
+                    verticalTiltCorrectionLookupTable[j] = sourceXY[i].Y * KinectAzureController.sin6;
                 }
             }
         }

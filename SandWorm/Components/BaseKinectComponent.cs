@@ -27,6 +27,8 @@ namespace SandWorm.Components
         protected int tickRate = 33; // In ms
         protected Core.KinectTypes kinectType = Core.KinectTypes.KinectForWindows; // Default; set by options params
         private double[] elevationArray;
+        protected Vector2[] trimmedXYLookupTable;
+        protected double[] verticalTiltCorrectionLookupTable;
         // Derived
         protected Core.PixelSize depthPixelSize;
         protected static double unitsMultiplier;
@@ -56,7 +58,10 @@ namespace SandWorm.Components
             if (options.KeepFrames != 0) keepFrames = options.KeepFrames;
             if (options.ElevationArray != null && options.ElevationArray.Length != 0) elevationArray = options.ElevationArray;
             else elevationArray = new double[0];
+            if (options.IdealXYCoordinates != null && options.IdealXYCoordinates.Length != 0) trimmedXYLookupTable = options.IdealXYCoordinates;
+            if (options.VerticalTiltCorrectionLookupTable != null && options.VerticalTiltCorrectionLookupTable.Length != 0) verticalTiltCorrectionLookupTable = options.VerticalTiltCorrectionLookupTable;
             if ((int)options.KinectType <= 2) kinectType = options.KinectType;
+
 
             // Pick the correct multiplier based on the drawing units. Shouldn't be a class variable; gets 'stuck'.
             unitsMultiplier = Core.ConvertDrawingUnits(RhinoDoc.ActiveDoc.ModelUnitSystem);
@@ -80,9 +85,9 @@ namespace SandWorm.Components
         {
             var errorMessage = "";
             if (kinectType == Core.KinectTypes.KinectForWindows)
-                KinectController.SetupSensor(ref errorMessage);
+                KinectForWindows.SetupSensor(ref errorMessage);
             else
-                KinectAzureController.SetupSensor(kinectType, ref errorMessage);
+                KinectAzureController.SetupSensor(kinectType, sensorElevation, ref errorMessage);
 
             if (errorMessage != "")
                 ShowComponentError(errorMessage);
@@ -103,9 +108,9 @@ namespace SandWorm.Components
 
             if (kinectType == Core.KinectTypes.KinectForWindows)
             {
-                depthFrameData = KinectController.depthFrameData;
-                active_Height = KinectController.depthHeight;
-                active_Width = KinectController.depthWidth;
+                depthFrameData = KinectForWindows.depthFrameData;
+                active_Height = KinectForWindows.depthHeight;
+                active_Width = KinectForWindows.depthWidth;
             }
             else
             {
@@ -118,7 +123,6 @@ namespace SandWorm.Components
 
             // Trim the depth array and cast ushort values to int //BUG Attempted to write protected data
             Core.CopyAsIntArray(depthFrameData, depthFrameDataInt,
-                idealXYCoordinates, trimmedIdealXYCoordinates,
                 leftColumns, rightColumns, topRows, bottomRows,
                 active_Height, active_Width);
 
@@ -178,25 +182,28 @@ namespace SandWorm.Components
             }
         }
 
-        protected void GeneratePointCloud(double[] averagedDepthFrameData, Vector2[] trimmedXYLookupTable)
+        protected void GeneratePointCloud(double[] averagedDepthFrameData, Vector2[] trimmedXYLookupTable, double[] verticalTiltCorrectionLookupTable)
         {
 
             // Setup variables for per-pixel loop
             allPoints = new Point3f[trimmedWidth * trimmedHeight];
-            var tempPoint = new Point3f();
-            for (int rows = 0, arrayIndex = 0; rows < trimmedHeight; rows++)
-                for (int columns = 0; columns < trimmedWidth; columns++, arrayIndex++)
+            Point3f tempPoint = new Point3f();
+            double correctedElevation = 0.0;
+            for (int rows = 0, i = 0; rows < trimmedHeight; rows++)
+                for (int columns = 0; columns < trimmedWidth; columns++, i++)
                 {
-                    //TODO add switch for various kinect types
-                    //tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x); //FLIP VARIABLES
+                    //TODO add lookup table for Kinect for Windows as well
+                    //tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x); // Flip direction of the X axis
                     //tempPoint.Y = (float)(rows * unitsMultiplier * depthPixelSize.y);
                     
-                    tempPoint.X = (float)(trimmedXYLookupTable[arrayIndex].X * -unitsMultiplier);
-                    tempPoint.Y = (float)(trimmedXYLookupTable[arrayIndex].Y * unitsMultiplier);
+                    tempPoint.X = trimmedXYLookupTable[i].X;
+                    tempPoint.Y = trimmedXYLookupTable[i].Y;
 
-                    tempPoint.Z = (float)((averagedDepthFrameData[arrayIndex] - (0.10452846326 * tempPoint.Y) - sensorElevation) * -unitsMultiplier); // TODO add lookup table to avoid constant multiplication
-                    averagedDepthFrameData[arrayIndex] = averagedDepthFrameData[arrayIndex] - (0.10452846326 * tempPoint.Y);
-                    allPoints[arrayIndex] = tempPoint; // Add new point to point cloud itself
+                    correctedElevation = averagedDepthFrameData[i] - verticalTiltCorrectionLookupTable[i]; 
+                    tempPoint.Z = (float)((correctedElevation - sensorElevation) * -unitsMultiplier); 
+                    averagedDepthFrameData[i] = correctedElevation;
+
+                    allPoints[i] = tempPoint; // Add new point to point cloud
                 }
 
             // Keep only the desired amount of frames in the buffer

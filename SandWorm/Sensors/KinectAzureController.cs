@@ -6,52 +6,42 @@ using Rhino.Geometry;
 
 namespace SandWorm
 {
-    // Reference: https://github.com/bibigone/k4a.net/issues/15
-    // Reference: https://github.com/windperson/K4aColorCameraDemo/blob/70816a7e9fd479a12da6b4470385b56516ebd106/K4aColorCameraDemo/MainWindow.xaml.cs
 
     static class KinectAzureController
     {
-        // Shared in Kinect for Windows Controller
-        public static int depthHeight = 576;
-        public static int depthWidth = 640;
+        // Shared across devices
+        public static int depthHeight = 0;
+        public static int depthWidth = 0;
         public static int colorHeight = 0;
         public static int colorWidth = 0;
         public static ushort[] depthFrameData = null;
-        public static int[] depthFrameInt = null;
         public static byte[] colorFrameData = null;
-        private static double sensorElevation = 515;
 
         // Kinect for Azure specific
         public static Device sensor;
-
-        public static double K4ANFOVForX = 75.0;
-        public static double K4ANFOVForY = 65.0;
-        public static int K4ANResolutionForX = 640; // Assuming low FPS mode
-        public static int K4ANResolutionForY = 576;
-
-        public static double K4AWFOVForX = 120.0;
-        public static double K4AWFOVForY = 120.0;
-        public static int K4AWResolutionForX = 1024; // Assuming low FPS mode
-        public static int K4AWResolutionForY = 1024;
-
         private static DeviceConfiguration deviceConfig;
         private static Calibration calibration;
+
+        public const int depthWidthNear = 640; // Assuming low FPS mode
+        public const int depthHeightNear = 576;
+
+        public const int depthWidthWide = 1024; // Assuming low FPS mode
+        public const int depthHeightWide = 1024;
 
         public static Vector3?[] undistortMatrix;
         public static Vector2[] idealXYCoordinates;
         public static double[] verticalTiltCorrectionMatrix;
-        private const double sin6 = 0.10452846326;
-        
 
+        public const double sin6 = 0.10452846326;
 
-        public static void SetupSensor(Core.KinectTypes k4AConfig, ref string errorMessage)
+        public static void SetupSensor(Core.KinectTypes fieldOfViewMode, double sensorElevation, ref string errorMessage)
         {
             if (sensor == null)
             {
                 try
                 {
                     sensor = Device.Open();
-                    Initialize(k4AConfig, sensorElevation);
+                    Initialize(fieldOfViewMode, sensorElevation);
                 }
                 catch (Exception exc)
                 {
@@ -64,24 +54,33 @@ namespace SandWorm
         {
             switch (type)
             {
-                case Core.KinectTypes.KinectForAzureNear:
+                case Core.KinectTypes.KinectAzureNear:
+                    depthWidth = depthWidthNear;
+                    depthHeight = depthHeightNear;
                     return DepthMode.NFOV_Unbinned;
-                case Core.KinectTypes.KinectForAzureWide:
+
+                case Core.KinectTypes.KinectAzureWide:
+                    depthWidth = depthWidthWide;
+                    depthHeight = depthHeightWide;
                     return DepthMode.WFOV_Unbinned;
+
                 default:
                     throw new ArgumentException("Invalid Kinect Type provided", "original"); ;
             }
         }
 
-        private static void CreateCameraConfig(Core.KinectTypes k4AConfig)
+        private static void CreateCameraConfig(Core.KinectTypes fieldOfViewMode)
         {
             deviceConfig = new DeviceConfiguration
             {
-                CameraFPS = FPS.FPS30, // TODO: set this based on tick rate?
-                DepthMode = GetDepthMode(k4AConfig),
+                CameraFPS = FPS.FPS15,
+                DepthMode = GetDepthMode(fieldOfViewMode),
                 ColorResolution = ColorResolution.R1536p,
                 SynchronizedImagesOnly = false // Color and depth images can be out of sync
             };
+
+            if (fieldOfViewMode == Core.KinectTypes.KinectAzureNear) // We can have 30 FPS in the narrow field of view
+                deviceConfig.CameraFPS = FPS.FPS30;
         }
 
         // Capture a single frame
@@ -95,14 +94,14 @@ namespace SandWorm
         }
 
 
-        public static void Initialize(Core.KinectTypes kinectAzureConfig, double sensorElevation)
+        public static void Initialize(Core.KinectTypes fieldOfViewMode, double sensorElevation)
         {
             string message;
-            CreateCameraConfig(kinectAzureConfig); // Apply user options from Sandworm Options
+            CreateCameraConfig(fieldOfViewMode); // Apply user options from Sandworm Options
+            
             try
             {
                 sensor.StopCameras();
-
             }
             catch (Exception ex)
             {

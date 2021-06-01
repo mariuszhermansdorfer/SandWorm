@@ -88,7 +88,7 @@ namespace SandWorm
             SetupKinect();
             int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight]; //BUG 1024x1024
             double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight]; //BUG 1024x1024
-            Vector2[] trimmedXYLookupTable = new Vector2[trimmedWidth * trimmedHeight];
+            
 
             // Initialize outputs
             if (keepFrames <= 1 || _outputMesh == null)
@@ -99,7 +99,7 @@ namespace SandWorm
             //int test_total = depthFrameDataInt.Sum();
             AverageAndBlurPixels(depthFrameDataInt, ref averagedDepthFrameData);
 
-            GeneratePointCloud(averagedDepthFrameData, trimmedXYLookupTable);
+            GeneratePointCloud(averagedDepthFrameData, trimmedXYLookupTable, verticalTiltCorrectionLookupTable);
 
             // Produce 1st type of analysis that acts on the pixel array and assigns vertex colors
             switch (Analysis.AnalysisManager.GetEnabledMeshColoring())

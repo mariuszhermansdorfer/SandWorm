@@ -22,6 +22,7 @@ namespace SandWorm
         private int _keepFrames;
         private double[] _elevationArray; // Store all deltas between desired and measured distance values from the sensor to the table for each pixel.
         private Vector2[] _idealXYCoordinates;
+        private double[] _verticalTiltCorrectionLookupTable;
         private Core.KinectTypes _kinectType;
 
         public double SensorElevation
@@ -75,6 +76,12 @@ namespace SandWorm
         {
             get { return _idealXYCoordinates; }
             set { _idealXYCoordinates = value; }
+        }
+
+        public double[] VerticalTiltCorrectionLookupTable
+        {
+            get { return _verticalTiltCorrectionLookupTable; }
+            set { _verticalTiltCorrectionLookupTable = value; }
         }
 
         public Core.KinectTypes KinectType

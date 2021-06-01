@@ -24,16 +24,16 @@ namespace SandWorm.Components
 
         protected Mat GenerateColorImage()
         {
-            if (KinectController.colorFrameData == null)
+            if (KinectForWindows.colorFrameData == null)
             {
                 ShowComponentError("No color frame data provided by the Kinect.");
                 return null;
             }
 
             // Convert the kinect pixel byte array to a opencv mat file for processing
-            var height = KinectController.colorHeight;
-            var width = KinectController.colorWidth;
-            var mat = new Mat(height, width, MatType.CV_8UC4, KinectController.colorFrameData);
+            var height = KinectForWindows.colorHeight;
+            var width = KinectForWindows.colorWidth;
+            var mat = new Mat(height, width, MatType.CV_8UC4, KinectForWindows.colorFrameData);
             Core.LogTiming(ref output, timer, "Color image generation"); // Debug Info
             return mat;
         }

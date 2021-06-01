@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using System.Numerics;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Special;
@@ -13,6 +12,7 @@ namespace SandWorm
 {
     public class SetupComponent : BaseKinectComponent
     {
+        public static int sensorElevation;
         private double _averagedSensorElevation;
         private bool _calibrateSandworm;
         private double[] _elevationArray;
@@ -36,7 +36,7 @@ namespace SandWorm
         {
             pManager.AddBooleanParameter("CalibrateSandworm", "CS",
                 "Set to true to initiate the calibration process.", GH_ParamAccess.item, _calibrateSandworm);
-            pManager.AddNumberParameter("SensorHeight", "SH",
+            pManager.AddIntegerParameter("SensorHeight", "SH",
                 "The height (in document units) of the sensor above your model.", GH_ParamAccess.item, sensorElevation);
             pManager.AddIntegerParameter("LeftColumns", "LC",
                 "Number of columns to trim from the left.", GH_ParamAccess.item, 0);
@@ -53,7 +53,7 @@ namespace SandWorm
                 "Output a running list of frame updates rather than just the current frame. Set to 1 or 0 to disable.",
                 GH_ParamAccess.item, keepFrames);
             pManager.AddIntegerParameter("Kinect Type", "KT",
-                "Leave as 0 for Kinect for Windows; set 1 for Kinect for Azure in Near-FOV; set 2 for Kinect for Azure in Wide-FOV.",
+                "Leave as 0 for Kinect for Windows; set 1 for Kinect Azure in Near-FOV; set 2 for Kinect Azure in Wide-FOV.",
                 GH_ParamAccess.item, (int)kinectType);
             pManager[0].Optional = true;
             pManager[1].Optional = true;
@@ -121,6 +121,7 @@ namespace SandWorm
             int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
             double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
             Vector2[] trimmedXYLookupTable = new Vector2[trimmedWidth * trimmedHeight];
+            double[] verticalTiltCorrectionLookupTable = new double[trimmedWidth * trimmedHeight];
 
             _averagedSensorElevation = sensorElevation;
             var unitsMultiplier = Core.ConvertDrawingUnits(RhinoDoc.ActiveDoc.ModelUnitSystem);
@@ -130,14 +131,14 @@ namespace SandWorm
             ushort[] depthFrameData;
             if (kinectType == Core.KinectTypes.KinectForWindows)
             {
-                depthFrameData = KinectController.depthFrameData;
-                active_Height = KinectController.depthHeight;
-                active_Width = KinectController.depthWidth;
+                depthFrameData = KinectForWindows.depthFrameData;
+                active_Height = KinectForWindows.depthHeight;
+                active_Width = KinectForWindows.depthWidth;
             }
             else
             {
                 var errorMessage = "";
-                KinectAzureController.SetupSensor(kinectType, ref errorMessage); //neededfor the following to work the first time round.
+                KinectAzureController.SetupSensor(kinectType, sensorElevation, ref errorMessage); //neededfor the following to work the first time round.
                 KinectAzureController.Initialize(kinectType, sensorElevation); //this should be stoping active cameras and updating the settings for the new one
                 KinectAzureController.CaptureFrame(); //this gets a frame so the variables below have some values.
                 depthFrameData = KinectAzureController.depthFrameData;
@@ -156,9 +157,12 @@ namespace SandWorm
 
                 // Trim the depth array and cast ushort values to int
                 Core.CopyAsIntArray(depthFrameData, depthFrameDataInt,
-                    KinectAzureController.idealXYCoordinates, trimmedXYLookupTable,
                                     leftColumns, rightColumns, topRows, bottomRows,
                                     active_Height, active_Width);
+
+                Core.TrimXYLookupTable(KinectAzureController.idealXYCoordinates, trimmedXYLookupTable, verticalTiltCorrectionLookupTable,
+                                    leftColumns, rightColumns, topRows, bottomRows,
+                                    active_Height, active_Width, unitsMultiplier);
 
                 renderBuffer.AddLast(depthFrameDataInt);
                 for (var pixel = 0; pixel < depthFrameDataInt.Length; pixel++)
@@ -188,7 +192,7 @@ namespace SandWorm
                 if (_frameCount == 1) // All frames have been collected, we can save the results
                 {
                     // Measure sensor elevation by averaging over a grid of 20x20 pixels in the center of the table
-                    var counter = 0;
+                    int counter = 0;
                     _averagedSensorElevation = 0;
 
                     for (var y = trimmedHeight / 2 - 10; y < trimmedHeight / 2 + 10; y++) // Iterate over y dimension
@@ -202,7 +206,7 @@ namespace SandWorm
                     _averagedSensorElevation /= counter;
 
                     // Counter for Kinect inaccuracies and potential hardware misalignment by storing differences between the averaged sensor elevation and individual pixels.
-                    for (var i = 0; i < averagedDepthFrameData.Length; i++)
+                    for (int i = 0; i < averagedDepthFrameData.Length; i++)
                         _elevationArray[i] = averagedDepthFrameData[i] - _averagedSensorElevation;
 
                     _averagedSensorElevation *= unitsMultiplier;
@@ -231,7 +235,8 @@ namespace SandWorm
                 TickRate = tickRate,
                 KeepFrames = keepFrames,
                 ElevationArray = _elevationArray,
-                IdealXYCoordinates = KinectAzureController.idealXYCoordinates,
+                IdealXYCoordinates = trimmedXYLookupTable,
+                VerticalTiltCorrectionLookupTable = verticalTiltCorrectionLookupTable,
                 KinectType = kinectType,
             };
             
