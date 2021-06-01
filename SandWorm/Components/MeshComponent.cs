@@ -83,7 +83,6 @@ namespace SandWorm
             DA.GetData(0, ref _waterLevel);
             DA.GetData(1, ref _contourInterval);
             GetSandwormOptions(DA, 4, 2, 3);
-            int test_me = trimmedHeight;
 
             SetupKinect();
             int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight]; //BUG 1024x1024
