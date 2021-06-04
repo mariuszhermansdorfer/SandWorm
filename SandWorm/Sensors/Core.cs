@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -68,11 +69,6 @@ namespace SandWorm
             KinectAzureWide,
         }
 
-        public struct PixelSize // Unfortunately no nice tuples in this version of C# :(
-        {
-            public double x;
-            public double y;
-        }
 
         public static void GetTrimmedDimensions(KinectTypes kinectType, ref int trimmedWidth, ref int trimmedHeight, ref double[] elevationArray,
                                                 int topRows, int bottomRows, int leftColumns, int rightColumns)
@@ -105,21 +101,18 @@ namespace SandWorm
         }
 
 
-        public static PixelSize GetDepthPixelSpacing(double sensorHeight)  //TODO rereference for 
+        public static Vector2 GetDepthPixelSpacing(double sensorHeight)  //TODO rereference for 
         {
-            PixelSize pixelsForHeight = new PixelSize
-            {
-                x = GetDepthPixelSizeInDimension(KinectForWindows.kinect2FOVForX, KinectForWindows.depthWidth, sensorHeight),
-                y = GetDepthPixelSizeInDimension(KinectForWindows.kinect2FOVForY, KinectForWindows.depthHeight, sensorHeight)
-            };
-            return pixelsForHeight;
+            return new Vector2(GetDepthPixelSizeInDimension(KinectForWindows.kinect2FOVForX, KinectForWindows.depthWidth, sensorHeight), 
+                GetDepthPixelSizeInDimension(KinectForWindows.kinect2FOVForY, KinectForWindows.depthHeight, sensorHeight));
+
         }
 
-        private static double GetDepthPixelSizeInDimension(double fovAngle, double resolution, double height)
+        private static float GetDepthPixelSizeInDimension(double fovAngle, double resolution, double height)
         {
             double fovInRadians = (Math.PI / 180) * fovAngle;
             double dimensionSpan = 2 * height * Math.Tan(fovInRadians / 2);
-            return dimensionSpan / resolution;
+            return (float)(dimensionSpan / resolution);
         }
 
         public static void CopyAsIntArray(ushort[] source, int[] destination, int leftColumns, int rightColumns, int topRows, int bottomRows, int height, int width) //Takes the feed and trims and casts from ushort m to int
@@ -139,6 +132,75 @@ namespace SandWorm
                 }
             }
         }
+
+        // Multiply two int[] arrays using SIMD instructions
+        public static int[] SimdVectorProd(int[] a, int[] b)
+        {
+            if (a.Length != b.Length) throw new ArgumentException();
+            if (a.Length == 0) return Array.Empty<int>();
+
+            int[] result = new int[a.Length];
+
+            // Get a reference to the first value in all 3 arrays
+            ref int ra = ref a[0];
+            ref int rb = ref b[0];
+            ref int rr = ref result[0];
+            int length = a.Length;
+            int i = 0;
+
+
+            /* Calculate the maximum offset we can work on with SIMD instructions.
+             * Eg. if each SIMD register can hold 4 int values, and our input
+             * arrays have 10 values, we can use SIMD instructions to sum the
+             * first two groups of 4 integers, leaving the last 2 out. */
+            int end = length - Vector<int>.Count;
+
+            for (; i <= end; i += Vector<int>.Count)
+            {
+                // Get the reference into a and b at the current position
+                ref int rai = ref Unsafe.Add(ref ra, i);
+                ref int rbi = ref Unsafe.Add(ref rb, i);
+
+                /* Reinterpret those references as Vector<int>, which effectively
+                 * means reading a Vector<int> value starting from the memory
+                 * locations those two references are pointing to.
+                 * The JIT compiler will make sure that our Vector<int>
+                 * variables are stored in exactly one SIMD register each.
+                 * Once we have them, we can sum those together, which will
+                 * use a single special SIMD instruction in assembly. */
+
+                // va = { a[i], a[i + 1], ..., a[i + Vector<int>.Count - 1] }
+                Vector<int> va = Unsafe.As<int, Vector<int>>(ref rai);
+
+                // vb = { b[i], b[i + 1], ..., b[i + Vector<int>.Count - 1] }
+                Vector<int> vb = Unsafe.As<int, Vector<int>>(ref rbi);
+
+                /* vr =
+                 * {
+                 *     a[i] * b[i],
+                 *     a[i + 1] * b[i + 1],
+                 *     ...,
+                 *     a[i + Vector<int>.Count - 1] * b[i + Vector<int>.Count - 1]
+                 * } */
+                Vector<int> vr = va * vb;
+
+                // Get the reference into the target array
+                ref int rri = ref Unsafe.Add(ref rr, i);
+
+                // Store the resulting vector at the right position
+                Unsafe.As<int, Vector<int>>(ref rri) = vr;
+            }
+
+
+            // Multiply the remaining values
+            for (; i < a.Length; i++)
+            {
+                result[i] = a[i] * b[i];
+            }
+
+            return result;
+        }
+
 
         public static void TrimXYLookupTable(Vector2[] sourceXY, Vector2[] destinationXY, double[] verticalTiltCorrectionLookupTable, int leftColumns, int rightColumns, int topRows, int bottomRows, int height, int width, double unitsMultiplier) //Takes the feed and trims and casts from ushort m to int
         {

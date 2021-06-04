@@ -111,7 +111,7 @@ namespace SandWorm
                     break;
                 case Slope analysis:
                     _vertexColors = analysis.GetColorCloudForAnalysis(averagedDepthFrameData,
-                        trimmedWidth, trimmedHeight, depthPixelSize.x, depthPixelSize.y);
+                        trimmedWidth, trimmedHeight, depthPixelSize.X, depthPixelSize.Y);
                     break;
                 case Aspect analysis:
                     _vertexColors = analysis.GetColorCloudForAnalysis(averagedDepthFrameData,

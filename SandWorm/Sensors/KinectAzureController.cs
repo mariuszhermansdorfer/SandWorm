@@ -34,6 +34,7 @@ namespace SandWorm
 
         public const double sin6 = 0.10452846326;
 
+
         public static void SetupSensor(Core.KinectTypes fieldOfViewMode, double sensorElevation, ref string errorMessage)
         {
             if (sensor == null)

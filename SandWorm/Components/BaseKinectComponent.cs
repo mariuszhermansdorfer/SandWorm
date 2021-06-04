@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -30,7 +31,7 @@ namespace SandWorm.Components
         protected Vector2[] trimmedXYLookupTable;
         protected double[] verticalTiltCorrectionLookupTable;
         // Derived
-        protected Core.PixelSize depthPixelSize;
+        protected Vector2 depthPixelSize;
         protected static double unitsMultiplier;
         protected Point3f[] allPoints;
         protected int trimmedHeight;
@@ -193,8 +194,8 @@ namespace SandWorm.Components
                 for (int columns = 0; columns < trimmedWidth; columns++, i++)
                 {
                     //TODO add lookup table for Kinect for Windows as well
-                    //tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.x); // Flip direction of the X axis
-                    //tempPoint.Y = (float)(rows * unitsMultiplier * depthPixelSize.y);
+                    //tempPoint.X = (float)(columns * -unitsMultiplier * depthPixelSize.X); // Flip direction of the X axis
+                    //tempPoint.Y = (float)(rows * unitsMultiplier * depthPixelSize.Y);
                     
                     tempPoint.X = trimmedXYLookupTable[i].X;
                     tempPoint.Y = trimmedXYLookupTable[i].Y;
