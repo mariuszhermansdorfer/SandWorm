@@ -3,7 +3,6 @@ using System.Numerics;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using Rhino.Geometry;
 
