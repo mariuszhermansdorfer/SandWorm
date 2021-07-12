@@ -165,7 +165,7 @@ namespace SandWorm
                  * locations those two references are pointing to.
                  * The JIT compiler will make sure that our Vector<int>
                  * variables are stored in exactly one SIMD register each.
-                 * Once we have them, we can sum those together, which will
+                 * Once we have them, we can multiply those together, which will
                  * use a single special SIMD instruction in assembly. */
 
                 // va = { a[i], a[i + 1], ..., a[i + Vector<int>.Count - 1] }

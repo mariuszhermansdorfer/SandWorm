@@ -127,7 +127,9 @@ namespace SandWorm.Components
                 leftColumns, rightColumns, topRows, bottomRows,
                 active_Height, active_Width);
 
-            Core.TrimXYLookupTable(idealXYCoordinates, trimmedIdealXYCoordinates, verticalTiltCorrectionLookupTable, leftColumns, rightColumns, topRows, bottomRows, active_Height, active_Width, unitsMultiplier);
+            Core.TrimXYLookupTable(idealXYCoordinates, trimmedIdealXYCoordinates, verticalTiltCorrectionLookupTable, 
+                leftColumns, rightColumns, topRows, bottomRows, 
+                active_Height, active_Width, unitsMultiplier);
 
             // Reset everything when resizing Kinect's field of view or changing the amounts of frame to average across
             if (renderBuffer.Count > averageFrames || (quadMesh != null && quadMesh.Faces.Count != (trimmedWidth - 2) * (trimmedHeight - 2)))
