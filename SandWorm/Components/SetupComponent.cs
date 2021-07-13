@@ -144,6 +144,9 @@ namespace SandWorm
                 depthFrameData = KinectAzureController.depthFrameData;
                 active_Height = KinectAzureController.depthHeight;
                 active_Width = KinectAzureController.depthWidth;
+                Core.TrimXYLookupTable(KinectAzureController.idealXYCoordinates, trimmedXYLookupTable, verticalTiltCorrectionLookupTable,
+                                    leftColumns, rightColumns, topRows, bottomRows,
+                                    active_Height, active_Width, unitsMultiplier);
             }
 
             // Trim the depth array and cast ushort values to int //BUG Attempted to write protected data
@@ -160,9 +163,6 @@ namespace SandWorm
                                     leftColumns, rightColumns, topRows, bottomRows,
                                     active_Height, active_Width);
 
-                Core.TrimXYLookupTable(KinectAzureController.idealXYCoordinates, trimmedXYLookupTable, verticalTiltCorrectionLookupTable,
-                                    leftColumns, rightColumns, topRows, bottomRows,
-                                    active_Height, active_Width, unitsMultiplier);
 
                 renderBuffer.AddLast(depthFrameDataInt);
                 for (var pixel = 0; pixel < depthFrameDataInt.Length; pixel++)
