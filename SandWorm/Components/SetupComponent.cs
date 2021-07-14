@@ -5,12 +5,11 @@ using System.Numerics;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Special;
 using Rhino;
-using SandWorm.Components;
-using SandWorm.Properties;
+
 
 namespace SandWorm
 {
-    public class SetupComponent : BaseKinectComponent
+    public class SetupComponent 
     {
         public static int sensorElevation;
         private double _averagedSensorElevation;
@@ -18,138 +17,20 @@ namespace SandWorm
         private double[] _elevationArray;
         private int _frameCount = 0; // Number of frames to average the calibration across
 
-        private List<Grasshopper.Kernel.Types.GH_Point> points;
 
 
         private short[] depthFrameShort;
 
-        public SetupComponent() : base("Setup Component", "SWSetup",
-            "This component takes care of all the setup & calibration of your sandbox.", "Utility")
+
+
+        void SandwormSolveInstance(IGH_DataAccess DA)
         {
-        }
 
-        protected override Bitmap Icon => Resources.icons_setup;
+            //_averagedSensorElevation = sensorElevation;
 
-        public override Guid ComponentGuid => new Guid("9ee53381-c269-4fff-9d45-8a2dbefc243c");
 
-        protected override void RegisterInputParams(GH_InputParamManager pManager)
-        {
-            pManager.AddBooleanParameter("CalibrateSandworm", "CS",
-                "Set to true to initiate the calibration process.", GH_ParamAccess.item, _calibrateSandworm);
-            pManager.AddIntegerParameter("SensorHeight", "SH",
-                "The height (in document units) of the sensor above your model.", GH_ParamAccess.item, sensorElevation);
-            pManager.AddIntegerParameter("LeftColumns", "LC",
-                "Number of columns to trim from the left.", GH_ParamAccess.item, 0);
-            pManager.AddIntegerParameter("RightColumns", "RC",
-                "Number of columns to trim from the right.", GH_ParamAccess.item, 0);
-            pManager.AddIntegerParameter("TopRows", "TR",
-                "Number of rows to trim from the top.", GH_ParamAccess.item, 0);
-            pManager.AddIntegerParameter("BottomRows", "BR",
-                "Number of rows to trim from the bottom.", GH_ParamAccess.item, 0);
-            pManager.AddIntegerParameter("TickRate", "TR",
-                "The time interval, in milliseconds, to update geometry from the Kinect. Set as 0 to disable automatic updates.",
-                GH_ParamAccess.item, tickRate);
-            pManager.AddIntegerParameter("KeepFrames", "KF",
-                "Output a running list of frame updates rather than just the current frame. Set to 1 or 0 to disable.",
-                GH_ParamAccess.item, keepFrames);
-            pManager.AddIntegerParameter("Kinect Type", "KT",
-                "Leave as 0 for Kinect for Windows; set 1 for Kinect Azure in Near-FOV; set 2 for Kinect Azure in Wide-FOV.",
-                GH_ParamAccess.item, (int)kinectType);
-            pManager[0].Optional = true;
-            pManager[1].Optional = true;
-            pManager[2].Optional = true;
-            pManager[3].Optional = true;
-            pManager[4].Optional = true;
-            pManager[5].Optional = true;
-            pManager[6].Optional = true;
-            pManager[7].Optional = true;
-            pManager[8].Optional = true;
-        }
 
-        protected override void RegisterOutputParams(GH_OutputParamManager pManager)
-        {
-            pManager.AddGenericParameter("Options", "O", "SandWorm Options", GH_ParamAccess.item);
-            pManager.AddTextParameter("Info", "I", "Component info", GH_ParamAccess.list); //debugging
-        }
-
-        private void ManipulateSlider(GH_Document doc)
-        {
-            var input = Params.Input[1].Sources[0]; // Get the first thing connected to the second input of this component
-
-            if (input is GH_NumberSlider slider)
-            {
-                slider.Slider.RaiseEvents = false;
-                slider.Slider.DecimalPlaces = 4;
-                slider.SetSliderValue((decimal) _averagedSensorElevation);
-                slider.ExpireSolution(false);
-                slider.Slider.RaiseEvents = true;
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Remark,
-                    "Calibration measurement finished; sensor elevation measured and set as " + _averagedSensorElevation);
-            }
-        }
-
-        protected override void SandwormSolveInstance(IGH_DataAccess DA)
-        {
-            SetupLogging();
-            int tempKinectType = 0; // Can't cast to the enum within GetData ref
-
-            DA.GetData(0, ref _calibrateSandworm);
-            DA.GetData(1, ref sensorElevation);
-            DA.GetData(2, ref leftColumns);
-            DA.GetData(3, ref rightColumns);
-            DA.GetData(4, ref topRows);
-            DA.GetData(5, ref bottomRows);
-            DA.GetData(6, ref tickRate);
-            DA.GetData(7, ref keepFrames);
-            DA.GetData(8, ref tempKinectType);
-
-            if ((int)tempKinectType > 2)
-            {
-                ShowComponentError("Invalid KinectType provided. Must be 0, 1, or 2.");
-                return;
-            }
-            else
-            {
-                kinectType = (Core.KinectTypes)tempKinectType;
-            }
-
-            // Initialize all arrays
-            points = new List<Grasshopper.Kernel.Types.GH_Point>();
-
-            Core.GetTrimmedDimensions(kinectType, ref trimmedWidth, ref trimmedHeight, ref _elevationArray, 
-                                      topRows, bottomRows, leftColumns, rightColumns);
-            int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
-            double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
-            Vector2[] trimmedXYLookupTable = new Vector2[trimmedWidth * trimmedHeight];
-            double[] verticalTiltCorrectionLookupTable = new double[trimmedWidth * trimmedHeight];
-
-            _averagedSensorElevation = sensorElevation;
-            var unitsMultiplier = Core.ConvertDrawingUnits(RhinoDoc.ActiveDoc.ModelUnitSystem);
-
-            var active_Height = 0;
-            var active_Width = 0;
-            ushort[] depthFrameData;
-            if (kinectType == Core.KinectTypes.KinectForWindows)
-            {
-                depthFrameData = KinectForWindows.depthFrameData;
-                active_Height = KinectForWindows.depthHeight;
-                active_Width = KinectForWindows.depthWidth;
-            }
-            else
-            {
-                var errorMessage = "";
-                KinectAzureController.SetupSensor(kinectType, sensorElevation, ref errorMessage); //neededfor the following to work the first time round.
-                KinectAzureController.Initialize(kinectType, sensorElevation); //this should be stoping active cameras and updating the settings for the new one
-                KinectAzureController.CaptureFrame(); //this gets a frame so the variables below have some values.
-                depthFrameData = KinectAzureController.depthFrameData;
-                active_Height = KinectAzureController.depthHeight;
-                active_Width = KinectAzureController.depthWidth;
-                Core.TrimXYLookupTable(KinectAzureController.idealXYCoordinates, trimmedXYLookupTable, verticalTiltCorrectionLookupTable,
-                                    leftColumns, rightColumns, topRows, bottomRows,
-                                    active_Height, active_Width, unitsMultiplier);
-            }
-
-            // Trim the depth array and cast ushort values to int //BUG Attempted to write protected data
+            /*
 
             if (_calibrateSandworm) _frameCount = 60; // Start calibration 
 
@@ -221,9 +102,7 @@ namespace SandWorm
                     OnPingDocument().ScheduleSolution(5, ManipulateSlider);
             }
 
-            output.Add("Parameter-Provided Sensor Elevation: " + sensorElevation); // Debug Info
-            output.Add("Measured-Average Sensor Elevation: " + _averagedSensorElevation); // Debug Info
-            output.Add("Output Sensor Elevation: " + _averagedSensorElevation); // Debug Info
+
 
             var outputOptions = new SetupOptions
             {
@@ -240,10 +119,7 @@ namespace SandWorm
                 KinectType = kinectType,
             };
             
-
-            Core.LogTiming(ref output, timer, "Setup completion"); // Debug Info
-            DA.SetData(0, outputOptions);
-            DA.SetDataList(1, output); // For logging/debugging
+            */
         }
     }
 }

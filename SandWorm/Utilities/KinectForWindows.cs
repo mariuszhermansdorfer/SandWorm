@@ -38,15 +38,13 @@ namespace SandWorm
             }
         }
 
-        public static void SetupSensor(ref string errorMessage)
+        public static void SetupSensor()
         {
             if (sensor == null)
             {
                 KinectForWindows.AddRef();
                 sensor = KinectForWindows.sensor;
             }
-            if (KinectForWindows.depthFrameData == null)
-                errorMessage = "No depth frame data provided by the Kinect for Windows.";
         }
 
         public static void RemoveRef()

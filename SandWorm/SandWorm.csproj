@@ -182,16 +182,12 @@
     <Compile Include="CustomComponent\WidgetLayoutData.cs" />
     <Compile Include="CustomComponent\WidgetRenderArgs.cs" />
     <Compile Include="CustomComponent\WidgetServer.cs" />
-    <Compile Include="Sensors\KinectAzureController.cs" />
-    <Compile Include="Components\BaseComponent.cs" />
-    <Compile Include="Components\BaseMarkerComponent.cs" />
-    <Compile Include="Components\BaseKinectComponent.cs" />
-    <Compile Include="Components\MarkerAreaComponent.cs" />
-    <Compile Include="Components\MeshComponent.cs" />
-    <Compile Include="Components\MarkerPointComponent.cs" />
-    <Compile Include="Sensors\Core.cs" />
+    <Compile Include="Utilities\GeneralHelpers.cs" />
+    <Compile Include="Utilities\Kinect2Helpers.cs" />
+    <Compile Include="Utilities\KinectAzureController.cs" />
+    <Compile Include="Utilities\Core.cs" />
     <Compile Include="GaussianBlurProcessor.cs" />
-    <Compile Include="Sensors\KinectForWindows.cs" />
+    <Compile Include="Utilities\KinectForWindows.cs" />
     <Compile Include="Components\SetupComponent.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -200,7 +196,7 @@
     </Compile>
     <Compile Include="SandWormInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SetupOptions.cs" />
+    <Compile Include="Utilities\Structs.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />

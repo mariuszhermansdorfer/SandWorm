@@ -1,14 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
+using System.Linq;
+using System.Numerics;
+
+using Rhino;
+using Rhino.Geometry;
 
 using Grasshopper.Kernel;
-using Rhino.Geometry;
+
+using SandWorm.Analytics;
+using static SandWorm.Core;
+using static SandWorm.Kinect2Helpers;
+using static SandWorm.Structs;
+
 
 namespace SandWorm
 {
     public class SandWormComponent : GH_ExtendableComponent
     {
+        #region UI variables
+
         private MenuDropDown _sensorType;
         private MenuSlider _sensorElevation;
         private MenuSlider _leftColumns;
@@ -25,6 +38,35 @@ namespace SandWorm
 
         private MenuSlider _averagedFrames;
         private MenuSlider _blurRadius;
+        #endregion
+
+        private Color[] _vertexColors;
+        private Mesh _quadMesh = new Mesh();
+        public static List<string> output; // Debugging
+        protected Stopwatch timer;
+
+        // Outputs
+        private List<GeometryBase> _outputGeometry;
+        private List<Mesh> _outputMesh;
+
+
+        private double[] elevationArray; // Array of elevation values for every pixel scanned during the calibration process
+        private Vector2[] trimmedXYLookupTable;
+        private double[] verticalTiltCorrectionLookupTable;
+        // Derived
+        private Vector2 depthPixelSize;
+        private double unitsMultiplier;
+        private double sensorElevation;
+        private Point3f[] allPoints;
+        private int trimmedHeight;
+        private int trimmedWidth;
+        private readonly LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
+        private int[] runningSum;
+        private int active_Height = 0;
+        private int active_Width = 0;
+        private bool calibrate;
+        private bool reset;
+
 
         public SandWormComponent()
           : base("Sandworm Mesh", "SW Mesh",
@@ -35,8 +77,8 @@ namespace SandWorm
 
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddBooleanParameter("Calibrate", "calibrate", "", GH_ParamAccess.item, false);
-            pManager.AddBooleanParameter("Reset", "reset", "", GH_ParamAccess.item, false);
+            pManager.AddBooleanParameter("Calibrate", "calibrate", "", GH_ParamAccess.item, calibrate);
+            pManager.AddBooleanParameter("Reset", "reset", "", GH_ParamAccess.item, reset);
             pManager.AddColourParameter("Color Gradient", "color gradient", "", GH_ParamAccess.list);
             pManager.AddGenericParameter("Mesh", "mesh", "", GH_ParamAccess.item);
 
@@ -67,9 +109,9 @@ namespace SandWorm
 
             MenuStaticText sensorTypeHeader = new MenuStaticText("Sensor type", "Choose which Kinect Version you have.");
             _sensorType = new MenuDropDown(0, "Sensor type", "Choose Kinect Version");
-            _sensorType.AddItem("Kinect for Windows", "Kinect for Windows");
             _sensorType.AddItem("Kinect Azure Narrow", "Kinect Azure Narrow");
             _sensorType.AddItem("Kinect Azure Wide", "Kinect Azure Wide");
+            _sensorType.AddItem("Kinect for Windows", "Kinect for Windows");
 
             MenuStaticText sensorElevationHeader = new MenuStaticText("Sensor elevation", "Distance between the sensor and the table. \nInput should be in drawing units.");
             _sensorElevation = new MenuSlider(sensorElevationHeader, 1, 250, 1500, 700, 0);
@@ -140,7 +182,7 @@ namespace SandWorm
             _waterLevel = new MenuSlider(contourIntervalHeader, 26, 0, 300, 0, 0);
 
             MenuStaticText rainDensityHeader = new MenuStaticText("Rain density", "Define spacing between simulated rain drops. \nInput should be in drawing units.");
-            _rainDensity = new MenuSlider(contourIntervalHeader, 27, 0, 300, 0, 0);
+            _rainDensity = new MenuSlider(contourIntervalHeader, 27, 1, 300, 50, 0);
 
             analysisMenu.AddControl(analysisPanel);
             attr.AddMenu(analysisMenu);
@@ -177,7 +219,7 @@ namespace SandWorm
             _averagedFrames = new MenuSlider(averagedFramesHeader, 42, 1, 30, 1, 0);
 
             MenuStaticText blurRadiusHeader = new MenuStaticText("Blur Radius", "Define the extent of gaussian blurring.");
-            _blurRadius = new MenuSlider(blurRadiusHeader, 43, 0, 15, 0, 0);
+            _blurRadius = new MenuSlider(blurRadiusHeader, 43, 0, 15, 1, 0);
 
             postProcessingMenu.AddControl(postProcessingPanel);
             attr.AddMenu(postProcessingMenu);
@@ -193,17 +235,142 @@ namespace SandWorm
         protected override void OnComponentLoaded()
         {
             base.OnComponentLoaded();
-
         }
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            DA.GetData(1, ref reset);
+            if (reset)
+            {
+                KinectAzureController.sensor.Dispose();
+                KinectAzureController.sensor = null;
+            }
+                
+            //GeneralHelpers.SetupLogging(timer, output);
+            unitsMultiplier = GeneralHelpers.ConvertDrawingUnits(RhinoDoc.ActiveDoc.ModelUnitSystem);
+            sensorElevation = _sensorElevation.Value / unitsMultiplier; // Standardise to mm to match sensor units
 
+            // Trim 
+            GetTrimmedDimensions((KinectTypes)_sensorType.Value, ref trimmedWidth, ref trimmedHeight, ref elevationArray, runningSum,
+                                  _bottomRows.Value, _topRows.Value, _leftColumns.Value, _rightColumns.Value);
+
+            // Setup sensor
+            if ((KinectTypes)_sensorType.Value == KinectTypes.KinectForWindows)
+            {
+                KinectForWindows.SetupSensor();
+                active_Height = KinectForWindows.depthHeight;
+                active_Width = KinectForWindows.depthWidth;
+                depthPixelSize = Kinect2Helpers.GetDepthPixelSpacing(sensorElevation);
+            }
+            else
+            {
+                KinectAzureController.SetupSensor((KinectTypes)_sensorType.Value, sensorElevation);
+                KinectAzureController.CaptureFrame(); // Get a frame so the variables below have some values.
+                active_Height = KinectAzureController.depthHeight;
+                active_Width = KinectAzureController.depthWidth;
+
+                trimmedXYLookupTable = new Vector2[trimmedWidth * trimmedHeight];
+                Core.TrimXYLookupTable(KinectAzureController.idealXYCoordinates, trimmedXYLookupTable, KinectAzureController.verticalTiltCorrectionMatrix,
+                                    _leftColumns.Value, _rightColumns.Value, _bottomRows.Value, _topRows.Value,
+                                    active_Height, active_Width, unitsMultiplier);
+            }
+                
+
+
+
+
+
+
+            // Initialize
+            int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight]; 
+            double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
+
+            if (runningSum == null || runningSum.Length < elevationArray.Length)
+                runningSum = Enumerable.Range(1, elevationArray.Length).Select(i => new int()).ToArray();
+            _outputMesh = new List<Mesh>();
+
+
+            SetupRenderBuffer(depthFrameDataInt, (KinectTypes)_sensorType.Value,
+                _leftColumns.Value, _rightColumns.Value, _bottomRows.Value, _topRows.Value, _quadMesh, trimmedWidth, trimmedHeight, _averagedFrames.Value,
+                runningSum, renderBuffer);
+
+            //GeneralHelpers.LogTiming(ref output, timer, "Initial setup"); // Debug Info
+
+            AverageAndBlurPixels(depthFrameDataInt, ref averagedDepthFrameData, runningSum, renderBuffer,
+                sensorElevation, elevationArray, _averagedFrames.Value, _blurRadius.Value, trimmedWidth, trimmedHeight);
+
+            allPoints = new Point3f[trimmedWidth * trimmedHeight];
+            GeneratePointCloud(averagedDepthFrameData, trimmedXYLookupTable, KinectAzureController.verticalTiltCorrectionMatrix, allPoints, 
+                renderBuffer, trimmedWidth, trimmedHeight, sensorElevation, unitsMultiplier, _averagedFrames.Value);
+
+
+
+            // Produce 1st type of analysis that acts on the pixel array and assigns vertex colors
+            switch (_analysisType.Value)
+            {
+                case 0: // None
+                    _vertexColors = new None().GetColorCloudForAnalysis();
+                    break;
+
+                case 1: // TODO: RGB
+                    break;
+
+                case 2: // Elevation
+                    _vertexColors = new Elevation().GetColorCloudForAnalysis(averagedDepthFrameData, _sensorElevation.Value);
+                    break;
+
+                case 3: // Slope
+                    _vertexColors = new Slope().GetColorCloudForAnalysis(averagedDepthFrameData,
+                        trimmedWidth, trimmedHeight, depthPixelSize.X, depthPixelSize.Y);
+                    break;
+
+                case 4: // Aspect
+                    _vertexColors = new Aspect().GetColorCloudForAnalysis(averagedDepthFrameData,
+                        trimmedWidth, trimmedHeight);
+                    break;
+
+                case 5: // TODO: Cut & Fill
+                    break;
+            }
+            //GeneralHelpers.LogTiming(ref output, timer, "Point cloud analysis"); // Debug Info
+
+            // Generate the mesh itself
+            _quadMesh = CreateQuadMesh(_quadMesh, allPoints, _vertexColors, trimmedWidth, trimmedHeight);
+            _outputMesh.Add(_quadMesh);
+
+            //GeneralHelpers.LogTiming(ref output, timer, "Meshing"); // Debug Info
+
+            // Produce 2nd type of analysis that acts on the mesh and creates new geometry
+            _outputGeometry = new List<GeometryBase>();
+
+            if (_contourIntervalRange.Value > 0)
+                new Contours().GetGeometryForAnalysis(ref _outputGeometry, _contourIntervalRange.Value, _quadMesh);
+
+            if (_waterLevel.Value > 0)
+                new WaterLevel().GetGeometryForAnalysis(ref _outputGeometry, _waterLevel.Value, _quadMesh);
+
+            //GeneralHelpers.LogTiming(ref output, timer, "Mesh analysis"); // Debug Info
+
+
+            DA.SetDataList(0, _outputMesh);
+            DA.SetDataList(1, _outputGeometry);
+
+            ScheduleSolve();
 
         }
 
         protected override Bitmap Icon => Properties.Resources.icons_mesh;
         public override Guid ComponentGuid => new Guid("{53fefb98-1cec-4134-b707-0c366072af2c}");
+
+        protected void ScheduleDelegate(GH_Document doc)
+        {
+            ExpireSolution(false);
+        }
+
+        protected void ScheduleSolve()
+        {
+            OnPingDocument().ScheduleSolution(30, ScheduleDelegate);
+        }
 
     }
 }
