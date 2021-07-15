@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Numerics;
-using System.Collections.Generic;
 using Microsoft.Azure.Kinect.Sensor;
-using Rhino.Geometry;
 
 
 namespace SandWorm
