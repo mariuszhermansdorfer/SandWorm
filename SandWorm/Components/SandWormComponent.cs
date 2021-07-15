@@ -237,6 +237,40 @@ namespace SandWorm
             base.OnComponentLoaded();
         }
 
+        public override void AddedToDocument(GH_Document document)
+        {
+            GH_Document grasshopperDocument = OnPingDocument();
+            List<IGH_DocumentObject> componentList = new List<IGH_DocumentObject>();
+            PointF pivot;
+            pivot = Attributes.Pivot;
+
+            var calibrate = new Grasshopper.Kernel.Special.GH_ButtonObject();
+            calibrate.CreateAttributes();
+            calibrate.NickName = "calibrate";
+            calibrate.Attributes.Pivot = new PointF(pivot.X - 250, pivot.Y - 46);
+            calibrate.Attributes.ExpireLayout();
+            calibrate.Attributes.PerformLayout();
+            componentList.Add(calibrate);
+
+            Params.Input[0].AddSource(calibrate);
+            
+            var reset = new Grasshopper.Kernel.Special.GH_ButtonObject();
+            reset.CreateAttributes();
+            reset.NickName = "reset";
+            reset.Attributes.Pivot = new PointF(pivot.X - 250, pivot.Y - 21);
+            reset.Attributes.ExpireLayout();
+            reset.Attributes.PerformLayout();
+            componentList.Add(reset);
+
+            Params.Input[1].AddSource(reset);
+
+            foreach (var component in componentList)
+                grasshopperDocument.AddObject(component, false);
+
+            
+            grasshopperDocument.UndoUtil.RecordAddObjectEvent("Add buttons", componentList);
+        }
+
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             DA.GetData(1, ref reset);
