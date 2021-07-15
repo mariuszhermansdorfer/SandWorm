@@ -21,34 +21,41 @@ namespace SandWorm
 {
     public class SandWormComponent : GH_ExtendableComponent
     {
+        #region Class Variables
 
+        // Units & dimensions
+        private Vector2 depthPixelSize;
+        private double unitsMultiplier;
+        private double sensorElevation;
+
+        private int active_Height = 0;
+        private int active_Width = 0;
+        private int trimmedHeight;
+        private int trimmedWidth;
+
+        // Data arrays
+        private Point3f[] allPoints;
         private Color[] _vertexColors;
         private Mesh _quadMesh = new Mesh();
-        public static List<string> output; // Debugging
-        protected Stopwatch timer;
+
+        private readonly LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
+        private int[] runningSum;
+        private double[] elevationArray; // Array of elevation values for every pixel scanned during the calibration process
+        private Vector2[] trimmedXYLookupTable;
 
         // Outputs
         private List<GeometryBase> _outputGeometry;
         private List<Mesh> _outputMesh;
 
+        // Debugging
+        public static List<string> output; 
+        protected Stopwatch timer;
 
-        private double[] elevationArray; // Array of elevation values for every pixel scanned during the calibration process
-        private Vector2[] trimmedXYLookupTable;
-        private double[] verticalTiltCorrectionLookupTable;
-        // Derived
-        private Vector2 depthPixelSize;
-        private double unitsMultiplier;
-        private double sensorElevation;
-        private Point3f[] allPoints;
-        private int trimmedHeight;
-        private int trimmedWidth;
-        private readonly LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
-        private int[] runningSum;
-        private int active_Height = 0;
-        private int active_Width = 0;
+        // Boolean controls
         private bool calibrate;
         private bool reset;
 
+        #endregion
 
         public SandWormComponent()
           : base("Sandworm Mesh", "SW Mesh",
@@ -76,7 +83,7 @@ namespace SandWorm
 
         protected override void Setup(GH_ExtendableComponentAttributes attr)
         {
-            SandWormComponentUI.MainComponentUI(attr);
+            MainComponentUI(attr);
         }
 
         protected override void OnComponentLoaded()
@@ -84,39 +91,6 @@ namespace SandWorm
             base.OnComponentLoaded();
         }
 
-        public override void AddedToDocument(GH_Document document)
-        {
-            GH_Document grasshopperDocument = OnPingDocument();
-            List<IGH_DocumentObject> componentList = new List<IGH_DocumentObject>();
-            PointF pivot;
-            pivot = Attributes.Pivot;
-
-            var calibrate = new Grasshopper.Kernel.Special.GH_ButtonObject();
-            calibrate.CreateAttributes();
-            calibrate.NickName = "calibrate";
-            calibrate.Attributes.Pivot = new PointF(pivot.X - 250, pivot.Y - 46);
-            calibrate.Attributes.ExpireLayout();
-            calibrate.Attributes.PerformLayout();
-            componentList.Add(calibrate);
-
-            Params.Input[0].AddSource(calibrate);
-            
-            var reset = new Grasshopper.Kernel.Special.GH_ButtonObject();
-            reset.CreateAttributes();
-            reset.NickName = "reset";
-            reset.Attributes.Pivot = new PointF(pivot.X - 250, pivot.Y - 21);
-            reset.Attributes.ExpireLayout();
-            reset.Attributes.PerformLayout();
-            componentList.Add(reset);
-
-            Params.Input[1].AddSource(reset);
-
-            foreach (var component in componentList)
-                grasshopperDocument.AddObject(component, false);
-
-            
-            grasshopperDocument.UndoUtil.RecordAddObjectEvent("Add buttons", componentList);
-        }
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
@@ -171,7 +145,7 @@ namespace SandWorm
                 _leftColumns.Value, _rightColumns.Value, _bottomRows.Value, _topRows.Value, _quadMesh, trimmedWidth, trimmedHeight, _averagedFrames.Value,
                 runningSum, renderBuffer);
 
-            //GeneralHelpers.LogTiming(ref output, timer, "Initial setup"); // Debug Info
+            GeneralHelpers.LogTiming(ref output, timer, "Initial setup"); // Debug Info
 
             AverageAndBlurPixels(depthFrameDataInt, ref averagedDepthFrameData, runningSum, renderBuffer,
                 sensorElevation, elevationArray, _averagedFrames.Value, _blurRadius.Value, trimmedWidth, trimmedHeight);
@@ -184,13 +158,13 @@ namespace SandWorm
             GenerateMeshColors(ref _vertexColors, _analysisType.Value, averagedDepthFrameData, depthPixelSize,
                 _sensorElevation.Value, trimmedWidth, trimmedHeight);
 
-            //GeneralHelpers.LogTiming(ref output, timer, "Point cloud analysis"); // Debug Info
+            GeneralHelpers.LogTiming(ref output, timer, "Point cloud analysis"); // Debug Info
 
             // Generate the mesh itself
             _quadMesh = CreateQuadMesh(_quadMesh, allPoints, _vertexColors, trimmedWidth, trimmedHeight);
             _outputMesh.Add(_quadMesh);
 
-            //GeneralHelpers.LogTiming(ref output, timer, "Meshing"); // Debug Info
+            GeneralHelpers.LogTiming(ref output, timer, "Meshing"); // Debug Info
 
             // Produce 2nd type of analysis that acts on the mesh and creates new geometry
             _outputGeometry = new List<GeometryBase>();
@@ -201,11 +175,11 @@ namespace SandWorm
             if (_waterLevel.Value > 0)
                 new WaterLevel().GetGeometryForAnalysis(ref _outputGeometry, _waterLevel.Value, _quadMesh);
 
-            //GeneralHelpers.LogTiming(ref output, timer, "Mesh analysis"); // Debug Info
+            GeneralHelpers.LogTiming(ref output, timer, "Mesh analysis"); // Debug Info
 
 
             DA.SetDataList(0, _outputMesh);
-            DA.SetDataList(1, _outputGeometry);
+            DA.SetDataList(1, output);
 
             ScheduleSolve();
 
@@ -213,15 +187,46 @@ namespace SandWorm
 
         protected override Bitmap Icon => Properties.Resources.icons_mesh;
         public override Guid ComponentGuid => new Guid("{53fefb98-1cec-4134-b707-0c366072af2c}");
-
-        protected void ScheduleDelegate(GH_Document doc)
+        public override void AddedToDocument(GH_Document document)
         {
-            ExpireSolution(false);
-        }
+            GH_Document grasshopperDocument = OnPingDocument();
+            List<IGH_DocumentObject> componentList = new List<IGH_DocumentObject>();
+            PointF pivot;
+            pivot = Attributes.Pivot;
 
+            var calibrate = new Grasshopper.Kernel.Special.GH_ButtonObject();
+            calibrate.CreateAttributes();
+            calibrate.NickName = "calibrate";
+            calibrate.Attributes.Pivot = new PointF(pivot.X - 250, pivot.Y - 46);
+            calibrate.Attributes.ExpireLayout();
+            calibrate.Attributes.PerformLayout();
+            componentList.Add(calibrate);
+
+            Params.Input[0].AddSource(calibrate);
+
+            var reset = new Grasshopper.Kernel.Special.GH_ButtonObject();
+            reset.CreateAttributes();
+            reset.NickName = "reset";
+            reset.Attributes.Pivot = new PointF(pivot.X - 250, pivot.Y - 21);
+            reset.Attributes.ExpireLayout();
+            reset.Attributes.PerformLayout();
+            componentList.Add(reset);
+
+            Params.Input[1].AddSource(reset);
+
+            foreach (var component in componentList)
+                grasshopperDocument.AddObject(component, false);
+
+
+            grasshopperDocument.UndoUtil.RecordAddObjectEvent("Add buttons", componentList);
+        }
         protected void ScheduleSolve()
         {
             OnPingDocument().ScheduleSolution(GeneralHelpers.ConvertFPStoMilliseconds(_refreshRate.Value), ScheduleDelegate);
+        }
+        protected void ScheduleDelegate(GH_Document doc)
+        {
+            ExpireSolution(false);
         }
 
     }
