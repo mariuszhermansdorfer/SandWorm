@@ -31,6 +31,13 @@ namespace SandWorm.Analytics
             }
             var vertexColors = new Color[pixelArray.Length];
 
+            // TODO this is a temporary hack. Needs proper logic to calculate actual XY distance between pixels for Kinect Azure
+            if (deltaX == 0)
+            {
+                deltaX = 5;
+                deltaY = 5;
+            }
+
             // Calculate slope values
             double deltaXY = Math.Sqrt(Math.Pow(deltaX, 2) + Math.Pow(deltaY, 2));
             double slope = 0.0;
@@ -148,13 +155,13 @@ namespace SandWorm.Analytics
         {
             var slightSlopeRange = new Analysis.VisualisationRangeWithColor
             {
-                ValueSpan = 30,
+                ValueSpan = (int)gradientRange,
                 ColorStart = new ColorHSL(0.30, 1.0, 0.5), // Green
                 ColorEnd = new ColorHSL(0.15, 1.0, 0.5) // Yellow
             };
             var moderateSlopeRange = new Analysis.VisualisationRangeWithColor
             {
-                ValueSpan = 30,
+                ValueSpan = (int)gradientRange,
                 ColorStart = new ColorHSL(0.15, 1.0, 0.5), // Green
                 ColorEnd = new ColorHSL(0.0, 1.0, 0.5) // Red
             };
