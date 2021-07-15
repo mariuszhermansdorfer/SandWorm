@@ -11,7 +11,7 @@ namespace SandWorm
 {
     public static class GeneralHelpers
     {
-        public static void SetupLogging(Stopwatch timer, List<string> output)
+        public static void SetupLogging(ref Stopwatch timer, ref List<string> output)
         {
             timer = Stopwatch.StartNew(); // Setup timer used for debugging
             output = new List<string>(); // For the debugging log lines

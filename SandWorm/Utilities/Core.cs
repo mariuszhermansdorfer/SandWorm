@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Rhino.Geometry;
+using SandWorm.Analytics;
 
 namespace SandWorm
 {
@@ -231,6 +232,37 @@ namespace SandWorm
             while (renderBuffer.Count >= averageFrames) renderBuffer.RemoveFirst();
         }
         
+        public static void GenerateMeshColors(ref Color[] vertexColors, int analysisType, double[] averagedDepthFrameData, Vector2 depthPixelSize,
+            double sensorElevation, int trimmedWidth, int trimmedHeight)
+        {
+            switch (analysisType)
+            {
+                case 0: // None
+                    vertexColors = new None().GetColorCloudForAnalysis();
+                    break;
+
+                case 1: // TODO: RGB
+                    break;
+
+                case 2: // Elevation
+                    vertexColors = new Elevation().GetColorCloudForAnalysis(averagedDepthFrameData, sensorElevation);
+                    break;
+
+                case 3: // Slope
+                    vertexColors = new Slope().GetColorCloudForAnalysis(averagedDepthFrameData,
+                        trimmedWidth, trimmedHeight, depthPixelSize.X, depthPixelSize.Y);
+                    break;
+
+                case 4: // Aspect
+                    vertexColors = new Aspect().GetColorCloudForAnalysis(averagedDepthFrameData,
+                        trimmedWidth, trimmedHeight);
+                    break;
+
+                case 5: // TODO: Cut & Fill
+                    break;
+            }
+        }
+
         public static void CopyAsIntArray(ushort[] source, int[] destination, double leftColumns, double rightColumns, double topRows, double bottomRows, int height, int width) //Takes the feed and trims and casts from ushort to int
         {
             if (source == null)

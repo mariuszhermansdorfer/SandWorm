@@ -14,32 +14,13 @@ using SandWorm.Analytics;
 using static SandWorm.Core;
 using static SandWorm.Kinect2Helpers;
 using static SandWorm.Structs;
+using static SandWorm.SandWormComponentUI;
 
 
 namespace SandWorm
 {
     public class SandWormComponent : GH_ExtendableComponent
     {
-        #region UI variables
-
-        private MenuDropDown _sensorType;
-        private MenuDropDown _refreshRate;
-        private MenuSlider _sensorElevation;
-        private MenuSlider _leftColumns;
-        private MenuSlider _rightColumns;
-        private MenuSlider _topRows;
-        private MenuSlider _bottomRows;
-
-        private MenuDropDown _outputType;
-        private MenuDropDown _analysisType;
-        private MenuSlider _colorGradientRange;
-        private MenuSlider _contourIntervalRange;
-        private MenuSlider _waterLevel;
-        private MenuSlider _rainDensity;
-
-        private MenuSlider _averagedFrames;
-        private MenuSlider _blurRadius;
-        #endregion
 
         private Color[] _vertexColors;
         private Mesh _quadMesh = new Mesh();
@@ -95,152 +76,7 @@ namespace SandWorm
 
         protected override void Setup(GH_ExtendableComponentAttributes attr)
         {
-            #region Sensor Type
-            MenuPanel optionsMenuPanel = new MenuPanel(0, "panel_options")
-            {
-                Name = "Options for the SandWorm component.", // <- mouse over header for the entire "options" fold-out.
-                Header = "Define custom parameters here." // <- mouse over description
-            };
-
-            GH_ExtendableMenu optionsMenu = new GH_ExtendableMenu(0, "menu_options")
-            {
-                Name = "Sensor", // <- Foldable header
-                Header = "Setup the Kinect Sensor." // <- Foldable mouseOver
-            };
-
-            MenuStaticText sensorTypeHeader = new MenuStaticText("Sensor type", "Choose which Kinect Version you have.");
-            _sensorType = new MenuDropDown(0, "Sensor type", "Choose Kinect Version");
-            _sensorType.AddItem("Kinect Azure Narrow", "Kinect Azure Narrow");
-            _sensorType.AddItem("Kinect Azure Wide", "Kinect Azure Wide");
-            _sensorType.AddItem("Kinect for Windows", "Kinect for Windows");
-
-            MenuStaticText refreshRateHeader = new MenuStaticText("Refresh rate", "Choose the refresh rate of the model.");
-            _refreshRate = new MenuDropDown(11111, "Refresh rate", "Choose Refresh Rate");
-            _refreshRate.AddItem("Max", "Max");
-            _refreshRate.AddItem("15 FPS", "15 FPS");
-            _refreshRate.AddItem("5 FPS", "5 FPS");
-            _refreshRate.AddItem("1 FPS", "1 FPS");
-            _refreshRate.AddItem("0.2 FPS", "0.2 FPS");
-
-            MenuStaticText sensorElevationHeader = new MenuStaticText("Sensor elevation", "Distance between the sensor and the table. \nInput should be in drawing units.");
-            _sensorElevation = new MenuSlider(sensorElevationHeader, 1, 250, 1500, 700, 0);
-
-            MenuStaticText leftColumnsHeader = new MenuStaticText("Left columns", "Number of pixels to trim from the left.");
-            _leftColumns = new MenuSlider(leftColumnsHeader, 2, 0, 200, 0, 0);
-
-            MenuStaticText rightColumnsHeader = new MenuStaticText("Right columns", "Number of pixels to trim from the right.");
-            _rightColumns = new MenuSlider(rightColumnsHeader, 3, 0, 200, 0, 0);
-
-            MenuStaticText topRowsHeader = new MenuStaticText("Top rows", "Number of pixels to trim from the top.");
-            _topRows = new MenuSlider(topRowsHeader, 4, 0, 200, 0, 0);
-
-            MenuStaticText bottomRowsHeader = new MenuStaticText("Bottom rows", "Number of pixels to trim from the bottom.");
-            _bottomRows = new MenuSlider(bottomRowsHeader, 5, 0, 200, 0, 0);
-
-            optionsMenu.AddControl(optionsMenuPanel);
-            attr.AddMenu(optionsMenu);
-
-            optionsMenuPanel.AddControl(sensorTypeHeader);
-            optionsMenuPanel.AddControl(_sensorType);
-            optionsMenuPanel.AddControl(refreshRateHeader);
-            optionsMenuPanel.AddControl(_refreshRate);
-            optionsMenuPanel.AddControl(sensorElevationHeader);
-            optionsMenuPanel.AddControl(_sensorElevation);
-            optionsMenuPanel.AddControl(leftColumnsHeader);
-            optionsMenuPanel.AddControl(_leftColumns);
-            optionsMenuPanel.AddControl(rightColumnsHeader);
-            optionsMenuPanel.AddControl(_rightColumns);
-            optionsMenuPanel.AddControl(topRowsHeader);
-            optionsMenuPanel.AddControl(_topRows);
-            optionsMenuPanel.AddControl(bottomRowsHeader);
-            optionsMenuPanel.AddControl(_bottomRows);
-
-            #endregion
-
-            #region Analysis
-            MenuPanel analysisPanel = new MenuPanel(20, "panel_analysis")
-            {
-                Name = "Analysis",
-                Header = "Define custom analysis parameters."
-            };
-            GH_ExtendableMenu analysisMenu = new GH_ExtendableMenu(21, "menu_analysis")
-            {
-                Name = "Analysis",
-                Header = "Define custom analysis parameters."
-            };
-
-            MenuStaticText outputTypeHeader = new MenuStaticText("Output type", "Choose which type of geometry to output.");
-            _outputType = new MenuDropDown(22, "Ouput type", "Choose type of geometry to output.");
-            _outputType.AddItem("Mesh", "Mesh");
-            _outputType.AddItem("Point Cloud", "Point Cloud");
-
-            MenuStaticText analysisTypeHeader = new MenuStaticText("Analysis type", "Choose which type of analysis to perform on scanned geometry.");
-            _analysisType = new MenuDropDown(23, "Ouput type", "Choose type of geometry to output.");
-            _analysisType.AddItem("None", "None");
-            _analysisType.AddItem("RGB", "RGB");
-            _analysisType.AddItem("Elevation", "Elevation");
-            _analysisType.AddItem("Slope", "Slope");
-            _analysisType.AddItem("Aspect", "Aspect");
-            _analysisType.AddItem("Cut Fill", "Cut & Fill");
-
-            MenuStaticText colorGradientHeader = new MenuStaticText("Color gradient range", "Maximum value for elevation analysis. \nInput should be in drawing units.");
-            _colorGradientRange = new MenuSlider(colorGradientHeader, 24, 1, 500, 250, 0);
-
-            MenuStaticText contourIntervalHeader = new MenuStaticText("Contour interval", "Define spacing between contours. \nInput should be in drawing units.");
-            _contourIntervalRange = new MenuSlider(contourIntervalHeader, 25, 0, 30, 0, 0);
-
-            MenuStaticText waterLevelHeader = new MenuStaticText("Water level", "Define distance between the table and a simulated water surface. \nInput should be in drawing units.");
-            _waterLevel = new MenuSlider(contourIntervalHeader, 26, 0, 300, 0, 0);
-
-            MenuStaticText rainDensityHeader = new MenuStaticText("Rain density", "Define spacing between simulated rain drops. \nInput should be in drawing units.");
-            _rainDensity = new MenuSlider(contourIntervalHeader, 27, 1, 300, 50, 0);
-
-            analysisMenu.AddControl(analysisPanel);
-            attr.AddMenu(analysisMenu);
-
-            analysisPanel.AddControl(outputTypeHeader);
-            analysisPanel.AddControl(_outputType);
-            analysisPanel.AddControl(analysisTypeHeader);
-            analysisPanel.AddControl(_analysisType);
-            analysisPanel.AddControl(colorGradientHeader);
-            analysisPanel.AddControl(_colorGradientRange);
-            analysisPanel.AddControl(contourIntervalHeader);
-            analysisPanel.AddControl(_contourIntervalRange);
-            analysisPanel.AddControl(waterLevelHeader);
-            analysisPanel.AddControl(_waterLevel);
-            analysisPanel.AddControl(rainDensityHeader);
-            analysisPanel.AddControl(_rainDensity);
-
-            #endregion
-
-            #region Post processing
-
-            MenuPanel postProcessingPanel = new MenuPanel(40, "panel_analysis")
-            {
-                Name = "Post Processing",
-                Header = "Define custom post processing parameters."
-            };
-            GH_ExtendableMenu postProcessingMenu = new GH_ExtendableMenu(41, "menu_analysis")
-            {
-                Name = "Post Processing",
-                Header = "Define custom post processing parameters."
-            };
-
-            MenuStaticText averagedFramesHeader = new MenuStaticText("Averaged frames", "Number of frames to average across.");
-            _averagedFrames = new MenuSlider(averagedFramesHeader, 42, 1, 30, 1, 0);
-
-            MenuStaticText blurRadiusHeader = new MenuStaticText("Blur Radius", "Define the extent of gaussian blurring.");
-            _blurRadius = new MenuSlider(blurRadiusHeader, 43, 0, 15, 1, 0);
-
-            postProcessingMenu.AddControl(postProcessingPanel);
-            attr.AddMenu(postProcessingMenu);
-
-            postProcessingPanel.AddControl(averagedFramesHeader);
-            postProcessingPanel.AddControl(_averagedFrames);
-            postProcessingPanel.AddControl(blurRadiusHeader);
-            postProcessingPanel.AddControl(_blurRadius);
-
-            #endregion
+            SandWormComponentUI.MainComponentUI(attr);
         }
 
         protected override void OnComponentLoaded()
@@ -291,7 +127,7 @@ namespace SandWorm
                 KinectAzureController.sensor = null;
             }
                 
-            //GeneralHelpers.SetupLogging(timer, output);
+            GeneralHelpers.SetupLogging(ref timer, ref output);
             unitsMultiplier = GeneralHelpers.ConvertDrawingUnits(RhinoDoc.ActiveDoc.ModelUnitSystem);
             sensorElevation = _sensorElevation.Value / unitsMultiplier; // Standardise to mm to match sensor units
 
@@ -322,10 +158,6 @@ namespace SandWorm
                 
 
 
-
-
-
-
             // Initialize
             int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight]; 
             double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
@@ -348,35 +180,10 @@ namespace SandWorm
             GeneratePointCloud(averagedDepthFrameData, trimmedXYLookupTable, KinectAzureController.verticalTiltCorrectionMatrix, allPoints, 
                 renderBuffer, trimmedWidth, trimmedHeight, sensorElevation, unitsMultiplier, _averagedFrames.Value);
 
-
-
             // Produce 1st type of analysis that acts on the pixel array and assigns vertex colors
-            switch (_analysisType.Value)
-            {
-                case 0: // None
-                    _vertexColors = new None().GetColorCloudForAnalysis();
-                    break;
+            GenerateMeshColors(ref _vertexColors, _analysisType.Value, averagedDepthFrameData, depthPixelSize,
+                _sensorElevation.Value, trimmedWidth, trimmedHeight);
 
-                case 1: // TODO: RGB
-                    break;
-
-                case 2: // Elevation
-                    _vertexColors = new Elevation().GetColorCloudForAnalysis(averagedDepthFrameData, _sensorElevation.Value);
-                    break;
-
-                case 3: // Slope
-                    _vertexColors = new Slope().GetColorCloudForAnalysis(averagedDepthFrameData,
-                        trimmedWidth, trimmedHeight, depthPixelSize.X, depthPixelSize.Y);
-                    break;
-
-                case 4: // Aspect
-                    _vertexColors = new Aspect().GetColorCloudForAnalysis(averagedDepthFrameData,
-                        trimmedWidth, trimmedHeight);
-                    break;
-
-                case 5: // TODO: Cut & Fill
-                    break;
-            }
             //GeneralHelpers.LogTiming(ref output, timer, "Point cloud analysis"); // Debug Info
 
             // Generate the mesh itself
