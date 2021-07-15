@@ -23,6 +23,7 @@ namespace SandWorm
         #region UI variables
 
         private MenuDropDown _sensorType;
+        private MenuDropDown _refreshRate;
         private MenuSlider _sensorElevation;
         private MenuSlider _leftColumns;
         private MenuSlider _rightColumns;
@@ -113,6 +114,14 @@ namespace SandWorm
             _sensorType.AddItem("Kinect Azure Wide", "Kinect Azure Wide");
             _sensorType.AddItem("Kinect for Windows", "Kinect for Windows");
 
+            MenuStaticText refreshRateHeader = new MenuStaticText("Refresh rate", "Choose the refresh rate of the model.");
+            _refreshRate = new MenuDropDown(11111, "Refresh rate", "Choose Refresh Rate");
+            _refreshRate.AddItem("Max", "Max");
+            _refreshRate.AddItem("15 FPS", "15 FPS");
+            _refreshRate.AddItem("5 FPS", "5 FPS");
+            _refreshRate.AddItem("1 FPS", "1 FPS");
+            _refreshRate.AddItem("0.2 FPS", "0.2 FPS");
+
             MenuStaticText sensorElevationHeader = new MenuStaticText("Sensor elevation", "Distance between the sensor and the table. \nInput should be in drawing units.");
             _sensorElevation = new MenuSlider(sensorElevationHeader, 1, 250, 1500, 700, 0);
 
@@ -133,6 +142,8 @@ namespace SandWorm
 
             optionsMenuPanel.AddControl(sensorTypeHeader);
             optionsMenuPanel.AddControl(_sensorType);
+            optionsMenuPanel.AddControl(refreshRateHeader);
+            optionsMenuPanel.AddControl(_refreshRate);
             optionsMenuPanel.AddControl(sensorElevationHeader);
             optionsMenuPanel.AddControl(_sensorElevation);
             optionsMenuPanel.AddControl(leftColumnsHeader);
@@ -403,7 +414,7 @@ namespace SandWorm
 
         protected void ScheduleSolve()
         {
-            OnPingDocument().ScheduleSolution(30, ScheduleDelegate);
+            OnPingDocument().ScheduleSolution(GeneralHelpers.ConvertFPStoMilliseconds(_refreshRate.Value), ScheduleDelegate);
         }
 
     }

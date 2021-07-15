@@ -61,6 +61,27 @@ namespace SandWorm
             return unitsMultiplier;
         }
 
+        public static int ConvertFPStoMilliseconds(int fps)
+        {
+            switch (fps)
+            {
+                default:
+                case 0: // Max 
+                    return 33;
+
+                case 1: // 15 FPS
+                    return 66;
+
+                case 2: // 5 FPS
+                    return 200;
+
+                case 3: // 1 FPS
+                    return 1000;
+
+                case 4: // 0.2 FPS
+                    return 5000;
+            }
+        }
 
         // Multiply two int[] arrays using SIMD instructions
         public static int[] SimdVectorProd(int[] a, int[] b)
