@@ -23,11 +23,11 @@ namespace SandWorm.Analytics
                 return lookupTable[slopeValue];
         }
 
-        public Color[] GetColorCloudForAnalysis(double[] pixelArray, int width, int height, double deltaX, double deltaY)
+        public Color[] GetColorCloudForAnalysis(double[] pixelArray, int width, int height, double deltaX, double deltaY, double gradientRange)
         {
             if (lookupTable == null)
             {
-                ComputeLookupTableForAnalysis(0.0);
+                ComputeLookupTableForAnalysis(0.0, gradientRange);
             }
             var vertexColors = new Color[pixelArray.Length];
 
@@ -144,7 +144,7 @@ namespace SandWorm.Analytics
             return vertexColors;
         }
 
-        public override void ComputeLookupTableForAnalysis(double sensorElevation)
+        public override void ComputeLookupTableForAnalysis(double sensorElevation, double gradientRange)
         {
             var slightSlopeRange = new Analysis.VisualisationRangeWithColor
             {

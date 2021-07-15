@@ -20,11 +20,11 @@ namespace SandWorm.Analytics
             return lookupTable[aspectValue];
         }
 
-        public Color[] GetColorCloudForAnalysis(double[] pixelArray, int width, int height)
+        public Color[] GetColorCloudForAnalysis(double[] pixelArray, int width, int height, double gradientRange)
         {
             if (lookupTable == null)
             {
-                ComputeLookupTableForAnalysis(0.0);
+                ComputeLookupTableForAnalysis(0.0, gradientRange);
             }
             var vertexColors = new Color[pixelArray.Length];
 
@@ -165,7 +165,7 @@ namespace SandWorm.Analytics
             return vertexColors;
         }
 
-        public override void ComputeLookupTableForAnalysis(double sensorElevation)
+        public override void ComputeLookupTableForAnalysis(double sensorElevation, double gradientRange)
         {
             var north = new ColorHSL(0.7, 1, 0.90); // North = Blue
             var east = new ColorHSL(0.9, 1, 0.5); // East = Pink

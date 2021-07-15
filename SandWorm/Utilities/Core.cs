@@ -232,7 +232,8 @@ namespace SandWorm
             while (renderBuffer.Count >= averageFrames) renderBuffer.RemoveFirst();
         }
         
-        public static void GenerateMeshColors(ref Color[] vertexColors, int analysisType, double[] averagedDepthFrameData, Vector2 depthPixelSize,
+        public static void GenerateMeshColors(ref Color[] vertexColors, int analysisType, double[] averagedDepthFrameData, 
+            Vector2 depthPixelSize, double gradientRange,
             double sensorElevation, int trimmedWidth, int trimmedHeight)
         {
             switch (analysisType)
@@ -245,17 +246,17 @@ namespace SandWorm
                     break;
 
                 case 2: // Elevation
-                    vertexColors = new Elevation().GetColorCloudForAnalysis(averagedDepthFrameData, sensorElevation);
+                    vertexColors = new Elevation().GetColorCloudForAnalysis(averagedDepthFrameData, sensorElevation, gradientRange);
                     break;
 
                 case 3: // Slope
                     vertexColors = new Slope().GetColorCloudForAnalysis(averagedDepthFrameData,
-                        trimmedWidth, trimmedHeight, depthPixelSize.X, depthPixelSize.Y);
+                        trimmedWidth, trimmedHeight, depthPixelSize.X, depthPixelSize.Y, gradientRange);
                     break;
 
                 case 4: // Aspect
                     vertexColors = new Aspect().GetColorCloudForAnalysis(averagedDepthFrameData,
-                        trimmedWidth, trimmedHeight);
+                        trimmedWidth, trimmedHeight, gradientRange);
                     break;
 
                 case 5: // TODO: Cut & Fill

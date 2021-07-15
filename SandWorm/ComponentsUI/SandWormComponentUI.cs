@@ -3,6 +3,7 @@ namespace SandWorm
 {
     class SandWormComponentUI
     {
+        #region Class variables
 
         public static MenuDropDown _sensorType;
         public static MenuDropDown _refreshRate;
@@ -22,6 +23,7 @@ namespace SandWorm
         public static MenuSlider _averagedFrames;
         public static MenuSlider _blurRadius;
 
+        #endregion
         public static void MainComponentUI(GH_ExtendableComponentAttributes attr)
         {
             #region Sensor Type
@@ -113,7 +115,7 @@ namespace SandWorm
             _analysisType.AddItem("Cut Fill", "Cut & Fill");
 
             MenuStaticText colorGradientHeader = new MenuStaticText("Color gradient range", "Maximum value for elevation analysis. \nInput should be in drawing units.");
-            _colorGradientRange = new MenuSlider(colorGradientHeader, 24, 1, 500, 250, 0);
+            _colorGradientRange = new MenuSlider(colorGradientHeader, 24, 4, 500, 240, 0);
 
             MenuStaticText contourIntervalHeader = new MenuStaticText("Contour interval", "Define spacing between contours. \nInput should be in drawing units.");
             _contourIntervalRange = new MenuSlider(contourIntervalHeader, 25, 0, 30, 0, 0);
