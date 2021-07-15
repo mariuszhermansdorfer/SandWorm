@@ -113,6 +113,7 @@ namespace SandWorm
             _analysisType.AddItem("Slope", "Slope");
             _analysisType.AddItem("Aspect", "Aspect");
             _analysisType.AddItem("Cut Fill", "Cut & Fill");
+            _analysisType.Value = 2; // Set elevation as default
 
             MenuStaticText colorGradientHeader = new MenuStaticText("Color gradient range", "Maximum value for elevation analysis. \nInput should be in drawing units.");
             _colorGradientRange = new MenuSlider(colorGradientHeader, 24, 4, 500, 240, 0);
