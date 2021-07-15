@@ -186,9 +186,10 @@ namespace SandWorm
 
         protected override Bitmap Icon => Properties.Resources.icons_mesh;
         public override Guid ComponentGuid => new Guid("{53fefb98-1cec-4134-b707-0c366072af2c}");
+
+
         public override void AddedToDocument(GH_Document document)
         {
-            GH_Document grasshopperDocument = OnPingDocument();
             List<IGH_DocumentObject> componentList = new List<IGH_DocumentObject>();
             PointF pivot;
             pivot = Attributes.Pivot;
@@ -213,12 +214,14 @@ namespace SandWorm
 
             Params.Input[1].AddSource(reset);
 
+
             foreach (var component in componentList)
-                grasshopperDocument.AddObject(component, false);
+                document.AddObject(component, false);
 
 
-            grasshopperDocument.UndoUtil.RecordAddObjectEvent("Add buttons", componentList);
+            document.UndoUtil.RecordAddObjectEvent("Add buttons", componentList);
         }
+
         protected void ScheduleSolve()
         {
             OnPingDocument().ScheduleSolution(GeneralHelpers.ConvertFPStoMilliseconds(_refreshRate.Value), ScheduleDelegate);
