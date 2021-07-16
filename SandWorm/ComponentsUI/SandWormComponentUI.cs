@@ -1,4 +1,6 @@
-﻿
+﻿using SandWorm;
+using Rhino.UI.Controls.DataSource;
+
 namespace SandWorm
 {
     class SandWormComponentUI
@@ -173,6 +175,7 @@ namespace SandWorm
             postProcessingPanel.AddControl(_blurRadius);
 
             #endregion
+
         }
     }
 }

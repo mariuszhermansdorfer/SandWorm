@@ -16,10 +16,11 @@ using static SandWorm.Kinect2Helpers;
 using static SandWorm.Structs;
 using static SandWorm.SandWormComponentUI;
 using Grasshopper.Kernel.Types;
+using Grasshopper.Kernel.Parameters;
 
 namespace SandWorm
 {
-    public class SandWormComponent : GH_ExtendableComponent
+    public class SandWormComponent : GH_ExtendableComponent, IGH_VariableParameterComponent
     {
         #region Class Variables
 
@@ -57,6 +58,46 @@ namespace SandWorm
 
         #endregion
 
+        #region Variable Parameter
+        public bool CanInsertParameter(GH_ParameterSide side, int index) { return false; }
+        public bool CanRemoveParameter(GH_ParameterSide side, int index) { return false; }
+        public bool DestroyParameter(GH_ParameterSide side, int index) { return true; }
+        public IGH_Param CreateParameter(GH_ParameterSide side, int index)
+        {
+            return new Param_GenericObject
+            {
+                Name = "water surface",
+                NickName = "water surface",
+                Description = "Geometry output.",
+                Access = GH_ParamAccess.list,
+                Optional = true
+            };
+        }
+
+        public void VariableParameterMaintenance()
+        {
+            if (_waterLevel.Value > 0)
+            {
+                foreach (var p in this.Params.Output)
+                    if (p.Name == "water surface") return;
+                Params.RegisterOutputParam(CreateParameter(GH_ParameterSide.Output, 2));
+                Params.OnParametersChanged();
+                ExpireSolution(true);
+            }
+            else
+            {
+                for (int p = 0; p < this.Params.Output.Count; p++)
+                    if (this.Params.Output[p].Name == "water surface")
+                    {
+                        this.Params.Output[p].Recipients.Clear();
+                        this.Params.UnregisterOutputParameter(this.Params.Output[p]);
+                        Params.OnParametersChanged();
+                        ExpireSolution(true);
+                    }
+            }
+        }
+        #endregion
+
         public SandWormComponent()
           : base("Sandworm Mesh", "SW Mesh",
             "Visualise Kinect depth data as a mesh", "SandWorm", "Visualisation")
@@ -92,6 +133,7 @@ namespace SandWorm
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            VariableParameterMaintenance();
             DA.GetData(1, ref reset);
             if (reset)
             {
@@ -99,6 +141,8 @@ namespace SandWorm
                 KinectAzureController.sensor = null;
                 _quadMesh = null;
             }
+
+
 
             GeneralHelpers.SetupLogging(ref timer, ref output);
             unitsMultiplier = GeneralHelpers.ConvertDrawingUnits(RhinoDoc.ActiveDoc.ModelUnitSystem);
@@ -187,9 +231,15 @@ namespace SandWorm
             }
 
             if (_waterLevel.Value > 0)
+            {
                 WaterLevel.GetGeometryForAnalysis(ref _outputGeometry, _waterLevel.Value, allPoints, trimmedWidth);
+                if (Params.Output.Count > 2)
+                    DA.SetDataList(2, _outputGeometry);
+            } 
+            
 
-            DA.SetDataList(1, _outputGeometry);
+
+            DA.SetDataList(1, output);
             ScheduleSolve();
         }
         public override void DrawViewportWires(IGH_PreviewArgs args)
