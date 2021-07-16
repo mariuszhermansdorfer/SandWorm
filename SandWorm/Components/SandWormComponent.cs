@@ -133,6 +133,7 @@ namespace SandWorm
             int[] depthFrameDataInt = new int[trimmedWidth * trimmedHeight];
             double[] averagedDepthFrameData = new double[trimmedWidth * trimmedHeight];
             _outputMesh = new List<Mesh>();
+            _outputGeometry = new List<GeometryBase>();
 
             if (runningSum == null || runningSum.Length < elevationArray.Length)
                 runningSum = Enumerable.Range(1, elevationArray.Length).Select(i => new int()).ToArray();
@@ -167,13 +168,8 @@ namespace SandWorm
                 GeneralHelpers.LogTiming(ref output, timer, "Meshing"); // Debug Info
 
                 // Produce 2nd type of analysis that acts on the mesh and creates new geometry
-                _outputGeometry = new List<GeometryBase>();
-
                 if (_contourIntervalRange.Value > 0)
                     new Contours().GetGeometryForAnalysis(ref _outputGeometry, _contourIntervalRange.Value, _quadMesh);
-
-                if (_waterLevel.Value > 0)
-                    new WaterLevel().GetGeometryForAnalysis(ref _outputGeometry, _waterLevel.Value, _quadMesh);
 
                 GeneralHelpers.LogTiming(ref output, timer, "Mesh analysis"); // Debug Info
                 DA.SetDataList(0, _outputMesh);
@@ -181,16 +177,20 @@ namespace SandWorm
             else if (_outputType.Value == 1) // Point cloud
             {
                 _cloud = new PointCloud();
+
                 if (_vertexColors.Length > 0)
                     _cloud.AddRange(allPoints, _vertexColors);
                 else
                     _cloud.AddRange(allPoints);
+
                 GeneralHelpers.LogTiming(ref output, timer, "Point cloud display"); // Debug Info
             }
 
-            DA.SetDataList(1, output);
-            ScheduleSolve();
+            if (_waterLevel.Value > 0)
+                WaterLevel.GetGeometryForAnalysis(ref _outputGeometry, _waterLevel.Value, allPoints, trimmedWidth, trimmedHeight);
 
+            DA.SetDataList(1, _outputGeometry);
+            ScheduleSolve();
         }
         public override void DrawViewportWires(IGH_PreviewArgs args)
         {
@@ -204,7 +204,7 @@ namespace SandWorm
         {
             get
             {
-                return new BoundingBox(-500, -500, -500, 500, 500, 500);
+                return new BoundingBox(-1500, -1500, -1500, 1500, 1500, 1500);
             }
         }
 
