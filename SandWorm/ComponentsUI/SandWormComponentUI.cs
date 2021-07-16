@@ -53,7 +53,7 @@ namespace SandWorm
             _refreshRate.AddItem("1 FPS", "1 FPS");
             _refreshRate.AddItem("0.2 FPS", "0.2 FPS");
 
-            MenuStaticText sensorElevationHeader = new MenuStaticText("Sensor elevation", "Distance between the sensor and the table. \nInput should be in drawing units.");
+            MenuStaticText sensorElevationHeader = new MenuStaticText("Sensor elevation", "Distance between the sensor and the table. \nInput should be in millimeters.");
             _sensorElevation = new MenuSlider(sensorElevationHeader, 1, 250, 2500, 2000, 0);
 
             MenuStaticText leftColumnsHeader = new MenuStaticText("Left columns", "Number of pixels to trim from the left.");
@@ -115,16 +115,16 @@ namespace SandWorm
             _analysisType.AddItem("Cut Fill", "Cut & Fill");
             _analysisType.Value = 2; // Set elevation as default
 
-            MenuStaticText colorGradientHeader = new MenuStaticText("Color gradient range", "Maximum value for elevation analysis. \nInput should be in drawing units.");
+            MenuStaticText colorGradientHeader = new MenuStaticText("Color gradient range", "Maximum value for elevation analysis. \nInput should be in millimeters.");
             _colorGradientRange = new MenuSlider(colorGradientHeader, 24, 4, 500, 240, 0);
 
-            MenuStaticText contourIntervalHeader = new MenuStaticText("Contour interval", "Define spacing between contours. \nInput should be in drawing units.");
+            MenuStaticText contourIntervalHeader = new MenuStaticText("Contour interval", "Define spacing between contours. \nInput should be in millimeters.");
             _contourIntervalRange = new MenuSlider(contourIntervalHeader, 25, 0, 30, 0, 0);
 
-            MenuStaticText waterLevelHeader = new MenuStaticText("Water level", "Define distance between the table and a simulated water surface. \nInput should be in drawing units.");
+            MenuStaticText waterLevelHeader = new MenuStaticText("Water level", "Define distance between the table and a simulated water surface. \nInput should be in millimeters.");
             _waterLevel = new MenuSlider(contourIntervalHeader, 26, 0, 300, 0, 0);
 
-            MenuStaticText rainDensityHeader = new MenuStaticText("Rain density", "Define spacing between simulated rain drops. \nInput should be in drawing units.");
+            MenuStaticText rainDensityHeader = new MenuStaticText("Rain density", "Define spacing between simulated rain drops. \nInput should be in millimeters.");
             _rainDensity = new MenuSlider(contourIntervalHeader, 27, 1, 300, 50, 0);
 
             analysisMenu.AddControl(analysisPanel);

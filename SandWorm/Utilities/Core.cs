@@ -16,7 +16,7 @@ namespace SandWorm
             int xd = xStride;       // The x-dimension of the data
             int yd = yStride;       // They y-dimension of the data
 
-            if (mesh.Faces.Count != (xStride - 2) * (yStride - 2))
+            if (mesh == null || mesh.Faces.Count != (xStride - 2) * (yStride - 2))
             {
                 mesh = new Mesh();
                 mesh.Vertices.Capacity = vertices.Length;      // Don't resize array
@@ -96,7 +96,8 @@ namespace SandWorm
         }
 
        
-        public static void TrimXYLookupTable(Vector2[] sourceXY, Vector2[] destinationXY, double[] verticalTiltCorrectionLookupTable, double leftColumns, double rightColumns, double topRows, double bottomRows, int height, int width, double unitsMultiplier) //Takes the feed and trims and casts from ushort m to int
+        public static void TrimXYLookupTable(Vector2[] sourceXY, Vector2[] destinationXY, double[] verticalTiltCorrectionLookupTable, 
+            double leftColumns, double rightColumns, double topRows, double bottomRows, int height, int width, double unitsMultiplier) //Takes the feed and trims and casts from ushort m to int
         {
             ref Vector2 rv0 = ref sourceXY[0];
             ref Vector2 rd0 = ref destinationXY[0];

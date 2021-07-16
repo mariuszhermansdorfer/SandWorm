@@ -26,7 +26,6 @@ namespace SandWorm
         // Units & dimensions
         private Vector2 depthPixelSize;
         private double unitsMultiplier;
-        private double sensorElevation;
 
         private int active_Height = 0;
         private int active_Width = 0;
@@ -36,7 +35,7 @@ namespace SandWorm
         // Data arrays
         private Point3f[] allPoints;
         private Color[] _vertexColors;
-        private Mesh _quadMesh = new Mesh();
+        private Mesh _quadMesh;
 
         private readonly LinkedList<int[]> renderBuffer = new LinkedList<int[]>();
         private int[] runningSum;
@@ -98,11 +97,11 @@ namespace SandWorm
             {
                 KinectAzureController.sensor.Dispose();
                 KinectAzureController.sensor = null;
+                _quadMesh = null;
             }
                 
             GeneralHelpers.SetupLogging(ref timer, ref output);
             unitsMultiplier = GeneralHelpers.ConvertDrawingUnits(RhinoDoc.ActiveDoc.ModelUnitSystem);
-            sensorElevation = _sensorElevation.Value / unitsMultiplier; // Standardise to mm to match sensor units
 
             // Trim 
             GetTrimmedDimensions((KinectTypes)_sensorType.Value, ref trimmedWidth, ref trimmedHeight, ref elevationArray, runningSum,
@@ -114,11 +113,11 @@ namespace SandWorm
                 KinectForWindows.SetupSensor();
                 active_Height = KinectForWindows.depthHeight;
                 active_Width = KinectForWindows.depthWidth;
-                depthPixelSize = Kinect2Helpers.GetDepthPixelSpacing(sensorElevation);
+                depthPixelSize = Kinect2Helpers.GetDepthPixelSpacing(_sensorElevation.Value);
             }
             else
             {
-                KinectAzureController.SetupSensor((KinectTypes)_sensorType.Value, sensorElevation);
+                KinectAzureController.SetupSensor((KinectTypes)_sensorType.Value, _sensorElevation.Value);
                 KinectAzureController.CaptureFrame(); // Get a frame so the variables below have some values.
                 active_Height = KinectAzureController.depthHeight;
                 active_Width = KinectAzureController.depthWidth;
@@ -147,11 +146,11 @@ namespace SandWorm
             GeneralHelpers.LogTiming(ref output, timer, "Initial setup"); // Debug Info
 
             AverageAndBlurPixels(depthFrameDataInt, ref averagedDepthFrameData, runningSum, renderBuffer,
-                sensorElevation, elevationArray, _averagedFrames.Value, _blurRadius.Value, trimmedWidth, trimmedHeight);
+                _sensorElevation.Value, elevationArray, _averagedFrames.Value, _blurRadius.Value, trimmedWidth, trimmedHeight);
 
             allPoints = new Point3f[trimmedWidth * trimmedHeight];
             GeneratePointCloud(averagedDepthFrameData, trimmedXYLookupTable, KinectAzureController.verticalTiltCorrectionMatrix, allPoints, 
-                renderBuffer, trimmedWidth, trimmedHeight, sensorElevation, unitsMultiplier, _averagedFrames.Value);
+                renderBuffer, trimmedWidth, trimmedHeight, _sensorElevation.Value, unitsMultiplier, _averagedFrames.Value);
 
             // Produce 1st type of analysis that acts on the pixel array and assigns vertex colors
             GenerateMeshColors(ref _vertexColors, _analysisType.Value, averagedDepthFrameData, depthPixelSize, _colorGradientRange.Value,
@@ -184,7 +183,7 @@ namespace SandWorm
 
         }
 
-        protected override Bitmap Icon => Properties.Resources.icons_mesh;
+        protected override Bitmap Icon => Properties.Resources.Icons_Main;
         public override Guid ComponentGuid => new Guid("{53fefb98-1cec-4134-b707-0c366072af2c}");
 
 

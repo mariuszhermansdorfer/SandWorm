@@ -63,6 +63,16 @@ namespace SandWorm.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap Icons_Main {
+            get {
+                object obj = ResourceManager.GetObject("Icons_Main", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap icons_marker_areas {
             get {
                 object obj = ResourceManager.GetObject("icons_marker_areas", resourceCulture);

@@ -201,6 +201,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
+    <None Include="Resources\Icons_Main.png" />
     <None Include="app.config" />
     <None Include="packages.config" />
     <None Include="Properties\icons_setup.png" />
