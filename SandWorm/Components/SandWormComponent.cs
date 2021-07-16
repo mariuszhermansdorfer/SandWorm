@@ -187,7 +187,7 @@ namespace SandWorm
             }
 
             if (_waterLevel.Value > 0)
-                WaterLevel.GetGeometryForAnalysis(ref _outputGeometry, _waterLevel.Value, allPoints, trimmedWidth, trimmedHeight);
+                WaterLevel.GetGeometryForAnalysis(ref _outputGeometry, _waterLevel.Value, allPoints, trimmedWidth);
 
             DA.SetDataList(1, _outputGeometry);
             ScheduleSolve();

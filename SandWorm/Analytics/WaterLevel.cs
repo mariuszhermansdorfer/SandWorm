@@ -5,8 +5,7 @@ namespace SandWorm.Analytics
 {
     public static class WaterLevel
     {
-        public static void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, double waterLevel, Point3d[] pointArray, 
-            int trimmedWidth, int trimmedHeight)
+        public static void GetGeometryForAnalysis(ref List<GeometryBase> outputGeometry, double waterLevel, Point3d[] pointArray, int trimmedWidth)
         {
             List<Point3d> waterCorners = new List<Point3d>();
 
