@@ -11,7 +11,7 @@ namespace SandWorm
 {
     public static class Core
     {
-        public static Mesh CreateQuadMesh(Mesh mesh, Point3f[] vertices, Color[] colors, int xStride, int yStride)
+        public static Mesh CreateQuadMesh(Mesh mesh, Point3d[] vertices, Color[] colors, int xStride, int yStride)
         {
             int xd = xStride;       // The x-dimension of the data
             int yd = yStride;       // They y-dimension of the data
@@ -43,7 +43,7 @@ namespace SandWorm
                     using (var meshAccess = mesh.GetUnsafeLock(true))
                     {
                         int arrayLength;
-                        Point3f* points = meshAccess.VertexPoint3fArray(out arrayLength);
+                        Point3d* points = meshAccess.VertexPoint3dArray(out arrayLength);
                         for (int i = 0; i < arrayLength; i++)
                         {
                             points->Z = vertices[i].Z;
@@ -205,12 +205,12 @@ namespace SandWorm
         }
 
         public static void GeneratePointCloud(double[] averagedDepthFrameData, Vector2[] trimmedXYLookupTable, double[] verticalTiltCorrectionLookupTable, 
-            Point3f[] allPoints, LinkedList<int[]> renderBuffer, int trimmedWidth, int trimmedHeight, double sensorElevation, double unitsMultiplier, double averageFrames)
+            Point3d[] allPoints, LinkedList<int[]> renderBuffer, int trimmedWidth, int trimmedHeight, double sensorElevation, double unitsMultiplier, double averageFrames)
         {
 
             // Setup variables for per-pixel loop
             
-            Point3f tempPoint = new Point3f();
+            Point3d tempPoint = new Point3d();
             double correctedElevation = 0.0;
             for (int rows = 0, i = 0; rows < trimmedHeight; rows++)
                 for (int columns = 0; columns < trimmedWidth; columns++, i++)
@@ -223,7 +223,7 @@ namespace SandWorm
                     tempPoint.Y = trimmedXYLookupTable[i].Y;
 
                     correctedElevation = averagedDepthFrameData[i] - verticalTiltCorrectionLookupTable[i];
-                    tempPoint.Z = (float)((correctedElevation - sensorElevation) * -unitsMultiplier);
+                    tempPoint.Z = (correctedElevation - sensorElevation) * -unitsMultiplier;
                     averagedDepthFrameData[i] = correctedElevation;
 
                     allPoints[i] = tempPoint; // Add new point to point cloud

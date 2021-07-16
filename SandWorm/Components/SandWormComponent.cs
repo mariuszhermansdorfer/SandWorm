@@ -33,7 +33,7 @@ namespace SandWorm
         private int trimmedWidth;
 
         // Data arrays
-        private Point3f[] allPoints;
+        private Point3d[] allPoints;
         private Color[] _vertexColors;
         private Mesh _quadMesh;
         private PointCloud _cloud;
@@ -46,7 +46,6 @@ namespace SandWorm
         // Outputs
         private List<GeometryBase> _outputGeometry;
         private List<Mesh> _outputMesh;
-        private List<GH_Point> _outputPointCloud;
 
         // Debugging
         public static List<string> output;
@@ -148,7 +147,7 @@ namespace SandWorm
             AverageAndBlurPixels(depthFrameDataInt, ref averagedDepthFrameData, runningSum, renderBuffer,
                 _sensorElevation.Value, elevationArray, _averagedFrames.Value, _blurRadius.Value, trimmedWidth, trimmedHeight);
 
-            allPoints = new Point3f[trimmedWidth * trimmedHeight];
+            allPoints = new Point3d[trimmedWidth * trimmedHeight];
             GeneratePointCloud(averagedDepthFrameData, trimmedXYLookupTable, KinectAzureController.verticalTiltCorrectionMatrix, allPoints,
                 renderBuffer, trimmedWidth, trimmedHeight, _sensorElevation.Value, unitsMultiplier, _averagedFrames.Value);
             
@@ -181,12 +180,11 @@ namespace SandWorm
             }
             else if (_outputType.Value == 1) // Point cloud
             {
-                var _points3d = new List<Point3d>();
-                foreach (var point in allPoints)
-                    _points3d.Add(point);
-
                 _cloud = new PointCloud();
-                _cloud.AddRange(_points3d, _vertexColors);
+                if (_vertexColors.Length > 0)
+                    _cloud.AddRange(allPoints, _vertexColors);
+                else
+                    _cloud.AddRange(allPoints);
                 GeneralHelpers.LogTiming(ref output, timer, "Point cloud display"); // Debug Info
             }
 
