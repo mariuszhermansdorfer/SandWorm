@@ -36,7 +36,7 @@ namespace SandWorm
             }
             else
             {
-                mesh.Vertices.UseDoublePrecisionVertices = false;
+                mesh.Vertices.UseDoublePrecisionVertices = true;
 
                 unsafe
                 {
